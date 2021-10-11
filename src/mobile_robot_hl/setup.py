@@ -1,6 +1,6 @@
 from setuptools import setup
 
-package_name = 'agent'
+package_name = 'mobile_robot_hl'
 
 setup(
     name=package_name,
@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'agent_node = agent.agent_node:main'
+            'supervisor_node = mobile_robot_hl.supervisor_node:main',
+            'agent_node = mobile_robot_hl.agent_node:main'
         ],
     },
 )

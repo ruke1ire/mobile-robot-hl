@@ -1,6 +1,6 @@
 # Design
 
-The design ideas of this package is discussed in this file.
+The design ideas of this package is discussed in this file. Note that the ros2 framework is used therefore terms such as "node", "topic", and "service" refers to their definition in the ros2 framework.
 
 ## Required Functionalities
 
@@ -28,10 +28,14 @@ The design ideas of this package is discussed in this file.
 
 The supervisor node handles all output/input to/from the supervisor (user).
 
-**Modes of operation**
+**User Interface**
 
-- Manual control mode: let the supervisor manually control the vehicle
-- Automatic control mode: let the supervisor monitor the automatic controller
+- Display the information the agent is conditioned on from the agent_in topic
+- Display the current and previous output of the agent from the agent_output topic
+- User should be able to simply start/pause/stop the automatic control as well as save the information in the current episode to be used for training the model.
+- User should be able to select (or random) a demonstration and condition the agent model with that demonstration.
+- User should be able to condition model with manual control.
+- User should be able to start/stop the training of the model.
 
 **Params**
 - Demonstration file path
@@ -40,6 +44,13 @@ The supervisor node handles all output/input to/from the supervisor (user).
 - Publishes to desired_velocity (QOS: Reliable)
 - Subscribes to agent_output (QOS: Reliable)
 - Subscribes to agent_input (QOS: Reliable)
+- Subscribes to user_input 
+    - velocity
+    - termination_flag
+
+**Other information**
+- When creating user demonstrations or supervisor take-overs, the frequency of the control output from the supervisor will be limited to the control frequency of the agent node therefore this requires the agent node to be present.
+- 
 
 ### Agent Node
 
@@ -54,7 +65,7 @@ The agent node outputs the automatic control signals using a neural network.
 **Topics**
 - Publishes to agent_output (QOS: Reliable)
     - predicted_velocity
-    - predicted_task_termination
+    - predicted_termination_flag
 - Publishes to agent_input (QOS: Reliable)
 - Subscribes to image_raw (QOS: Best effort)
 - Subscribes to desired_velocity (QOS: Reliable)
