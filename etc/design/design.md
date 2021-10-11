@@ -98,6 +98,7 @@ The agent node outputs the automatic control signals using a neural network.
 - This node will always output the agent_in at the specified control frequency
 - The agent_output will only output when automatic control is started
 - When take-over occurs, the desired_velocity and termination_flag will be used to condition the model.
+- Directly subscribing to raw visual images can be done through the image_transport_plugins but it is only available in c++. Therefore I will use the "image_transport republish" node to first convert the compressed image from the mobile-robot-base to raw images.
 
 ---
 

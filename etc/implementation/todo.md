@@ -6,13 +6,12 @@ The todo list is written to this file.
     - [ ] Create simple GUI
     - [ ] Setup base-line ros communication topics and services
 - [ ] Implement agent_node
-    - [ ] Setup base-line ros communication topics and services
+    - [x] Setup base-line ros communication topics and services
 - [ ] Implement trainer_node
     - [ ] Setup base-line ros communication topics and services
     - [ ] Implement neural network model
 - [ ] Other nodes
     - [ ] Install and buy necessary hardware for robot parts
-- [ ] Create custom interfaces
-    - [ ] user_input
-    - [ ] agent_output
+- [x] Create custom interfaces
+    - [x] agent_output
 
