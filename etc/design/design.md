@@ -1,6 +1,6 @@
-# Design
+# System Design
 
-The design ideas of this package is discussed in this file. Note that the ros2 framework is used therefore terms such as "node", "topic", and "service" refers to their definition in the ros2 framework.
+The system design ideas of this package is discussed in this file. Note that the ros2 framework is used therefore terms such as "node", "topic", and "service" refers to their definition in the ros2 framework.
 
 ## Functional Requirements
 
@@ -59,6 +59,8 @@ The supervisor node handles all output/input to/from the supervisor (user).
 - Supervisor take-over is similar to a user-demonstration therefore the start/pause buttons of the user demonstration can be used to start/pause the supervisor take-over. To restart the automatic control press the start button in the automatic control section.
 - Defaults to manual control mode where there isn't any frequency limitation for controlling the mobile robot. This mode changes if the start buttons are pressed for automatic control or creating user demonstrations.
 
+---
+
 ### Agent Node
 
 The agent node outputs the automatic control signals using a neural network. 
@@ -90,11 +92,14 @@ The agent node outputs the automatic control signals using a neural network.
 - stop: Stop automatic control and clear current episode data
 - take-over: Pause automatic control but continue to condition the model with supervisor input
 - select_demonstration: Select a user demonstration to condition the model
+- select_model: Select the neural network model for the agent
 
 ***Other information***
 - This node will always output the agent_in at the specified control frequency
 - The agent_output will only output when automatic control is started
 - When take-over occurs, the desired_velocity and termination_flag will be used to condition the model.
+
+---
 
 ### Trainer Node
 
@@ -102,16 +107,23 @@ The trainer node trains the neural networks.
 
 ***Functional Requirements***
 - [ ] Controls
-    - [ ] Start/Pause/Stop training of actor and critic neural network
+    - [ ] Select model
+    - [ ] Start/Pause training of actor and critic neural network
+    - [ ] Restart neural network model
     - [ ] Save/Delete neural network
-    - [ ] Set saving interval
+    - [ ] Pre-train actor model with imitation learning
 
 ***Params***
 - CPU/GPU for neural network training
 - Demonstration file path
 - Path to neural networks
+- Saving interval
 
 ***Services***
+- select_model: Select model to be trained
 - start: Start training model
-- stop: Stop training the model
+- pause: Stop training the model
+- restart: Stop training the model and restart it with new random weights
 - save: Save the current model to a specific name/path
+- delete: Delete neural networks
+- pre-train: Pre-train the current actor model 

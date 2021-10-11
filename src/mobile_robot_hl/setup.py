@@ -21,7 +21,8 @@ setup(
     entry_points={
         'console_scripts': [
             'supervisor_node = mobile_robot_hl.supervisor_node:main',
-            'agent_node = mobile_robot_hl.agent_node:main'
+            'agent_node = mobile_robot_hl.agent_node:main',
+            'trainer_node = mobile_robot_hl.trainer_node:main'
         ],
     },
 )
