@@ -6,7 +6,7 @@ The todo list is written to this file.
     - [ ] Create simple GUI
     - [ ] Setup base-line ros communication topics and services
 - [ ] Implement agent_node
-    - [x] Setup base-line ros communication topics and services
+    - [ ] Setup base-line ros communication topics and services
 - [ ] Implement trainer_node
     - [ ] Setup base-line ros communication topics and services
     - [ ] Implement neural network model
