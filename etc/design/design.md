@@ -93,6 +93,7 @@ The agent node outputs the automatic control signals using a neural network.
 - take-over: Pause automatic control but continue to condition the model with supervisor input
 - select_demonstration: Select a user demonstration to condition the model
 - select_model: Select the neural network model for the agent
+- select_mode: Select between inference or exploration mode
 
 ***Other information***
 - This node will always output the agent_in at the specified control frequency
