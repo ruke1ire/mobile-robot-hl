@@ -28,8 +28,8 @@ class SupervisorNode(Node):
         self.termination_flag_publisher = self.create_publisher(Bool, 'termination_flag', reliable_qos)
         self.agent_output_subscriber = self.create_subscription(AgentOutput, 'agent_output', self.agent_output_callback ,best_effort_qos)
         self.agent_input_subscriber = self.create_subscription(Image, 'agent_input', self.agent_input_callback, reliable_qos)
-        self.user_velocity_subscriber = self.create_subscription(Twist, 'user_velocity', self.user_velocity_callback, best_effort_qos)
-        self.user_termination_flag_subscriber = self.create_subscription(Bool, 'user_termination_flag', self.user_termination_flag_callback, best_effort_qos)
+        self.user_velocity_subscriber = self.create_subscription(Twist, 'user_input/velocity', self.user_velocity_callback, best_effort_qos)
+        self.user_termination_flag_subscriber = self.create_subscription(Bool, 'user_input/termination_flag', self.user_termination_flag_callback, best_effort_qos)
 
         self.gui = SupervisorGUI()
         self.get_logger().info("Initialized Node")
