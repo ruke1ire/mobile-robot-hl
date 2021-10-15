@@ -4,7 +4,7 @@ This repo contains code that allows mobile robots to be trained for any navigati
 
 ## Files
 
-- System design can be found in [etc/design/design.md](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/design/design.md)
+- System design can be found in [etc/design/design.md](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/design/system_design.md)
 - Todo list can be found in [etc/implementation/todo.md](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/implementation/todo.md)
 
 ## Requirements
