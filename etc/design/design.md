@@ -49,9 +49,8 @@ The supervisor node handles all output/input to/from the supervisor (user).
 - Publishes to termination_flag (QOS: Reliable)
 - Subscribes to agent_output (QOS: Reliable)
 - Subscribes to agent_input (QOS: Reliable)
-- Subscribes to user_input 
-    - velocity
-    - termination_flag
+- Subscribes to user_velocity (QOS: Best Effort, Twist)
+- Subscribes to user_termination_flag (QOS: Best Effort, Bool)
 
 ***Other information***
 - Input for supervisor control will come from other external nodes such as teleop_twist_keyboard
@@ -124,8 +123,8 @@ The trainer node trains the neural networks.
 ***Services***
 - select_model: Select model to be trained
 - start: Start training model
-- pause: Stop training the model
-- restart: Stop training the model and restart it with new random weights
+- pause: Pause training the model
+- stop: Stop training the model and restart it with new random weights
 - save: Save the current model to a specific name/path
 - delete: Delete neural networks
 - pre-train: Pre-train the current actor model 
