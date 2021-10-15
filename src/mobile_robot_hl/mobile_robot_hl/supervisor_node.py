@@ -6,6 +6,8 @@ from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool
 
+from .supervisor_gui import SupervisorGUI
+
 import threading
 import tkinter
 
@@ -29,12 +31,8 @@ class SupervisorNode(Node):
         self.user_velocity_subscriber = self.create_subscription(Twist, 'user_velocity', self.user_velocity_callback, best_effort_qos)
         self.user_termination_flag_subscriber = self.create_subscription(Bool, 'user_termination_flag', self.user_termination_flag_callback, best_effort_qos)
 
-        self.init_window()
+        self.gui = SupervisorGUI()
         self.get_logger().info("Initialized Node")
-
-    def init_window(self):    
-        self.window = tkinter.Tk()
-        self.window.title("Supervisor GUI")
 
     def agent_output_callback(self, msg):
         self.get_logger().info("got agent_output")
@@ -60,7 +58,7 @@ def main():
     spin_thread = threading.Thread(target=spin_thread_, args=(node,))
     spin_thread.start()
     
-    node.window.mainloop()
+    node.gui.window.mainloop()
 
 if __name__ == '__main__':
     main()

@@ -5,7 +5,7 @@ The todo list is written to this file.
 ## In Progress
 
 - [ ] Implement supervisor_node
-    - [ ] Design GUI design
+    - [ ] Design GUI 
     - [ ] Implement every service and topic
 - [ ] Implement agent_node
     - [ ] Implement every service and topic
