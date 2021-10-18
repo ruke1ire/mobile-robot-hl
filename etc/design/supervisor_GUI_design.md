@@ -19,3 +19,6 @@ This file discusses the design of the Graphic interface for the supervisor node.
     - Save episode or user demonstration (Button + pop up text box)
     - Select/Queue user demonstration for agent (Add/remove button onto a list)
     - Start/Stop training of the model (Button)
+
+Below is the GUI Design.
+![GUI Draft](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/design/gui.jpeg)
