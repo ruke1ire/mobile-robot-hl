@@ -58,6 +58,8 @@ class SupervisorGUI():
         self.current_action_ax.spines['top'].set_color('none')
         self.current_action_ax.margins(x=0.01,y=0.01)
         self.current_action_ax.grid(True)
+        self.current_action_ax.set_ylim([-3,3])
+        self.current_action_ax.set_xlim([-3,3])
         self.current_action_ax.tick_params(labelsize=5)
 
         self.current_action_plot = FigureCanvasTkAgg(self.current_action_fig, self.display_frame)
@@ -167,7 +169,42 @@ class SupervisorGUI():
     def update_image_current(self, img_arr):
         self.image_current = ImageTk.PhotoImage(img_arr)
         self.image_current_label.configure(image=self.image_current)
+    
+    def update_current_action_plot(self, desired_vel = None, user_vel = None, agent_vel = None):
+        if type(desired_vel) == dict:
+            try:
+                self.current_action_desired_vel.remove()
+            except:
+                pass
+            self.current_action_desired_vel = self.current_action_ax.scatter(desired_vel['linear'], desired_vel['angular'],c = 'tab:blue', label="desired velocity", alpha=0.8, marker='x')
+        if type(user_vel) == dict:
+            try:
+                self.current_action_user_vel.remove()
+            except:
+                pass
+            self.current_action_user_vel = self.current_action_ax.scatter(user_vel['linear'], user_vel['angular'],c = 'tab:orange', label="user velocity", alpha=0.8, marker='o')
+        if type(agent_vel) == dict:
+            try:
+                self.current_action_agent_vel.remove()
+            except:
+                pass
+            self.current_action_agent_vel = self.current_action_ax.scatter(agent_vel['linear'], agent_vel['angular'],c = 'tab:green', label="agent velocity", alpha = 0.8, marker='^')
+
+        self.current_action_ax.legend()
+        self.current_action_plot.draw()
+
+def new_thread(gui):
+    import math
+    import time
+    i = 0
+    while True:
+        gui.update_current_action_plot(desired_vel = {'linear':math.cos(i),'angular':math.cos(i)}, user_vel={'linear':math.cos(i),'angular':math.sin(i)}, agent_vel ={'linear':2*math.cos(2*i),'angular':math.sin(2*i)})
+        i += 0.1
 
 if __name__ == "__main__":
+    from threading import Thread
+
     gui = SupervisorGUI()
+    t = Thread(target=new_thread, args=(gui,))
+    t.start()
     gui.window.mainloop()

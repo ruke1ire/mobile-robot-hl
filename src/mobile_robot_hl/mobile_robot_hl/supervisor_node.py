@@ -37,18 +37,31 @@ class SupervisorNode(Node):
         self.gui = SupervisorGUI()
         self.get_logger().info("Initialized Node")
         self.image_raw = None
+        self.agent_output = {}
+        self.agent_input = []
+        self.user_output = {}
 
     def agent_output_callback(self, msg):
-        self.get_logger().info("got agent_output")
+        velocity = msg.velocity
+        termination_flag = msg.termination_flag
+        self.agent_output['velocity'] = velocity
+        self.agent_output['termination_flag'] = termination_flag
+        self.get_logger().info(f"got agent_output {self.agent_output}")
 
-    def agent_input_callback(self, msg):
+    def agent_input_callback(self, img):
+        image = rnp.numpify(img)
+        self.agent_input.append(image)
+        self.get_logger().info(f"got image {self.agent_input[-1]}")
+
         self.get_logger().info("got agent_input")
 
-    def user_velocity_callback(self, msg):
-        self.get_logger().info("got user velocity")
+    def user_velocity_callback(self, vel):
+        self.user_output['velocity'] = vel
+        self.get_logger().info(f"got user velocity {self.user_output['velocity']}")
 
     def user_termination_flag_callback(self, msg):
-        self.get_logger().info("got user termination flag")
+        self.user_output['termination_flag'] = msg.data
+        self.get_logger().info(f"got user termination flag {self.user_output['termination_flag']}")
     
     def image_raw_callback(self, img):
         self.image_raw = rnp.numpify(img)
