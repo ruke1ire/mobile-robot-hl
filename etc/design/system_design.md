@@ -51,6 +51,7 @@ The supervisor node handles all output/input to/from the supervisor (user).
 - Subscribes to agent_input (QOS: Reliable)
 - Subscribes to user_velocity (QOS: Best Effort, Twist)
 - Subscribes to user_termination_flag (QOS: Best Effort, Bool)
+- Subscribes to image_raw (QOS: Best Effort)
 
 ***Other information***
 - Input for supervisor control will come from other external nodes such as teleop_twist_keyboard

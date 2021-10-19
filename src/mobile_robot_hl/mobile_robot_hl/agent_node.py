@@ -10,6 +10,8 @@ from std_srvs.srv import Trigger
 
 import threading
 
+import ros2_numpy as rnp
+
 class AgentNode(Node):
 
     def __init__(self):
@@ -28,7 +30,7 @@ class AgentNode(Node):
                                         reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
         self.agent_output_publisher = self.create_publisher(AgentOutput, 'agent_output', reliable_qos)
         self.agent_input_publisher = self.create_publisher(Image, 'agent_input', reliable_qos)
-        self.image_raw_subscriber = self.create_subscription(Image, 'image_raw', self.image_raw_callback ,best_effort_qos)
+        self.image_raw_subscriber = self.create_subscription(Image, 'image_raw/uncompressed', self.image_raw_callback ,best_effort_qos)
         self.desired_velocity_subscriber = self.create_subscription(Twist, 'desired_velocity', self.desired_velocity_callback, reliable_qos)
         self.termination_flag_subscriber = self.create_subscription(Bool, 'termination_flag', self.termination_flag_callback, reliable_qos)
 
@@ -41,9 +43,12 @@ class AgentNode(Node):
         self.select_mode_service = self.create_service(StringTrigger, service_prefix+'select_mode', self.select_mode_service_callback)
 
         self.get_logger().info("Initialized Node")
+        self.image_raw = None
+        #self.state = "standby" # paused | running | stopped | 
     
-    def image_raw_callback(self, msg):
-        self.get_logger().info("got image raw")
+    def image_raw_callback(self, img):
+        self.image_raw = rnp.numpify(img)
+        self.get_logger().info(f"got image {self.image_raw.shape}")
 
     def desired_velocity_callback(self, msg):
         self.get_logger().info("got desired velocity")

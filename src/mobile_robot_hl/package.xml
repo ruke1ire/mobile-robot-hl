@@ -14,6 +14,7 @@
 
   <depend>python3-tk</depend>
   <depend>custom_interfaces</depend>
+  <depend>ros2_numpy</depend>
 
   <export>
     <build_type>ament_python</build_type>
