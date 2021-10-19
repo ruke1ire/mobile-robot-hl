@@ -1,6 +1,7 @@
 import tkinter
 from tkinter import ttk
 from PIL import Image, ImageTk
+import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -13,6 +14,8 @@ class SupervisorGUI():
         self.window.rowconfigure(0, weight=1)
         self.window.columnconfigure(0, weight=1)
 
+        sns.set_theme('notebook')
+        sns.set_style("white")
         self.setup_extras()
         self.setup_mainframe()
         self.setup_display_frame()
@@ -61,8 +64,6 @@ class SupervisorGUI():
         self.action_plot_fig = plt.figure(figsize=(3,1), frameon=False)
         #self.action_plot_ax = self.action_plot_fig.add_subplot(1,1,1)
         self.action_plot_ax = self.action_plot_fig.add_axes([0, 0, 1, 1])
-        self.action_plot_ax.scatter([0], [0])
-        self.action_plot_ax.plot([0], [0])
         
         self.action_plot_ax.spines['right'].set_color('none')
         self.action_plot_ax.spines['top'].set_color('none')
@@ -72,11 +73,14 @@ class SupervisorGUI():
         self.action_plot_ax.margins(x=0.015)
         self.action_plot_ax.grid(True)
         self.action_plot_ax.tick_params(labelsize=5)
+        self.action_plot_ax.scatter([0], [0])
+        self.action_plot_ax.plot([0], [0])
+
         #plt.show()
         self.action_plot_plot = FigureCanvasTkAgg(self.action_plot_fig, self.display_frame)
 
         self.image_model_label.grid(column=0, row=0)
-        self.current_action_plot.get_tk_widget().grid(column=1, row =0)
+        self.current_action_plot.get_tk_widget().grid(column=1, row =0, sticky='nsew')
         self.action_plot_plot.get_tk_widget().grid(column=0, row =1, columnspan=2, sticky='ew')
         self.image_current_label.grid(column=0, row=4)
         self.image_slider.grid(column=0, row = 2, columnspan = 2, sticky='ew')
@@ -89,6 +93,7 @@ class SupervisorGUI():
         self.display_frame.rowconfigure(0, weight=1)
         self.display_frame.rowconfigure(4, weight=1)
         self.display_frame.columnconfigure(0, weight=1)
+        self.display_frame.columnconfigure(1, weight=1)
 
     def setup_control_frame(self):
         # setup control_frame section
