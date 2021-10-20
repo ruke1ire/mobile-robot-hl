@@ -45,18 +45,18 @@ class SupervisorNode(Node):
         velocity = msg.velocity
         termination_flag = msg.termination_flag
         self.agent_output['velocity'] = velocity
+        self.gui.update_current_action_plot(agent_vel={'linear':velocity.linear.x, 'angular': velocity.angular.z})
         self.agent_output['termination_flag'] = termination_flag
         self.get_logger().info(f"got agent_output {self.agent_output}")
 
     def agent_input_callback(self, img):
         image = rnp.numpify(img)
         self.agent_input.append(image)
-        self.get_logger().info(f"got image {self.agent_input[-1]}")
-
-        self.get_logger().info("got agent_input")
+        self.get_logger().info(f"got agent_input {self.agent_input[-1]}")
 
     def user_velocity_callback(self, vel):
         self.user_output['velocity'] = vel
+        self.gui.update_current_action_plot(user_vel={'linear':vel.linear.x, 'angular': vel.angular.z})
         self.get_logger().info(f"got user velocity {self.user_output['velocity']}")
 
     def user_termination_flag_callback(self, msg):
@@ -66,7 +66,7 @@ class SupervisorNode(Node):
     def image_raw_callback(self, img):
         self.image_raw = rnp.numpify(img)
         self.gui.update_image_current(self.image_raw)
-        self.get_logger().info(f"got image {self.image_raw.shape}")
+        self.get_logger().info(f"got image raw {self.image_raw.shape}")
 
 def spin_thread_(node):
     while True:

@@ -46,8 +46,14 @@ class SupervisorGUI():
         self.image_current_label = tkinter.ttk.Label(self.display_frame,image=self.image_current)
         self.image_slider = tkinter.ttk.Scale(self.display_frame, from_=0, to_= 100, orient=tkinter.HORIZONTAL)
         self.save_episode_button = tkinter.ttk.Button(self.display_frame, text="save")
-        self.info_frame = tkinter.ttk.Frame(self.display_frame, borderwidth=2, relief=tkinter.SUNKEN)
+        self.info_frame = tkinter.ttk.Frame(self.display_frame, borderwidth=2, relief=tkinter.SUNKEN, padding = "10 10 10 10")
         self.info_frame_title = tkinter.ttk.Label(self.info_frame, text="Information")
+        self.info_desired_vel = tkinter.ttk.Label(self.info_frame, text="Desired Velocity: \n\tLinear: 0.0 m/s\n\tAngular: 0.0 rad/s")
+        self.info_user_vel = tkinter.ttk.Label(self.info_frame, text="User Velocity:\n\tLinear: 0.0 m/s\n\tAngular: 0.0 rad/s")
+        self.info_user_termination_flag = tkinter.ttk.Label(self.info_frame, text="User Termination Flag: False")
+        self.info_agent_vel = tkinter.ttk.Label(self.info_frame, text="Agent Velocity: \n\tLinear: 0.0 m/s\n\tAngular: 0.0 rad/s")
+        self.info_agent_termination_flag = tkinter.ttk.Label(self.info_frame, text="Agent Termination Flag: False")
+        self.info_current_demo = tkinter.ttk.Label(self.info_frame, text="Selected Demonstration: None")
 
         self.current_action_fig = plt.figure(figsize=(3,3),frameon=False)
 
@@ -89,8 +95,16 @@ class SupervisorGUI():
         self.save_episode_button.grid(column=0, row = 3)
         self.info_frame.grid(column=1, row=3, rowspan=2,sticky='nsew')
         self.info_frame_title.grid(column=0, row=0)
+        self.info_desired_vel.grid(column = 0, row=1, sticky = 'w')
+        self.info_user_vel.grid(column = 0, row = 2, sticky = 'w')
+        self.info_user_termination_flag.grid(column = 0, row = 3, sticky='w')
+        self.info_agent_vel.grid(column = 0, row =4, sticky='w')
+        self.info_agent_termination_flag.grid(column = 0, row = 5, sticky='w')
+        self.info_current_demo.grid(column = 0, row = 6, sticky='w')
+
         self.info_frame.rowconfigure(0, weight=1)
         self.info_frame.columnconfigure(0, weight=1)
+        self.info_frame.rowconfigure(7, weight=1)
 
         self.display_frame.rowconfigure(0, weight=1)
         self.display_frame.rowconfigure(4, weight=1)
@@ -192,6 +206,20 @@ class SupervisorGUI():
 
         self.current_action_ax.legend()
         self.current_action_plot.draw()
+    
+    def update_info(self, desired_vel=None, user_vel=None, agent_vel=None, agent_termination=None, user_termination=None, selected_demo=None):
+        if type(desired_vel) == dict:
+            self.info_desired_vel.configure(text=f"Desired Velocity: \n\tLinear: {desired_vel['linear']:.2f} m/s\n\tAngular: {desired_vel['angular']:.2f} rad/s")
+        if type(user_vel) == dict:
+            self.info_user_vel.configure(text=f"User Velocity: \n\tLinear: {user_vel['linear']:.2f} m/s\n\tAngular: {user_vel['angular']:.2f} rad/s")
+        if type(agent_vel) == dict:
+            self.info_agent_vel.configure(text=f"Agent Velocity: \n\tLinear: {agent_vel['linear']:.2f} m/s\n\tAngular: {agent_vel['angular']:.2f} rad/s")
+        if type(agent_termination) == bool:
+            self.info_agent_termination_flag.configure(text=f"Agent Termination Flag: {agent_termination}")
+        if type(user_termination) == bool:
+            self.info_agent_termination_flag.configure(text=f"User Termination Flag: {user_termination}")
+        if type(selected_demo) == str:
+            self.info_current_demo.configure(text=f"Selected Demonstration: {selected_demo}")
 
 def new_thread(gui):
     import math
@@ -199,6 +227,7 @@ def new_thread(gui):
     i = 0
     while True:
         gui.update_current_action_plot(desired_vel = {'linear':math.cos(i),'angular':math.cos(i)}, user_vel={'linear':math.cos(i),'angular':math.sin(i)}, agent_vel ={'linear':2*math.cos(2*i),'angular':math.sin(2*i)})
+        gui.update_info(desired_vel = {'linear':math.cos(i),'angular':math.cos(i)}, user_vel={'linear':math.cos(i),'angular':math.sin(i)}, agent_vel ={'linear':2*math.cos(2*i),'angular':math.sin(2*i)})
         i += 0.1
 
 if __name__ == "__main__":
