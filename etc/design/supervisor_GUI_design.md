@@ -23,4 +23,4 @@ This file discusses the design of the Graphic interface for the supervisor node.
 Below is the GUI Draft.
 ![GUI Draft](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/design/gui.jpeg)
 
-![GUI Current](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/design/gui.png)
+![GUI Current](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/design/gui2.png)
