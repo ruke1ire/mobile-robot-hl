@@ -2,9 +2,11 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import *
 from custom_interfaces.msg import AgentOutput
+from custom_interfaces.srv import StringTrigger
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool
+from std_srvs.srv import Trigger
 
 from .supervisor_gui import SupervisorGUI
 
@@ -33,6 +35,24 @@ class SupervisorNode(Node):
         self.user_velocity_subscriber = self.create_subscription(Twist, 'user_input/velocity', self.user_velocity_callback, best_effort_qos)
         self.user_termination_flag_subscriber = self.create_subscription(Bool, 'user_input/termination_flag', self.user_termination_flag_callback, best_effort_qos)
         self.image_raw_subscriber = self.create_subscription(Image, 'image_raw/uncompressed', self.image_raw_callback ,best_effort_qos)
+
+        agent_prefix = "agent/"
+        self.agent_start_client = self.create_client(Trigger, agent_prefix+'start')
+        self.agent_pause_client = self.create_client(Trigger, agent_prefix+'pause')
+        self.agent_stop_client = self.create_client(Trigger, agent_prefix+'stop')
+        self.agent_take_over_client = self.create_client(Trigger, agent_prefix+'take_over')
+        self.agent_select_demonstration_client = self.create_client(StringTrigger, agent_prefix+'select_demonstration')
+        self.agent_select_model_client = self.create_client(StringTrigger, agent_prefix+'select_model')
+        self.agent_select_mode_client = self.create_client(StringTrigger, agent_prefix+'select_mode')
+
+        trainer_prefix='trainer/'
+        self.trainer_select_model_client = self.create_client(StringTrigger, trainer_prefix+'select_model')
+        self.trainer_start_client = self.create_client(Trigger, trainer_prefix+'start')
+        self.trainer_pause_client = self.create_client(Trigger, trainer_prefix+'pause')
+        self.trainer_stop_client = self.create_client(Trigger, trainer_prefix+'stop')
+        self.trainer_save_client = self.create_client(Trigger, trainer_prefix+'save')
+        self.trainer_delete_client = self.create_client(Trigger, trainer_prefix+'delete')
+        self.trainer_pre_train_client = self.create_client(Trigger, trainer_prefix+'pre_train')
 
         self.gui = SupervisorGUI()
         self.get_logger().info("Initialized Node")
