@@ -69,7 +69,8 @@ class SupervisorGUI():
         self.current_action_ax.tick_params(labelsize=5)
 
         self.current_action_plot = FigureCanvasTkAgg(self.current_action_fig, self.display_frame)
-        self.action_plot_fig = plt.figure(figsize=(3,1), frameon=False)
+
+        self.action_plot_fig = plt.figure(figsize=(3,2), frameon=False)
         #self.action_plot_ax = self.action_plot_fig.add_subplot(1,1,1)
         self.action_plot_ax = self.action_plot_fig.add_axes([0, 0, 1, 1])
         
@@ -81,10 +82,7 @@ class SupervisorGUI():
         self.action_plot_ax.margins(x=0.015)
         self.action_plot_ax.grid(True)
         self.action_plot_ax.tick_params(labelsize=5)
-        self.action_plot_ax.scatter([0], [0])
-        self.action_plot_ax.plot([0], [0])
 
-        #plt.show()
         self.action_plot_plot = FigureCanvasTkAgg(self.action_plot_fig, self.display_frame)
 
         self.image_model_label.grid(column=0, row=0)
@@ -204,7 +202,7 @@ class SupervisorGUI():
                 pass
             self.current_action_agent_vel = self.current_action_ax.scatter(agent_vel['linear'], agent_vel['angular'],c = 'tab:green', label="agent velocity", alpha = 0.8, marker='^')
 
-        self.current_action_ax.legend()
+        self.current_action_ax.legend(loc='upper right', prop={'size': 8})
         self.current_action_plot.draw()
     
     def update_info(self, desired_vel=None, user_vel=None, agent_vel=None, agent_termination=None, user_termination=None, selected_demo=None):
@@ -221,13 +219,51 @@ class SupervisorGUI():
         if type(selected_demo) == str:
             self.info_current_demo.configure(text=f"Selected Demonstration: {selected_demo}")
 
+    def update_action_plot(self, desired_vel = None, user_vel = None, agent_vel = None):
+        if type(desired_vel) == dict:
+            try:
+                self.action_plot_desired_vel_line_linear.pop(0).remove()
+                self.action_plot_desired_vel_line_angular.pop(0).remove()
+            except:
+                pass
+            list_range_desired_vel = list(range(1,1+len(desired_vel['linear'])))
+            self.action_plot_desired_vel_line_linear = self.action_plot_ax.plot(list_range_desired_vel,desired_vel['linear'], c = 'tab:blue', label="desired linear velocity", alpha=0.8)
+            self.action_plot_desired_vel_line_angular = self.action_plot_ax.plot(list_range_desired_vel,desired_vel['angular'], c = 'tab:cyan', label="desired angular velocity", alpha=0.8)
+        if type(user_vel) == dict:
+            try:
+                self.action_plot_user_vel_line_linear.pop(0).remove()
+                self.action_plot_user_vel_line_angular.pop(0).remove()
+            except:
+                pass
+            list_range_user_vel = list(range(1,1+len(user_vel['linear'])))
+            self.action_plot_user_vel_line_linear =  self.action_plot_ax.plot(list_range_user_vel, user_vel['linear'],c = 'tab:orange', label="user linear velocity", alpha=0.8)
+            self.action_plot_user_vel_line_angular =  self.action_plot_ax.plot(list_range_user_vel, user_vel['angular'],c = 'tab:brown', label="user angular velocity", alpha=0.8)
+            #self.action_plot_user_vel_line = self.action_plot_ax.plot(user_vel['linear'], user_vel['angular'],c = 'tab:orange', alpha=0.8)
+        if type(agent_vel) == dict:
+            try:
+                self.action_plot_agent_vel_line_linear.pop(0).remove()
+                self.action_plot_agent_vel_line_angular.pop(0).remove()
+            except:
+                pass
+            list_range_agent_vel = list(range(1, 1+len(agent_vel['linear'])))
+            self.action_plot_agent_vel_line_linear = self.action_plot_ax.plot(list_range_agent_vel, agent_vel['linear'],c = 'tab:green', label="agent linear velocity", alpha = 0.8)
+            self.action_plot_agent_vel_line_angular = self.action_plot_ax.plot(list_range_agent_vel, agent_vel['angular'],c = 'olive', label="agent angular velocity", alpha = 0.8)
+
+        self.action_plot_ax.legend(loc='lower left', prop={'size': 8})
+        self.action_plot_plot.draw()
+
 def new_thread(gui):
     import math
     import time
+    data = []
     i = 0
     while True:
+        if len(data) > 50:
+            del data[0]
+        data.append(i)
         gui.update_current_action_plot(desired_vel = {'linear':math.cos(i),'angular':math.cos(i)}, user_vel={'linear':math.cos(i),'angular':math.sin(i)}, agent_vel ={'linear':2*math.cos(2*i),'angular':math.sin(2*i)})
         gui.update_info(desired_vel = {'linear':math.cos(i),'angular':math.cos(i)}, user_vel={'linear':math.cos(i),'angular':math.sin(i)}, agent_vel ={'linear':2*math.cos(2*i),'angular':math.sin(2*i)})
+        gui.update_action_plot(desired_vel = {'linear':[math.cos(j) for j in data], 'angular':[math.cos(j) for j in data]}, agent_vel = {'linear':[2*math.cos(2*j) for j in data], 'angular':[math.sin(2*j) for j in data]}, user_vel = {'linear':[math.cos(j) for j in data], 'angular':[math.sin(j) for j in data]})
         i += 0.1
 
 if __name__ == "__main__":
