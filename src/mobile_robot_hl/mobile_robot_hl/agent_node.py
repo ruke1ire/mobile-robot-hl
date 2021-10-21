@@ -9,6 +9,7 @@ from std_msgs.msg import Bool
 from std_srvs.srv import Trigger
 
 import threading
+import os
 
 import ros2_numpy as rnp
 
@@ -16,6 +17,16 @@ class AgentNode(Node):
 
     def __init__(self):
         super().__init__('agent')
+
+        self.demo_path = os.environ['MOBILE_ROBOT_HL_DEMO_PATH']
+        try:
+            desired_velocity_topic_name = os.environ['MOBILE_ROBOT_HL_DESIRED_VELOCITY_TOPIC']
+        except:
+            desired_velocity_topic_name = "desired_velocity"
+        try:
+            image_raw_topic_name = os.environ['MOBILE_ROBOT_HL_IMAGE_RAW_TOPIC']
+        except:
+            image_raw_topic_name = "image_raw/uncompressed"
 
         self.get_logger().info("Initializing Node")
 
@@ -30,8 +41,8 @@ class AgentNode(Node):
                                         reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
         self.agent_output_publisher = self.create_publisher(AgentOutput, 'agent_output', reliable_qos)
         self.agent_input_publisher = self.create_publisher(Image, 'agent_input', reliable_qos)
-        self.image_raw_subscriber = self.create_subscription(Image, 'image_raw/uncompressed', self.image_raw_callback ,best_effort_qos)
-        self.desired_velocity_subscriber = self.create_subscription(Twist, 'desired_velocity', self.desired_velocity_callback, reliable_qos)
+        self.image_raw_subscriber = self.create_subscription(Image, image_raw_topic_name, self.image_raw_callback ,best_effort_qos)
+        self.desired_velocity_subscriber = self.create_subscription(Twist, desired_velocity_topic_name, self.desired_velocity_callback, reliable_qos)
         self.termination_flag_subscriber = self.create_subscription(Bool, 'termination_flag', self.termination_flag_callback, reliable_qos)
 
         self.start_service = self.create_service(Trigger, service_prefix+'start', self.start_service_callback)

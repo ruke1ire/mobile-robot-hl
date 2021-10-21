@@ -5,12 +5,14 @@ from custom_interfaces.srv import StringTrigger
 from std_srvs.srv import Trigger
 
 import threading
+import os
 
 class TrainerNode(Node):
 
     def __init__(self):
         super().__init__('trainer')
 
+        self.demo_path = os.environ['MOBILE_ROBOT_HL_DEMO_PATH']
         self.get_logger().info("Initializing Node")
 
         service_prefix = 'trainer/'

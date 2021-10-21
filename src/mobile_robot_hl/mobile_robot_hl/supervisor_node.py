@@ -14,11 +14,22 @@ import ros2_numpy as rnp
 
 import threading
 import tkinter
+import os
 
 class SupervisorNode(Node):
 
     def __init__(self):
         super().__init__('supervisor')
+
+        self.demo_path = os.environ['MOBILE_ROBOT_HL_DEMO_PATH']
+        try:
+            desired_velocity_topic_name = os.environ['MOBILE_ROBOT_HL_DESIRED_VELOCITY_TOPIC']
+        except:
+            desired_velocity_topic_name = "desired_velocity"
+        try:
+            image_raw_topic_name = os.environ['MOBILE_ROBOT_HL_IMAGE_RAW_TOPIC']
+        except:
+            image_raw_topic_name = "image_raw/uncompressed"
 
         self.get_logger().info("Initializing Node")
         reliable_qos = QoSProfile(history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST, 
@@ -28,13 +39,13 @@ class SupervisorNode(Node):
         best_effort_qos = QoSProfile(history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST, 
                                         depth=10, 
                                         reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
-        self.desired_velocity_publisher = self.create_publisher(Twist, 'desired_velocity', reliable_qos)
+        self.desired_velocity_publisher = self.create_publisher(Twist, desired_velocity_topic_name, reliable_qos)
         self.termination_flag_publisher = self.create_publisher(Bool, 'termination_flag', reliable_qos)
         self.agent_output_subscriber = self.create_subscription(AgentOutput, 'agent_output', self.agent_output_callback ,best_effort_qos)
         self.agent_input_subscriber = self.create_subscription(Image, 'agent_input', self.agent_input_callback, reliable_qos)
         self.user_velocity_subscriber = self.create_subscription(Twist, 'user_input/velocity', self.user_velocity_callback, best_effort_qos)
         self.user_termination_flag_subscriber = self.create_subscription(Bool, 'user_input/termination_flag', self.user_termination_flag_callback, best_effort_qos)
-        self.image_raw_subscriber = self.create_subscription(Image, 'image_raw/uncompressed', self.image_raw_callback ,best_effort_qos)
+        self.image_raw_subscriber = self.create_subscription(Image, image_raw_topic_name, self.image_raw_callback ,best_effort_qos)
 
         agent_prefix = "agent/"
         trainer_prefix='trainer/'
@@ -105,6 +116,18 @@ class SupervisorNode(Node):
                 pass
             else:
                 self.get_logger().info(f'{service_name} service error: {response.message}')
+    
+    def get_available_demo_names(self):
+        '''get the name of all the available demos'''
+        raise NotImplementedError()
+    
+    def get_demo(self, demo_name):
+        '''return the array of images, actions, etc.'''
+        raise NotImplementedError()
+
+def supervisor_node_thread_(node):
+    while True:
+        pass
 
 def spin_thread_(node):
     while True:
@@ -116,7 +139,10 @@ def main():
     node = SupervisorNode()
 
     spin_thread = threading.Thread(target=spin_thread_, args=(node,))
+    supervisor_node_thread = threading.Thread(target=supervisor_node_thread_, args=(node,))
+
     spin_thread.start()
+    supervisor_node_thread.start()
     
     node.gui.window.mainloop()
 

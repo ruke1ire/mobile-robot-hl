@@ -18,6 +18,8 @@ class SupervisorGUI():
 
         self.agent_start_state = 'paused'
         self.agent_take_over_state = 'no'
+        self.demo_recording_state = 'no'
+        self.model_training_state = 'no'
 
         sns.set_theme('notebook')
         sns.set_style("white")
@@ -128,10 +130,15 @@ class SupervisorGUI():
         self.automatic_take_over_button = tkinter.ttk.Button(self.automatic_control_button_frame, text="take over", command = self.agent_take_over_button_trigger)
         self.automatic_take_over_button.state(['disabled'])
         self.demo_control_button_frame = tkinter.ttk.Frame(self.demo_control_frame)
-        self.demo_start_button = tkinter.ttk.Button(self.demo_control_button_frame, text="start")
-        self.demo_stop_button = tkinter.ttk.Button(self.demo_control_button_frame, text="stop")
+        self.demo_start_button = tkinter.ttk.Button(self.demo_control_button_frame, text="start", command = self.demo_start_button_trigger)
+        self.demo_stop_button = tkinter.ttk.Button(self.demo_control_button_frame, text="stop", command = self.demo_stop_button_trigger)
+        self.demo_stop_button.state(['disabled'])
+        self.demo_save_button = tkinter.ttk.Button(self.demo_control_button_frame, text="save", command = self.demo_save_button_trigger)
+        self.demo_name = tkinter.StringVar()
+        self.demo_name_entry = ttk.Combobox(self.demo_control_frame, textvariable=self.demo_name)
+
         self.model_control_button_frame = tkinter.ttk.Frame(self.model_control_frame)
-        self.model_start_button = tkinter.ttk.Button(self.model_control_button_frame, text="start")
+        self.model_start_button = tkinter.ttk.Button(self.model_control_button_frame, text="start", command = self.model_start_button_trigger)
         self.saved_demo_list = tkinter.Listbox(self.task_queue_frame)
         self.task_add_button = tkinter.ttk.Button(self.task_queue_frame, text=">>")
         self.task_remove_button = tkinter.ttk.Button(self.task_queue_frame, text="<<")
@@ -153,9 +160,11 @@ class SupervisorGUI():
 
         self.demo_control_frame.grid(column=0, row=1, sticky='nsew')
         self.demo_label.grid(column=0, row=0)
-        self.demo_control_button_frame.grid(column=0, row =1)
+        self.demo_control_button_frame.grid(column=0, row =2)
+        self.demo_name_entry.grid(column =0, row = 1)
         self.demo_start_button.grid(column=0, row = 0)
         self.demo_stop_button.grid(column=1, row = 0)
+        self.demo_save_button.grid(column=2, row = 0)
         self.demo_control_frame.rowconfigure(0, weight=1)
         self.demo_control_frame.columnconfigure(0, weight=1)
 
@@ -271,6 +280,8 @@ class SupervisorGUI():
             self.automatic_start_button.configure(text="pause")
             self.automatic_take_over_button.state(['!disabled'])
             self.automatic_stop_button.state(['!disabled'])
+            self.demo_start_button.state(['disabled'])
+            self.demo_save_button.state(['disabled'])
             print("[INFO] Automatic control started")
         elif(self.agent_start_state=='started'):
             try:
@@ -292,6 +303,8 @@ class SupervisorGUI():
         self.automatic_take_over_button.configure(text="take over")
         self.automatic_take_over_button.state(['disabled'])
         self.automatic_stop_button.state(['disabled'])
+        self.demo_start_button.state(['!disabled'])
+        self.demo_save_button.state(['!disabled'])
         print("[INFO] Automatic control stopped")
 
     def agent_take_over_button_trigger(self):
@@ -313,7 +326,54 @@ class SupervisorGUI():
             self.agent_take_over_state = 'no'
             self.automatic_take_over_button.configure(text="take over")
             print("[INFO] Supervisor take-over paused")
+    
+    def demo_start_button_trigger(self):
+        if(self.demo_recording_state == 'no'):
+            self.demo_recording_state = 'yes'
+            self.demo_start_button.configure(text="pause")
+            self.demo_stop_button.state(['!disabled'])
+            print("[INFO] Demonstration recording started")
+        elif(self.demo_recording_state == 'yes'):
+            self.ddemo_recording_state = 'no'
+            self.demo_start_button.configure(text="start")
+            print("[INFO] Demonstration recording paused")
+    
+    def demo_stop_button_trigger(self):
+        self.demo_recording_state = 'no'
+        self.demo_start_button.configure(text="start")
+        self.demo_stop_button.state(['disabled'])
+        print("[INFO] Demonstration recording stopped")
 
+    def demo_save_button_trigger(self):
+        demo_name = self.demo_name_entry.get()
+        if demo_name == "":
+            print("[INFO] Demonstration name not specified")
+        else:
+            print(f"[INFO] Demonstration saved as {demo_name}")
+
+    def demo_update_entry(self, demo_names_tuple):
+        self.demo_name_entry['values'] = demo_names_tuple
+    
+    def model_start_button_trigger(self):
+        if(self.model_training_state == 'no'):
+            try:
+                self.ros_node.call_service(service_name = 'trainer/start')
+            except:
+                pass
+
+            self.model_training_state = 'yes'
+            self.model_start_button.configure(text="pause")
+            print("[INFO] Model training started")
+        elif(self.model_training_state == 'yes'):
+            try:
+                self.ros_node.call_service(service_name = 'trainer/pause')
+            except:
+                pass
+
+            self.model_training_state = 'no'
+            self.model_start_button.configure(text="start")
+            print("[INFO] Model training stopped")
+    
 
 def new_thread(gui):
     import math
