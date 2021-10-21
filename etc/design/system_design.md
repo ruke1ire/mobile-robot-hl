@@ -161,4 +161,9 @@ Task episode files stores the actions an agent/supervisor took when performing a
 
 ### Neural Network Models
 
-- 
+- Tensorboard will be used to visualize the training process
+- Each training run will have a unique directory
+- Each type of model such as the *actor model*, *critic model* will be saved in a separate directory within the same training run directory
+    - each type of model will have a specific user defined model namme/id
+    - there will be a yaml file inside the model directory which provides information about the model and the training process
+- The model will be saved every *x* training iteration. The name of the file will increment from 1 onwards.
