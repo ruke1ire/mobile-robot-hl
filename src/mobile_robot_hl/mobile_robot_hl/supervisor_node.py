@@ -37,22 +37,24 @@ class SupervisorNode(Node):
         self.image_raw_subscriber = self.create_subscription(Image, 'image_raw/uncompressed', self.image_raw_callback ,best_effort_qos)
 
         agent_prefix = "agent/"
-        self.agent_start_client = self.create_client(Trigger, agent_prefix+'start')
-        self.agent_pause_client = self.create_client(Trigger, agent_prefix+'pause')
-        self.agent_stop_client = self.create_client(Trigger, agent_prefix+'stop')
-        self.agent_take_over_client = self.create_client(Trigger, agent_prefix+'take_over')
-        self.agent_select_demonstration_client = self.create_client(StringTrigger, agent_prefix+'select_demonstration')
-        self.agent_select_model_client = self.create_client(StringTrigger, agent_prefix+'select_model')
-        self.agent_select_mode_client = self.create_client(StringTrigger, agent_prefix+'select_mode')
-
         trainer_prefix='trainer/'
-        self.trainer_select_model_client = self.create_client(StringTrigger, trainer_prefix+'select_model')
-        self.trainer_start_client = self.create_client(Trigger, trainer_prefix+'start')
-        self.trainer_pause_client = self.create_client(Trigger, trainer_prefix+'pause')
-        self.trainer_stop_client = self.create_client(Trigger, trainer_prefix+'stop')
-        self.trainer_save_client = self.create_client(Trigger, trainer_prefix+'save')
-        self.trainer_delete_client = self.create_client(Trigger, trainer_prefix+'delete')
-        self.trainer_pre_train_client = self.create_client(Trigger, trainer_prefix+'pre_train')
+
+        self.services = {}
+        self.services[agent_prefix+'start'] = self.create_client(Trigger, agent_prefix+'start')
+        self.services[agent_prefix+'pause'] = self.create_client(Trigger, agent_prefix+'pause')
+        self.services[agent_prefix+'stop'] = self.create_client(Trigger, agent_prefix+'stop')
+        self.services[agent_prefix+'take_over'] = self.create_client(Trigger, agent_prefix+'take_over')
+        self.services[agent_prefix+'select_demonstration'] = self.create_client(StringTrigger, agent_prefix+'select_demonstration')
+        self.services[agent_prefix+'select_model'] = self.create_client(StringTrigger, agent_prefix+'select_model')
+        self.services[agent_prefix+'select_mode'] = self.create_client(StringTrigger, agent_prefix+'select_mode')
+
+        self.services[trainer_prefix+'select_model'] = self.create_client(StringTrigger, trainer_prefix+'select_model')
+        self.services[trainer_prefix+'start'] = self.create_client(Trigger, trainer_prefix+'start')
+        self.services[trainer_prefix+'pause'] = self.create_client(Trigger, trainer_prefix+'pause')
+        self.services[trainer_prefix+'stop'] = self.create_client(Trigger, trainer_prefix+'stop')
+        self.services[trainer_prefix+'save'] = self.create_client(Trigger, trainer_prefix+'save')
+        self.services[trainer_prefix+'delete'] = self.create_client(Trigger, trainer_prefix+'delete')
+        self.services[trainer_prefix+'pre_train'] = self.create_client(Trigger, trainer_prefix+'pre_train')
 
         self.gui = SupervisorGUI()
         self.get_logger().info("Initialized Node")
@@ -87,6 +89,22 @@ class SupervisorNode(Node):
         self.image_raw = rnp.numpify(img)
         self.gui.update_image_current(self.image_raw)
         self.get_logger().info(f"got image raw {self.image_raw.shape}")
+    
+    def call_service(self, service_name, command=None):
+        if self.services[service_name].wait_for_service(timeout_sec=0.1) == False:
+            self.get_logger().info(f'{service_name} service not available')
+        else:
+            if(command == None):
+                request = Trigger.Request()
+            else:
+                request = StringTrigger.Request()
+                request.command = str(command)
+
+            response = self.services[service_name].call(request)
+            if(response.success == True):
+                pass
+            else:
+                self.get_logger().info(f'{service_name} service error: {response.message}')
 
 def spin_thread_(node):
     while True:

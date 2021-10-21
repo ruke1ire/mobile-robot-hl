@@ -7,12 +7,17 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 class SupervisorGUI():
-    def __init__(self):
+    def __init__(self, ros_node = None):
+
+        self.ros_node = ros_node
 
         self.window = tkinter.Tk()
         self.window.title("Supervisor GUI")
         self.window.rowconfigure(0, weight=1)
         self.window.columnconfigure(0, weight=1)
+
+        self.agent_start_state = 'paused'
+        self.agent_take_over_state = 'no'
 
         sns.set_theme('notebook')
         sns.set_style("white")
@@ -117,9 +122,11 @@ class SupervisorGUI():
         self.task_queue_frame = tkinter.ttk.Frame(self.control_frame, borderwidth=2, relief=tkinter.SUNKEN, padding= "10 10 10 10")
 
         self.automatic_control_button_frame = tkinter.ttk.Frame(self.automatic_control_frame)
-        self.automatic_start_button = tkinter.ttk.Button(self.automatic_control_button_frame, text="start")
-        self.automatic_stop_button = tkinter.ttk.Button(self.automatic_control_button_frame, text="stop")
-        self.automatic_take_over_button = tkinter.ttk.Button(self.automatic_control_button_frame, text="take over")
+        self.automatic_start_button = tkinter.ttk.Button(self.automatic_control_button_frame, text="start", command = self.agent_start_button_trigger)
+        self.automatic_stop_button = tkinter.ttk.Button(self.automatic_control_button_frame, text="stop", command = self.agent_stop_button_trigger)
+        self.automatic_stop_button.state(['disabled'])
+        self.automatic_take_over_button = tkinter.ttk.Button(self.automatic_control_button_frame, text="take over", command = self.agent_take_over_button_trigger)
+        self.automatic_take_over_button.state(['disabled'])
         self.demo_control_button_frame = tkinter.ttk.Frame(self.demo_control_frame)
         self.demo_start_button = tkinter.ttk.Button(self.demo_control_button_frame, text="start")
         self.demo_stop_button = tkinter.ttk.Button(self.demo_control_button_frame, text="stop")
@@ -251,6 +258,62 @@ class SupervisorGUI():
 
         self.action_plot_ax.legend(loc='lower left', prop={'size': 8})
         self.action_plot_plot.draw()
+    
+    def agent_start_button_trigger(self):
+        if(self.agent_start_state=='paused'):
+            try:
+                self.ros_node.call_service(service_name = 'agent/start')
+            except:
+                pass
+            self.agent_take_over_state = 'no'
+            self.automatic_take_over_button.configure(text="take over")
+            self.agent_start_state = 'started'
+            self.automatic_start_button.configure(text="pause")
+            self.automatic_take_over_button.state(['!disabled'])
+            self.automatic_stop_button.state(['!disabled'])
+            print("[INFO] Automatic control started")
+        elif(self.agent_start_state=='started'):
+            try:
+                self.ros_node.call_service(service_name = 'agent/pause')
+            except:
+                pass
+            self.agent_start_state = 'paused'
+            self.automatic_start_button.configure(text="start")
+            print("[INFO] Automatic control paused")
+
+    def agent_stop_button_trigger(self):
+        try:
+            self.ros_node.call_service(service_name = 'agent/stop')
+        except:
+            pass
+        self.agent_start_state = 'paused'
+        self.automatic_start_button.configure(text="start")
+        self.agent_take_over_state = 'no'
+        self.automatic_take_over_button.configure(text="take over")
+        self.automatic_take_over_button.state(['disabled'])
+        self.automatic_stop_button.state(['disabled'])
+        print("[INFO] Automatic control stopped")
+
+    def agent_take_over_button_trigger(self):
+        if(self.agent_take_over_state == 'no'):
+            try:
+                self.ros_node.call_service(service_name = 'agent/take_over')
+            except:
+                pass
+            self.agent_take_over_state = 'yes'
+            self.automatic_take_over_button.configure(text="pause")
+            self.agent_start_state = 'paused'
+            self.automatic_start_button.configure(text="start")
+            print("[INFO] Supervisor take-over")
+        elif(self.agent_take_over_state == 'yes'):
+            try:
+                self.ros_node.call_service(service_name = 'agent/pause')
+            except:
+                pass
+            self.agent_take_over_state = 'no'
+            self.automatic_take_over_button.configure(text="take over")
+            print("[INFO] Supervisor take-over paused")
+
 
 def new_thread(gui):
     import math
