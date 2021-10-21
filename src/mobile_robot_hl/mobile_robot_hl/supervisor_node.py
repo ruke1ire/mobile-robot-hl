@@ -15,6 +15,7 @@ import ros2_numpy as rnp
 import threading
 import tkinter
 import os
+import glob
 
 class SupervisorNode(Node):
 
@@ -68,11 +69,13 @@ class SupervisorNode(Node):
         self.services[trainer_prefix+'pre_train'] = self.create_client(Trigger, trainer_prefix+'pre_train')
 
         self.gui = SupervisorGUI()
+        self.gui.saved_demo = self.get_available_demo_names()
         self.get_logger().info("Initialized Node")
         self.image_raw = None
         self.agent_output = {}
         self.agent_input = []
         self.user_output = {}
+        self.demo = []
 
     def agent_output_callback(self, msg):
         velocity = msg.velocity
@@ -119,10 +122,35 @@ class SupervisorNode(Node):
     
     def get_available_demo_names(self):
         '''get the name of all the available demos'''
-        raise NotImplementedError()
+        demos = [os.basename(x) for x in glob.glob(self.demo_path+"/*")]
+        return demos
     
     def get_demo(self, demo_name):
         '''return the array of images, actions, etc.'''
+        raise NotImplementedError()
+    
+    def save_demo(self, demo_name):
+        '''save a demonstration'''
+        raise NotImplementedError()
+
+    def append_demo(self, image, action):
+        '''append a data point to the demonstration'''
+        raise NotImplementedError()
+    
+    def start_automatic(self):
+        '''start automatic control'''
+        raise NotImplementedError()
+
+    def pause_automatic(self):
+        '''pause automatic control'''
+        raise NotImplementedError()
+    
+    def stop_automatic(self):
+        '''stop automatic control'''
+        raise NotImplementedError()
+
+    def take_over_automatic(self):
+        '''take-over automatic control'''
         raise NotImplementedError()
 
 def supervisor_node_thread_(node):

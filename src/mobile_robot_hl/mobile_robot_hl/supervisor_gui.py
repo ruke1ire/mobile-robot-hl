@@ -1,5 +1,5 @@
 import tkinter
-from tkinter import ttk
+from tkinter import StringVar, ttk
 from PIL import Image, ImageTk
 import seaborn as sns
 import numpy as np
@@ -139,10 +139,12 @@ class SupervisorGUI():
 
         self.model_control_button_frame = tkinter.ttk.Frame(self.model_control_frame)
         self.model_start_button = tkinter.ttk.Button(self.model_control_button_frame, text="start", command = self.model_start_button_trigger)
-        self.saved_demo_list = tkinter.Listbox(self.task_queue_frame)
+        self.saved_demo = StringVar(value=[])
+        self.saved_demo_list = tkinter.Listbox(self.task_queue_frame, listvariable=self.saved_demo)
         self.task_add_button = tkinter.ttk.Button(self.task_queue_frame, text=">>")
         self.task_remove_button = tkinter.ttk.Button(self.task_queue_frame, text="<<")
-        self.queued_demo_list = tkinter.Listbox(self.task_queue_frame)
+        self.queued_demo = StringVar(value=[])
+        self.queued_demo_list = tkinter.Listbox(self.task_queue_frame, listvariable=self.queued_demo)
         self.demo_label = tkinter.ttk.Label(self.demo_control_frame, text="Demonstration Control Panel")
         self.automatic_label = tkinter.ttk.Label(self.automatic_control_frame, text="Automatic Control Panel")
         self.model_label = tkinter.ttk.Label(self.model_control_frame, text="Model Control Panel")

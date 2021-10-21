@@ -130,3 +130,35 @@ The trainer node trains the neural networks.
 - save: Save the current model to a specific name/path
 - delete: Delete neural networks
 - pre-train: Pre-train the current actor model 
+
+## Saved Files
+
+### Demonstration Files
+
+Demonstration files store observed images and actions performed in a demonstration.
+
+- All demonstrations are saved into a path specified in the environment variable **MOBILE_ROBOT_HL_DEMO_PATH**
+- The demonstration name is the name of the task
+- Each unique demonstration name has a unique directory
+    - There will be a yaml file which gives the information about this demonstration name
+- Each unique demonstration also has a unique directory and a unique id
+    - Inside this directory the sequence of images are stored with the file name corresponding to the ordering of the images in the demonstration
+    - There will also be a yaml file which gives information about this demonstration file such as the supervisor action
+
+### Task Episode Files
+
+Task episode files stores the actions an agent/supervisor took when performing a task corresponding to a particular demonstration file.
+
+- All task episodes are saved into a path specified in the environment variable **MOBILE_ROBOT_HL_TASK_PATH**
+- Each task references a demonstration file, therefore it will inherit the same directory structure as the corresponding demonstration file
+    - eg: if a task references a demonstration file in **MOBILE_ROBOT_HL_DEMO_PATH**/task1/1/ the data for that task is stored in **MOBILE_ROBOT_HL_TASK_PATH**/task1/1/
+- The files inside the directory containing an episode are as follows:
+    - observed images
+    - yaml file containing information about 
+        - agent actions
+        - supervisor take-over action
+        - reward?
+
+### Neural Network Models
+
+- 

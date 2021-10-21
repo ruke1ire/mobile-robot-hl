@@ -1,5 +1,6 @@
 export MOBILE_ROBOT_HL_ROOT=$PWD/
-export MOBILE_ROBOT_HL_DEMO_PATH=$PWD/data
+export MOBILE_ROBOT_HL_DEMO_PATH=$PWD/data/demo
+export MOBILE_ROBOT_HL_TASK_PATH=$PWD/data/task
 
 export MOBILE_ROBOT_HL_DESIRED_VELOCITY_TOPIC=desired_velocity
 export MOBILE_ROBOT_HL_IMAGE_RAW_TOPIC=image_raw/uncompressed
