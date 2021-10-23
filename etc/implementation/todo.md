@@ -5,7 +5,8 @@ The todo list is written to this file.
 ## In Progress
 
 - [ ] Implement supervisor_node
-    - [ ] Design GUI 
+    - [ ] GUI
+        - [ ] Create an entry for selecting the demonstration whenever starting the automatic controller, and make it required to select a demonstration, otherwise, disable the automatic start button
     - [ ] Implement every service and topic
 - [ ] Implement agent_node
     - [ ] Implement every service and topic
@@ -21,6 +22,7 @@ The todo list is written to this file.
 ## Done
 
 - [ ] Implement supervisor_node
+    - [x] Design GUI 
     - [x] Create simple GUI
     - [x] Setup base-line ros communication topics and services
 - [ ] Implement agent_node
