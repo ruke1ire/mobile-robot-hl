@@ -60,6 +60,7 @@ The supervisor node handles all output/input to/from the supervisor (user).
 - Defaults to manual control mode where there isn't any frequency limitation for controlling the mobile robot. This mode changes if the start buttons are pressed for automatic control or creating user demonstrations.
 - GUI design can be found in [etc/design/supervisor_GUI_design.md](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/design/supervisor_GUI_design.md)
 - Below is the state-flow-diagram 
+
 ![etc/design/supervisor_GUI_state_diagram.png](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/design/supervisor_GUI_state_diagram.png)
 
 ---
