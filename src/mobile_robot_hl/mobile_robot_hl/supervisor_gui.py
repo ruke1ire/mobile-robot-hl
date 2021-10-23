@@ -1,5 +1,7 @@
 import tkinter
+from enum import Enum
 from tkinter import StringVar, ttk
+from tkinter.constants import S
 from PIL import Image, ImageTk
 import seaborn as sns
 import numpy as np
@@ -16,9 +18,7 @@ class SupervisorGUI():
         self.window.rowconfigure(0, weight=1)
         self.window.columnconfigure(0, weight=1)
 
-        self.agent_start_state = 'paused'
-        self.agent_take_over_state = 'no'
-        self.demo_recording_state = 'no'
+        self.state = SupervisorState.STANDBY
         self.model_training_state = 'no'
 
         sns.set_theme('notebook')
@@ -129,11 +129,14 @@ class SupervisorGUI():
         self.automatic_stop_button.state(['disabled'])
         self.automatic_take_over_button = tkinter.ttk.Button(self.automatic_control_button_frame, text="take over", command = self.agent_take_over_button_trigger)
         self.automatic_take_over_button.state(['disabled'])
+        self.automatic_save_button = tkinter.ttk.Button(self.automatic_control_button_frame, text="save", command = self.agent_save_button_trigger)
+        self.automatic_save_button.state(['disabled'])
         self.demo_control_button_frame = tkinter.ttk.Frame(self.demo_control_frame)
         self.demo_start_button = tkinter.ttk.Button(self.demo_control_button_frame, text="start", command = self.demo_start_button_trigger)
         self.demo_stop_button = tkinter.ttk.Button(self.demo_control_button_frame, text="stop", command = self.demo_stop_button_trigger)
         self.demo_stop_button.state(['disabled'])
         self.demo_save_button = tkinter.ttk.Button(self.demo_control_button_frame, text="save", command = self.demo_save_button_trigger)
+        self.demo_save_button.state(['disabled'])
         self.demo_name = tkinter.StringVar()
         self.demo_name_entry = ttk.Combobox(self.demo_control_frame, textvariable=self.demo_name)
 
@@ -157,6 +160,7 @@ class SupervisorGUI():
         self.automatic_start_button.grid(column=1, row = 0)
         self.automatic_stop_button.grid(column=0, row = 0)
         self.automatic_take_over_button.grid(column=2, row = 0)
+        self.automatic_save_button.grid(column=3, row = 0)
         self.automatic_control_frame.rowconfigure(0, weight=1)
         self.automatic_control_frame.columnconfigure(0, weight=1)
 
@@ -271,80 +275,73 @@ class SupervisorGUI():
         self.action_plot_plot.draw()
     
     def agent_start_button_trigger(self):
-        if(self.agent_start_state=='paused'):
-            try:
-                self.ros_node.call_service(service_name = 'agent/start')
-            except:
-                pass
-            self.agent_take_over_state = 'no'
+        if(self.state==SupervisorState.TASK_PAUSED or self.state == SupervisorState.STANDBY or self.state == SupervisorState.TASK_TAKE_OVER):
+            self.state = SupervisorState.TASK_RUNNING
             self.automatic_take_over_button.configure(text="take over")
-            self.agent_start_state = 'started'
             self.automatic_start_button.configure(text="pause")
             self.automatic_take_over_button.state(['!disabled'])
             self.automatic_stop_button.state(['!disabled'])
+            self.automatic_save_button.state(['!disabled'])
             self.demo_start_button.state(['disabled'])
             self.demo_save_button.state(['disabled'])
             print("[INFO] Automatic control started")
-        elif(self.agent_start_state=='started'):
-            try:
-                self.ros_node.call_service(service_name = 'agent/pause')
-            except:
-                pass
-            self.agent_start_state = 'paused'
+        elif(self.state == SupervisorState.TASK_RUNNING):
+            self.state = SupervisorState.TASK_PAUSED
             self.automatic_start_button.configure(text="start")
             print("[INFO] Automatic control paused")
+        self.ros_node.update_state(self.state)
 
     def agent_stop_button_trigger(self):
-        try:
-            self.ros_node.call_service(service_name = 'agent/stop')
-        except:
-            pass
-        self.agent_start_state = 'paused'
+        self.state = SupervisorState.STANDBY
         self.automatic_start_button.configure(text="start")
-        self.agent_take_over_state = 'no'
         self.automatic_take_over_button.configure(text="take over")
         self.automatic_take_over_button.state(['disabled'])
         self.automatic_stop_button.state(['disabled'])
+        self.automatic_save_button.state(['disabled'])
         self.demo_start_button.state(['!disabled'])
-        self.demo_save_button.state(['!disabled'])
+        self.ros_node.update_state(self.state)
         print("[INFO] Automatic control stopped")
 
     def agent_take_over_button_trigger(self):
-        if(self.agent_take_over_state == 'no'):
-            try:
-                self.ros_node.call_service(service_name = 'agent/take_over')
-            except:
-                pass
-            self.agent_take_over_state = 'yes'
+        if(self.state == SupervisorState.TASK_RUNNING or self.state == SupervisorState.TASK_PAUSED):
             self.automatic_take_over_button.configure(text="pause")
-            self.agent_start_state = 'paused'
+            self.state = SupervisorState.TASK_TAKE_OVER
             self.automatic_start_button.configure(text="start")
             print("[INFO] Supervisor take-over")
-        elif(self.agent_take_over_state == 'yes'):
-            try:
-                self.ros_node.call_service(service_name = 'agent/pause')
-            except:
-                pass
-            self.agent_take_over_state = 'no'
+        elif(self.state == SupervisorState.TASK_TAKE_OVER):
+            self.state = SupervisorState.TASK_PAUSED
             self.automatic_take_over_button.configure(text="take over")
             print("[INFO] Supervisor take-over paused")
+        self.ros_node.update_state(self.state)
+
+    def agent_save_button_trigger(self):
+        self.state = SupervisorState.TASK_PAUSED
+        self.automatic_start_button.configure(text="start")
+        self.automatic_take_over_button.configure(text="take over")
+        self.ros_node.update_state(self.state)
     
     def demo_start_button_trigger(self):
-        if(self.demo_recording_state == 'no'):
-            self.demo_recording_state = 'yes'
+        if(self.state == SupervisorState.STANDBY or self.state == SupervisorState.DEMO_PAUSED):
+            self.state = SupervisorState.DEMO_RECORDING
             self.demo_start_button.configure(text="pause")
             self.demo_stop_button.state(['!disabled'])
+            self.demo_save_button.state(['!disabled'])
+            self.automatic_start_button.state(['disabled'])
             print("[INFO] Demonstration recording started")
-        elif(self.demo_recording_state == 'yes'):
-            self.ddemo_recording_state = 'no'
+        elif(self.state == SupervisorState.DEMO_RECORDING):
+            self.state = SupervisorState.DEMO_PAUSED
             self.demo_start_button.configure(text="start")
             print("[INFO] Demonstration recording paused")
+        self.ros_node.update_state(self.state)
     
     def demo_stop_button_trigger(self):
-        self.demo_recording_state = 'no'
+        self.state = SupervisorState.STANDBY
         self.demo_start_button.configure(text="start")
         self.demo_stop_button.state(['disabled'])
+        self.demo_save_button.state(['disabled'])
+        self.automatic_start_button.state(['!disabled'])
         print("[INFO] Demonstration recording stopped")
+        self.ros_node.update_state(self.state)
 
     def demo_save_button_trigger(self):
         demo_name = self.demo_name_entry.get()
@@ -352,6 +349,9 @@ class SupervisorGUI():
             print("[INFO] Demonstration name not specified")
         else:
             print(f"[INFO] Demonstration saved as {demo_name}")
+        self.state = SupervisorState.DEMO_PAUSED
+        self.demo_start_button.configure(text="start")
+        self.ros_node.update_state(self.state)
 
     def demo_update_entry(self, demo_names_tuple):
         self.demo_name_entry['values'] = demo_names_tuple
@@ -375,7 +375,14 @@ class SupervisorGUI():
             self.model_training_state = 'no'
             self.model_start_button.configure(text="start")
             print("[INFO] Model training stopped")
-    
+
+class SupervisorState(Enum):
+    STANDBY = 0
+    TASK_RUNNING = 101
+    TASK_PAUSED = 102
+    TASK_TAKE_OVER = 103
+    DEMO_RECORDING = 201
+    DEMO_PAUSED = 202
 
 def new_thread(gui):
     import math

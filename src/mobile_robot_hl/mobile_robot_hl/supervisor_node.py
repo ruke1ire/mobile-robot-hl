@@ -8,7 +8,7 @@ from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool
 from std_srvs.srv import Trigger
 
-from .supervisor_gui import SupervisorGUI
+from .supervisor_gui import SupervisorGUI, SupervisorState
 
 import ros2_numpy as rnp
 
@@ -18,6 +18,7 @@ import os
 import glob
 from PIL import Image as PImage
 import yaml
+from enum import Enum
 
 class SupervisorNode(Node):
 
@@ -76,30 +77,59 @@ class SupervisorNode(Node):
         self.get_logger().info("Initialized Node")
         self.image_raw = None
         self.agent_output = {}
-        self.agent_input = []
+        self.agent_input = None
         self.user_output = {}
         self.demo = [] # {"image", "velocity", "termination_flag"}
         self.task_episode = [] # {"image", "velocity", "termination_flag", "controller"}
 
-        self.automatic_state = 'paused' # running, take-over, paused
         self.desired_velocity = {'linear':0.0, 'angular': 0.0}
+        self.state = SupervisorState.STANDBY
 
     def agent_output_callback(self, msg):
         velocity = msg.velocity
         termination_flag = msg.termination_flag
-        self.agent_output['velocity'] = velocity
-        self.gui.update_current_action_plot(agent_vel={'linear':velocity.linear.x, 'angular': velocity.angular.z})
+        self.agent_output['velocity'] = {'linear':velocity.linear.x, 'angular': velocity.angular.z}
         self.agent_output['termination_flag'] = termination_flag
+        self.gui.update_current_action_plot(agent_vel=self.agent_output['velocity'])
         self.get_logger().info(f"got agent_output {self.agent_output}")
 
     def agent_input_callback(self, img):
         image = rnp.numpify(img)
-        self.agent_input.append(image)
-        self.get_logger().info(f"got agent_input {self.agent_input[-1]}")
+        self.agent_input = image
+        self.get_logger().info(f"got agent_input {self.agent_input}")
+        if(self.state == SupervisorState.TASK_RUNNING):
+            if(len(self.task_episode) == 0):
+                self.task_episode.append({'image':image})
+                return
+            output_msg = Twist(linear=Twist.Vector3(x=self.agent_output['velocity']['linear'],y=0.0,z=0.0),angular=Twist.Vector3(x=0.0,y=0.0,z=self.agent_output['velocity']['angular']))
+            self.desired_velocity_publisher.publish(output_msg)
+            self.termination_flag_publisher.publish(self.agent_output['termination_flag'])
+            self.task_episode[-1]['velocity'] = self.agent_output['velocity']
+            self.task_episode[-1]['termination_flag'] = self.agent_output['termination_flag']
+            self.task_episode[-1]['controller'] = ControllerType.AGENT
+            self.task_episode.append({'image':image})
+        elif(self.state == SupervisorState.TASK_TAKE_OVER):
+            if(len(self.task_episode) == 0):
+                self.task_episode.append({'image':image})
+                return
+            output_msg = Twist(linear=Twist.Vector3(x=self.user_output['velocity']['linear'],y=0.0,z=0.0),angular=Twist.Vector3(x=0.0,y=0.0,z=self.user_output['velocity']['angular']))
+            self.desired_velocity_publisher.publish(output_msg)
+            self.termination_flag_publisher.publish(self.user_output['termination_flag'])
+            self.task_episode[-1]['velocity'] = self.user_output['velocity']
+            self.task_episode[-1]['termination_flag'] = self.user_output['termination_flag']
+            self.task_episode[-1]['controller'] = ControllerType.USER
+            self.task_episode.append({'image':image})
+        elif(self.state == SupervisorState.DEMO_RECORDING):
+            if(len(self.task_episode) == 0):
+                self.demo.append({'image':image})
+                return
+            self.demo[-1]['velocity'] = self.user_output['velocity']
+            self.demo[-1]['termination_flag'] = self.user_output['termination_flag']
+            self.demo.append({'image':image})
 
     def user_velocity_callback(self, vel):
-        self.user_output['velocity'] = vel
-        self.gui.update_current_action_plot(user_vel={'linear':vel.linear.x, 'angular': vel.angular.z})
+        self.user_output['velocity'] = {'linear':vel.linear.x, 'angular': vel.angular.z}
+        self.gui.update_current_action_plot(user_vel=self.user_output['velocity'])
         self.get_logger().info(f"got user velocity {self.user_output['velocity']}")
 
     def user_termination_flag_callback(self, msg):
@@ -257,26 +287,23 @@ class SupervisorNode(Node):
     def reset_task_episode(self):
         self.task_episode = []
     
-    def start_automatic(self):
-        '''start automatic control'''
-        self.automatic_state = 'running'
+    def update_state(self, state):
+        self.state = state
+        if(self.state == SupervisorState.STANDBY):
+            self.call_service('agent/pause')
+        elif(self.state == SupervisorState.TASK_RUNNING):
+            self.call_service('agent/start')
+        elif(self.state == SupervisorState.TASK_PAUSED):
+            self.call_service('agent/pause')
+        elif(self.state == SupervisorState.TASK_TAKE_OVER):
+            self.call_service('agent/take_over')
 
-    def pause_automatic(self):
-        '''pause automatic control'''
-        self.automatic_state = 'paused'
-        self.reset_velocity()
-    
-    def stop_automatic(self):
-        '''stop automatic control'''
-        self.automatic_state = 'paused'
-        self.reset_velocity()
-
-    def take_over_automatic(self):
-        '''take-over automatic control'''
-        self.automatic_state = 'take-over'
-    
     def reset_velocity(self):
         self.desired_velocity = {'linear':0.0, 'angular':0.0}
+
+class ControllerType(Enum):
+    USER = 0
+    AGENT = 1
 
 def supervisor_node_thread_(node):
     while True:
