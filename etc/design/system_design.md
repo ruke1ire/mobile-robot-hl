@@ -59,6 +59,8 @@ The supervisor node handles all output/input to/from the supervisor (user).
 - Supervisor take-over is similar to a user-demonstration therefore the start/pause buttons of the user demonstration can be used to start/pause the supervisor take-over. To restart the automatic control press the start button in the automatic control section.
 - Defaults to manual control mode where there isn't any frequency limitation for controlling the mobile robot. This mode changes if the start buttons are pressed for automatic control or creating user demonstrations.
 - GUI design can be found in [etc/design/supervisor_GUI_design.md](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/design/supervisor_GUI_design.md)
+- Below is the state-flow-diagram 
+![etc/design/supervisor_GUI_state_diagram.png](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/design/supervisor_GUI_state_diagram.png)
 
 ---
 
@@ -100,7 +102,7 @@ The agent node outputs the automatic control signals using a neural network.
 - This node will always output the agent_in at the specified control frequency
 - The agent_output will only output when automatic control is started
 - When take-over occurs, the desired_velocity and termination_flag will be used to condition the model.
-- Directly subscribing to raw visual images can be done through the image_transport_plugins but it is only available in c++. Therefore I will use the "image_transport republish" node to first convert the compressed image from the mobile-robot-base to raw images.
+- Directly subscribing to compressed visual images can be done through the image_transport_plugins but it is only available in c++. Therefore I will use the "image_transport republish" node to first convert the compressed image from the mobile-robot-base to raw images.
 
 ---
 
