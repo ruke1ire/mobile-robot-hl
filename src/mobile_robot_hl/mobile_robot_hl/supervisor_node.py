@@ -16,6 +16,8 @@ import threading
 import tkinter
 import os
 import glob
+from PIL import Image as PImage
+import yaml
 
 class SupervisorNode(Node):
 
@@ -23,6 +25,7 @@ class SupervisorNode(Node):
         super().__init__('supervisor')
 
         self.demo_path = os.environ['MOBILE_ROBOT_HL_DEMO_PATH']
+        self.task_path = os.environ['MOBILE_ROBOT_HL_TASK_PATH']
         try:
             desired_velocity_topic_name = os.environ['MOBILE_ROBOT_HL_DESIRED_VELOCITY_TOPIC']
         except:
@@ -75,7 +78,11 @@ class SupervisorNode(Node):
         self.agent_output = {}
         self.agent_input = []
         self.user_output = {}
-        self.demo = []
+        self.demo = [] # {"image", "velocity", "termination_flag"}
+        self.task_episode = [] # {"image", "velocity", "termination_flag", "controller"}
+
+        self.automatic_state = 'paused' # running, take-over, paused
+        self.desired_velocity = {'linear':0.0, 'angular': 0.0}
 
     def agent_output_callback(self, msg):
         velocity = msg.velocity
@@ -125,33 +132,151 @@ class SupervisorNode(Node):
         demos = [os.basename(x) for x in glob.glob(self.demo_path+"/*")]
         return demos
     
-    def get_demo(self, demo_name):
-        '''return the array of images, actions, etc.'''
-        raise NotImplementedError()
+    def get_available_demo_id(self, demo_name):
+        demos = [os.basename(x) for x in glob.glob(self.demo_path+"/"+demo_name+"/*") if "yaml" not in x]
+        return demos
     
-    def save_demo(self, demo_name):
+    def get_demo(self, demo_name, demo_id):
+        '''return the array of images, actions, etc.'''
+        info = yaml.load(self.demo_path+"/"+demo_name+"/"+demo_id+"/demo_info.yaml")
+        velocity = info['actions']['velocity']
+        termination_flag = info['actions']['termination_flag']
+        images = [PImage.open(self.demo_path+"/"+demo_name+"/"+demo_id+"/"+image_id+".png") 
+                    for image_id in info['observations']['image_id']]
+        return images, velocity, termination_flag
+    
+    def get_current_demo(self):
+        images = [data['image'] for data in self.demo]
+        velocity = [data['velocity'] for data in self.demo]
+        termination_flag = [data['termination_flag'] for data in self.demo]
+        return images, velocity, termination_flag
+    
+    def save_demo(self, demo_name, demo_id=None):
         '''save a demonstration'''
-        raise NotImplementedError()
+        if(demo_id == None):
+            try:
+                taken_id = max([x for x in self.get_available_demo_id() if type(x) == int])
+                next_id = taken_id + 1
+            except:
+                next_id = 0
 
-    def append_demo(self, image, action):
+        image_ids = list(range(len(self.demo)))
+        for i in image_ids:
+            img = PImage.fromarray(self.demo[i]["image"])
+            img.save(f"{self.demo_path}/{demo_name}/{next_id}/{i}.png")
+        
+        velocity = [data['velocity'] for data in self.demo]
+        termination_flag = [data['termination_flag'] for data in self.demo]
+        demo_dict = {
+                        'observations':{
+                            'image_id':image_ids
+                        },
+                        'actions':{
+                            'velocity': velocity,
+                            'termination_flag': termination_flag
+                        }
+                    }
+        
+        with open(f'{self.demo_path}/{demo_name}/{next_id}/demo_info.yaml', 'w') as outfile:
+            yaml.dump(demo_dict, outfile)
+
+    def append_demo(self, image, velocity, termination_flag):
         '''append a data point to the demonstration'''
-        raise NotImplementedError()
+        self.demo.append({'image':image,'velocity':velocity,'termination_flag':termination_flag})
+    
+    def reset_demo(self):
+        self.demo = []
+
+    def get_available_task_id(self, demo_name):
+        task_episodes = [os.basename(x) for x in glob.glob(self.task_path+"/"+demo_name+"/*") if "yaml" not in x]
+        return task_episodes
+    
+    def get_task_episode(self, demo_name, task_id):
+        info = yaml.load(self.demo_path+"/"+demo_name+"/"+task_id+"/task_info.yaml")
+        demo_id = info['demo_id']
+        demo_info = yaml.load(self.demo_path+"/"+demo_name+"/"+demo_id+"demo_info.yaml")
+
+        demo_velocity = demo_info['actions']['velocity']
+        demo_termination_flag = demo_info['actions']['termination_flag']
+        demo_images = [PImage.open(self.demo_path+"/"+demo_name+"/"+demo_id+"/"+image_id+".png") 
+                    for image_id in demo_info['observations']['image_id']]
+        
+        task_velocity = info['actions']['velocity']
+        task_termination_flag = info['actions']['termination_flag']
+        task_controller = info['actions']['controller']
+        task_images = [PImage.open(self.task_path+"/"+demo_name+"/"+task_id+"/"+image_id+".png") 
+                    for image_id in demo_info['observations']['image_id']]
+        
+        velocity = demo_velocity+task_velocity
+        termination_flag = demo_termination_flag + task_termination_flag
+        images = demo_images + task_images
+
+        return images, velocity, termination_flag, task_controller
+
+    def get_current_task_episode(self):
+        images = [data['image'] for data in self.task_episode]
+        velocity = [data['velocity'] for data in self.task_episode]
+        termination_flag = [data['termination_flag'] for data in self.task_episode]
+        controller = [data['controller'] for data in self.task_episode]
+        return images, velocity, termination_flag, controller
+    
+    def save_task_episode(self, demo_name, demo_id, task_id = None):
+        if(task_id == None):
+            try:
+                taken_id = max([x for x in self.get_available_task_id() if type(x) == int])
+                next_id = taken_id + 1
+            except:
+                next_id = 0
+
+        image_ids = list(range(len(self.task_episode)))
+        for i in image_ids:
+            img = PImage.fromarray(self.task_episode[i]["image"])
+            img.save(f"{self.task_path}/{demo_name}/{next_id}/{i}.png")
+        
+        velocity = [data['velocity'] for data in self.task_episode]
+        termination_flag = [data['termination_flag'] for data in self.task_episode]
+        controller = [data['controller'] for data in self.task_episode]
+        task_episode_dict = {
+                        'observations':{
+                            'image_id':image_ids
+                        },
+                        'actions':{
+                            'velocity': velocity,
+                            'termination_flag': termination_flag,
+                            'controller': controller
+                        },
+                        'demonstration': demo_id
+                    }
+        
+        with open('task_info_info.yaml', 'w') as outfile:
+            yaml.dump(task_episode_dict, outfile)
+    
+    def append_task_episode(self, image, velocity, termination_flag, controller):
+        self.task_episode.append({'image':image,'velocity':velocity,'termination_flag':termination_flag, 'controller':controller})
+    
+    def reset_task_episode(self):
+        self.task_episode = []
     
     def start_automatic(self):
         '''start automatic control'''
-        raise NotImplementedError()
+        self.automatic_state = 'running'
 
     def pause_automatic(self):
         '''pause automatic control'''
-        raise NotImplementedError()
+        self.automatic_state = 'paused'
+        self.reset_velocity()
     
     def stop_automatic(self):
         '''stop automatic control'''
-        raise NotImplementedError()
+        self.automatic_state = 'paused'
+        self.reset_velocity()
 
     def take_over_automatic(self):
         '''take-over automatic control'''
-        raise NotImplementedError()
+        self.automatic_state = 'take-over'
+    
+    def reset_velocity(self):
+        self.desired_velocity = {'linear':0.0, 'angular':0.0}
 
 def supervisor_node_thread_(node):
     while True:
