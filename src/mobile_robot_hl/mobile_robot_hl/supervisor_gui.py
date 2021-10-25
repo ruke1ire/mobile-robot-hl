@@ -1,8 +1,8 @@
 import tkinter
 from enum import Enum
 from tkinter import StringVar, ttk
-from tkinter.constants import S
 from PIL import Image, ImageTk
+from numpy.core.fromnumeric import put
 import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
@@ -20,8 +20,9 @@ class SupervisorGUI():
 
         self.state = SupervisorState.STANDBY
         self.model_training_state = 'no'
+        self.selected_demo = None
 
-        sns.set_theme('notebook')
+        sns.set('notebook')
         sns.set_style("white")
         self.setup_extras()
         self.setup_mainframe()
@@ -52,7 +53,6 @@ class SupervisorGUI():
         self.image_model_label = tkinter.ttk.Label(self.display_frame,image=self.image_model)
         self.image_current_label = tkinter.ttk.Label(self.display_frame,image=self.image_current)
         self.image_slider = tkinter.ttk.Scale(self.display_frame, from_=0, to_= 100, orient=tkinter.HORIZONTAL)
-        self.save_episode_button = tkinter.ttk.Button(self.display_frame, text="save")
         self.info_frame = tkinter.ttk.Frame(self.display_frame, borderwidth=2, relief=tkinter.SUNKEN, padding = "10 10 10 10")
         self.info_frame_title = tkinter.ttk.Label(self.info_frame, text="Information")
         self.info_desired_vel = tkinter.ttk.Label(self.info_frame, text="Desired Velocity: \n\tLinear: 0.0 m/s\n\tAngular: 0.0 rad/s")
@@ -78,7 +78,6 @@ class SupervisorGUI():
         self.current_action_plot = FigureCanvasTkAgg(self.current_action_fig, self.display_frame)
 
         self.action_plot_fig = plt.figure(figsize=(3,2), frameon=False)
-        #self.action_plot_ax = self.action_plot_fig.add_subplot(1,1,1)
         self.action_plot_ax = self.action_plot_fig.add_axes([0, 0, 1, 1])
         
         self.action_plot_ax.spines['right'].set_color('none')
@@ -97,7 +96,6 @@ class SupervisorGUI():
         self.action_plot_plot.get_tk_widget().grid(column=0, row =1, columnspan=2, sticky='ew')
         self.image_current_label.grid(column=0, row=4)
         self.image_slider.grid(column=0, row = 2, columnspan = 2, sticky='ew')
-        self.save_episode_button.grid(column=0, row = 3)
         self.info_frame.grid(column=1, row=3, rowspan=2,sticky='nsew')
         self.info_frame_title.grid(column=0, row=0)
         self.info_desired_vel.grid(column = 0, row=1, sticky = 'w')
@@ -137,15 +135,29 @@ class SupervisorGUI():
         self.demo_stop_button.state(['disabled'])
         self.demo_save_button = tkinter.ttk.Button(self.demo_control_button_frame, text="save", command = self.demo_save_button_trigger)
         self.demo_save_button.state(['disabled'])
-        self.demo_name = tkinter.StringVar()
-        self.demo_name_entry = ttk.Combobox(self.demo_control_frame, textvariable=self.demo_name)
+        self.demo_name = StringVar()
+        self.demo_name_entry = tkinter.ttk.Combobox(self.demo_control_frame, textvariable=self.demo_name)
 
         self.model_control_button_frame = tkinter.ttk.Frame(self.model_control_frame)
         self.model_start_button = tkinter.ttk.Button(self.model_control_button_frame, text="start", command = self.model_start_button_trigger)
         self.saved_demo = StringVar(value=[])
         self.saved_demo_list = tkinter.Listbox(self.task_queue_frame, listvariable=self.saved_demo)
-        self.task_add_button = tkinter.ttk.Button(self.task_queue_frame, text=">>")
-        self.task_remove_button = tkinter.ttk.Button(self.task_queue_frame, text="<<")
+        self.saved_demo_list.insert(tkinter.END, "HI")
+        self.saved_demo_list.insert(tkinter.END, "MY")
+        self.saved_demo_list.insert(tkinter.END, "HI")
+        self.saved_demo_list.insert(tkinter.END, "MY")
+        self.saved_demo_list.insert(tkinter.END, "HI")
+        self.saved_demo_list.insert(tkinter.END, "MY")
+        self.saved_demo_list.insert(tkinter.END, "HI")
+        self.saved_demo_list.insert(tkinter.END, "HI")
+        self.saved_demo_list.insert(tkinter.END, "MY")
+        self.saved_demo_list.insert(tkinter.END, "HI")
+        self.saved_demo_list.insert(tkinter.END, "MY")
+        self.saved_demo_list.insert(tkinter.END, "HI")
+        self.saved_demo_list.insert(tkinter.END, "MY")
+        self.saved_demo_list.insert(tkinter.END, "MY")
+        self.task_add_button = tkinter.ttk.Button(self.task_queue_frame, text=">>", command= self.add_demo_trigger)
+        self.task_remove_button = tkinter.ttk.Button(self.task_queue_frame, text="<<", command = self.remove_demo_trigger)
         self.queued_demo = StringVar(value=[])
         self.queued_demo_list = tkinter.Listbox(self.task_queue_frame, listvariable=self.queued_demo)
         self.demo_label = tkinter.ttk.Label(self.demo_control_frame, text="Demonstration Control Panel")
@@ -156,7 +168,7 @@ class SupervisorGUI():
 
         self.automatic_control_frame.grid(column=0, row=0, columnspan = 2, sticky='nsew')
         self.automatic_label.grid(column=0, row=0)
-        self.automatic_control_button_frame.grid(column=0, row = 1)
+        self.automatic_control_button_frame.grid(column=0, row = 2)
         self.automatic_start_button.grid(column=1, row = 0)
         self.automatic_stop_button.grid(column=0, row = 0)
         self.automatic_take_over_button.grid(column=2, row = 0)
@@ -166,8 +178,8 @@ class SupervisorGUI():
 
         self.demo_control_frame.grid(column=0, row=1, sticky='nsew')
         self.demo_label.grid(column=0, row=0)
+        self.demo_name_entry.grid(column = 0, row = 1)
         self.demo_control_button_frame.grid(column=0, row =2)
-        self.demo_name_entry.grid(column =0, row = 1)
         self.demo_start_button.grid(column=0, row = 0)
         self.demo_stop_button.grid(column=1, row = 0)
         self.demo_save_button.grid(column=2, row = 0)
@@ -225,7 +237,7 @@ class SupervisorGUI():
             self.current_action_agent_vel = self.current_action_ax.scatter(agent_vel['linear'], agent_vel['angular'],c = 'tab:green', label="agent velocity", alpha = 0.8, marker='^')
 
         self.current_action_ax.legend(loc='upper right', prop={'size': 8})
-        self.current_action_plot.draw()
+        self.current_action_plot.draw_idle()
     
     def update_info(self, desired_vel=None, user_vel=None, agent_vel=None, agent_termination=None, user_termination=None, selected_demo=None):
         if type(desired_vel) == dict:
@@ -272,9 +284,12 @@ class SupervisorGUI():
             self.action_plot_agent_vel_line_angular = self.action_plot_ax.plot(list_range_agent_vel, agent_vel['angular'],c = 'olive', label="agent angular velocity", alpha = 0.8)
 
         self.action_plot_ax.legend(loc='lower left', prop={'size': 8})
-        self.action_plot_plot.draw()
+        self.action_plot_plot.draw_idle()
     
     def agent_start_button_trigger(self):
+        if self.selected_demo == None:
+            print("[INFO] No demonstration selected")
+            return
         if(self.state==SupervisorState.TASK_PAUSED or self.state == SupervisorState.STANDBY or self.state == SupervisorState.TASK_TAKE_OVER):
             self.state = SupervisorState.TASK_RUNNING
             self.automatic_take_over_button.configure(text="take over")
@@ -289,7 +304,10 @@ class SupervisorGUI():
             self.state = SupervisorState.TASK_PAUSED
             self.automatic_start_button.configure(text="start")
             print("[INFO] Automatic control paused")
-        self.ros_node.update_state(self.state)
+        try:
+            self.ros_node.update_state(self.state)
+        except:
+            pass
 
     def agent_stop_button_trigger(self):
         self.state = SupervisorState.STANDBY
@@ -299,7 +317,10 @@ class SupervisorGUI():
         self.automatic_stop_button.state(['disabled'])
         self.automatic_save_button.state(['disabled'])
         self.demo_start_button.state(['!disabled'])
-        self.ros_node.update_state(self.state)
+        try:
+            self.ros_node.update_state(self.state)
+        except:
+            pass
         print("[INFO] Automatic control stopped")
 
     def agent_take_over_button_trigger(self):
@@ -312,13 +333,20 @@ class SupervisorGUI():
             self.state = SupervisorState.TASK_PAUSED
             self.automatic_take_over_button.configure(text="take over")
             print("[INFO] Supervisor take-over paused")
-        self.ros_node.update_state(self.state)
+        try:
+            self.ros_node.update_state(self.state)
+        except:
+            pass
 
     def agent_save_button_trigger(self):
         self.state = SupervisorState.TASK_PAUSED
         self.automatic_start_button.configure(text="start")
         self.automatic_take_over_button.configure(text="take over")
-        self.ros_node.update_state(self.state)
+        print(f"[INFO] Saved task episode to {self.selected_demo}")
+        try:
+            self.ros_node.update_state(self.state)
+        except:
+            pass
     
     def demo_start_button_trigger(self):
         if(self.state == SupervisorState.STANDBY or self.state == SupervisorState.DEMO_PAUSED):
@@ -332,7 +360,10 @@ class SupervisorGUI():
             self.state = SupervisorState.DEMO_PAUSED
             self.demo_start_button.configure(text="start")
             print("[INFO] Demonstration recording paused")
-        self.ros_node.update_state(self.state)
+        try:
+            self.ros_node.update_state(self.state)
+        except:
+            pass
     
     def demo_stop_button_trigger(self):
         self.state = SupervisorState.STANDBY
@@ -341,7 +372,10 @@ class SupervisorGUI():
         self.demo_save_button.state(['disabled'])
         self.automatic_start_button.state(['!disabled'])
         print("[INFO] Demonstration recording stopped")
-        self.ros_node.update_state(self.state)
+        try:
+            self.ros_node.update_state(self.state)
+        except:
+            pass
 
     def demo_save_button_trigger(self):
         demo_name = self.demo_name_entry.get()
@@ -351,7 +385,10 @@ class SupervisorGUI():
             print(f"[INFO] Demonstration saved as {demo_name}")
         self.state = SupervisorState.DEMO_PAUSED
         self.demo_start_button.configure(text="start")
-        self.ros_node.update_state(self.state)
+        try:
+            self.ros_node.update_state(self.state)
+        except:
+            pass
 
     def demo_update_entry(self, demo_names_tuple):
         self.demo_name_entry['values'] = demo_names_tuple
@@ -375,6 +412,19 @@ class SupervisorGUI():
             self.model_training_state = 'no'
             self.model_start_button.configure(text="start")
             print("[INFO] Model training stopped")
+    
+    def add_demo_trigger(self):
+        demo_name = self.saved_demo_list.get(tkinter.ANCHOR)
+        self.queued_demo_list.insert(tkinter.END, demo_name)
+        self.selected_demo = self.queued_demo_list.get(0)
+
+    def remove_demo_trigger(self):
+        selected_index = self.queued_demo_list.curselection()
+        if(0 in selected_index and self.state not in [SupervisorState.STANDBY, SupervisorState.DEMO_PAUSED, SupervisorState.DEMO_RECORDING]):
+            print("[INFO] Stop processes before deselecting the current demonstration")
+            return
+        self.queued_demo_list.delete(tkinter.ANCHOR)
+        self.selected_demo = self.queued_demo_list.get(0)
 
 class SupervisorState(Enum):
     STANDBY = 0

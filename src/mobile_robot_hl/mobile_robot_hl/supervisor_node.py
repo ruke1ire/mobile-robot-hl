@@ -55,22 +55,22 @@ class SupervisorNode(Node):
         agent_prefix = "agent/"
         trainer_prefix='trainer/'
 
-        self.services = {}
-        self.services[agent_prefix+'start'] = self.create_client(Trigger, agent_prefix+'start')
-        self.services[agent_prefix+'pause'] = self.create_client(Trigger, agent_prefix+'pause')
-        self.services[agent_prefix+'stop'] = self.create_client(Trigger, agent_prefix+'stop')
-        self.services[agent_prefix+'take_over'] = self.create_client(Trigger, agent_prefix+'take_over')
-        self.services[agent_prefix+'select_demonstration'] = self.create_client(StringTrigger, agent_prefix+'select_demonstration')
-        self.services[agent_prefix+'select_model'] = self.create_client(StringTrigger, agent_prefix+'select_model')
-        self.services[agent_prefix+'select_mode'] = self.create_client(StringTrigger, agent_prefix+'select_mode')
+        self.services_ = dict()
+        self.services_[agent_prefix+'start'] = self.create_client(Trigger, agent_prefix+'start')
+        self.services_[agent_prefix+'pause'] = self.create_client(Trigger, agent_prefix+'pause')
+        self.services_[agent_prefix+'stop'] = self.create_client(Trigger, agent_prefix+'stop')
+        self.services_[agent_prefix+'take_over'] = self.create_client(Trigger, agent_prefix+'take_over')
+        self.services_[agent_prefix+'select_demonstration'] = self.create_client(StringTrigger, agent_prefix+'select_demonstration')
+        self.services_[agent_prefix+'select_model'] = self.create_client(StringTrigger, agent_prefix+'select_model')
+        self.services_[agent_prefix+'select_mode'] = self.create_client(StringTrigger, agent_prefix+'select_mode')
 
-        self.services[trainer_prefix+'select_model'] = self.create_client(StringTrigger, trainer_prefix+'select_model')
-        self.services[trainer_prefix+'start'] = self.create_client(Trigger, trainer_prefix+'start')
-        self.services[trainer_prefix+'pause'] = self.create_client(Trigger, trainer_prefix+'pause')
-        self.services[trainer_prefix+'stop'] = self.create_client(Trigger, trainer_prefix+'stop')
-        self.services[trainer_prefix+'save'] = self.create_client(Trigger, trainer_prefix+'save')
-        self.services[trainer_prefix+'delete'] = self.create_client(Trigger, trainer_prefix+'delete')
-        self.services[trainer_prefix+'pre_train'] = self.create_client(Trigger, trainer_prefix+'pre_train')
+        self.services_[trainer_prefix+'select_model'] = self.create_client(StringTrigger, trainer_prefix+'select_model')
+        self.services_[trainer_prefix+'start'] = self.create_client(Trigger, trainer_prefix+'start')
+        self.services_[trainer_prefix+'pause'] = self.create_client(Trigger, trainer_prefix+'pause')
+        self.services_[trainer_prefix+'stop'] = self.create_client(Trigger, trainer_prefix+'stop')
+        self.services_[trainer_prefix+'save'] = self.create_client(Trigger, trainer_prefix+'save')
+        self.services_[trainer_prefix+'delete'] = self.create_client(Trigger, trainer_prefix+'delete')
+        self.services_[trainer_prefix+'pre_train'] = self.create_client(Trigger, trainer_prefix+'pre_train')
 
         self.gui = SupervisorGUI()
         self.gui.saved_demo = self.get_available_demo_names()
