@@ -1,6 +1,8 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import *
+from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
 from custom_interfaces.msg import AgentOutput
 from custom_interfaces.srv import StringTrigger
 from sensor_msgs.msg import Image
@@ -19,6 +21,7 @@ import glob
 from PIL import Image as PImage
 import yaml
 from enum import Enum
+import time
 
 class SupervisorNode(Node):
 
@@ -35,14 +38,14 @@ class SupervisorNode(Node):
             image_raw_topic_name = os.environ['MOBILE_ROBOT_HL_IMAGE_RAW_TOPIC']
         except:
             image_raw_topic_name = "image_raw/uncompressed"
-
+        
         self.get_logger().info("Initializing Node")
         reliable_qos = QoSProfile(history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST, 
                                         depth=10, 
                                         reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_RELIABLE)
 
         best_effort_qos = QoSProfile(history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST, 
-                                        depth=10, 
+                                        depth=1, 
                                         reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
         self.desired_velocity_publisher = self.create_publisher(Twist, desired_velocity_topic_name, reliable_qos)
         self.termination_flag_publisher = self.create_publisher(Bool, 'termination_flag', reliable_qos)
@@ -72,7 +75,7 @@ class SupervisorNode(Node):
         self.services_[trainer_prefix+'delete'] = self.create_client(Trigger, trainer_prefix+'delete')
         self.services_[trainer_prefix+'pre_train'] = self.create_client(Trigger, trainer_prefix+'pre_train')
 
-        self.gui = SupervisorGUI()
+        self.gui = SupervisorGUI(ros_node=self)
         self.gui.saved_demo = self.get_available_demo_names()
         self.get_logger().info("Initialized Node")
         self.image_raw = None
@@ -130,6 +133,7 @@ class SupervisorNode(Node):
     def user_velocity_callback(self, vel):
         self.user_output['velocity'] = {'linear':vel.linear.x, 'angular': vel.angular.z}
         self.gui.update_current_action_plot(user_vel=self.user_output['velocity'])
+        self.gui.update_info(user_vel=self.user_output['velocity'])
         self.get_logger().info(f"got user velocity {self.user_output['velocity']}")
 
     def user_termination_flag_callback(self, msg):
@@ -139,10 +143,11 @@ class SupervisorNode(Node):
     def image_raw_callback(self, img):
         self.image_raw = rnp.numpify(img)
         self.gui.update_image_current(self.image_raw)
-        self.get_logger().info(f"got image raw {self.image_raw.shape}")
+        #self.get_logger().info(f"got image raw {self.image_raw.shape}")
     
     def call_service(self, service_name, command=None):
-        if self.services[service_name].wait_for_service(timeout_sec=0.1) == False:
+        self.get_logger().info(f'calling service {service_name}.')
+        if self.services_[service_name].wait_for_service(timeout_sec=0.1) == False:
             self.get_logger().info(f'{service_name} service not available')
         else:
             if(command == None):
@@ -151,9 +156,9 @@ class SupervisorNode(Node):
                 request = StringTrigger.Request()
                 request.command = str(command)
 
-            response = self.services[service_name].call(request)
+            response = self.services_[service_name].call(request)
             if(response.success == True):
-                pass
+                self.get_logger().info(f'service successful: {service_name}')
             else:
                 self.get_logger().info(f'{service_name} service error: {response.message}')
     
@@ -309,16 +314,16 @@ def supervisor_node_thread_(node):
     while True:
         pass
 
-def spin_thread_(node):
-    while True:
-        rclpy.spin_once(node)
+def spin_thread_(node, executor):
+    rclpy.spin(node, executor=executor)
 
 def main():
     rclpy.init()
 
     node = SupervisorNode()
+    executor = MultiThreadedExecutor()
 
-    spin_thread = threading.Thread(target=spin_thread_, args=(node,))
+    spin_thread = threading.Thread(target=spin_thread_, args=(node,executor,))
     supervisor_node_thread = threading.Thread(target=supervisor_node_thread_, args=(node,))
 
     spin_thread.start()

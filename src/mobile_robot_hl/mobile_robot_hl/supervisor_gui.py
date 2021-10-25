@@ -30,7 +30,7 @@ class SupervisorGUI():
         self.setup_control_frame()
 
     def setup_extras(self):
-        img = np.zeros([300,300,3],dtype=np.uint8)
+        img = np.zeros([360,480,3],dtype=np.uint8)
         img.fill(255)
         self.blank_image = Image.fromarray(img)
 
@@ -50,8 +50,8 @@ class SupervisorGUI():
         # setup display_frame section
         self.image_model = ImageTk.PhotoImage(self.blank_image)
         self.image_current = ImageTk.PhotoImage(self.blank_image)
-        self.image_model_label = tkinter.ttk.Label(self.display_frame,image=self.image_model)
-        self.image_current_label = tkinter.ttk.Label(self.display_frame,image=self.image_current)
+        self.image_model_label = tkinter.Label(self.display_frame,image=self.image_model)
+        self.image_current_label = tkinter.Label(self.display_frame,image=self.image_current)
         self.image_slider = tkinter.ttk.Scale(self.display_frame, from_=0, to_= 100, orient=tkinter.HORIZONTAL)
         self.info_frame = tkinter.ttk.Frame(self.display_frame, borderwidth=2, relief=tkinter.SUNKEN, padding = "10 10 10 10")
         self.info_frame_title = tkinter.ttk.Label(self.info_frame, text="Information")
@@ -71,8 +71,8 @@ class SupervisorGUI():
         self.current_action_ax.spines['top'].set_color('none')
         self.current_action_ax.margins(x=0.01,y=0.01)
         self.current_action_ax.grid(True)
-        self.current_action_ax.set_ylim([-3,3])
-        self.current_action_ax.set_xlim([-3,3])
+        self.current_action_ax.set_ylim([-1,1])
+        self.current_action_ax.set_xlim([-1,1])
         self.current_action_ax.tick_params(labelsize=5)
 
         self.current_action_plot = FigureCanvasTkAgg(self.current_action_fig, self.display_frame)
@@ -84,7 +84,7 @@ class SupervisorGUI():
         self.action_plot_ax.spines['top'].set_color('none')
         self.action_plot_ax.spines['bottom'].set_position('center')
         self.action_plot_ax.spines['left'].set_color('none')
-        self.action_plot_ax.set_ylim([-3,3])
+        self.action_plot_ax.set_ylim([-1,1])
         self.action_plot_ax.margins(x=0.015)
         self.action_plot_ax.grid(True)
         self.action_plot_ax.tick_params(labelsize=5)
@@ -142,20 +142,15 @@ class SupervisorGUI():
         self.model_start_button = tkinter.ttk.Button(self.model_control_button_frame, text="start", command = self.model_start_button_trigger)
         self.saved_demo = StringVar(value=[])
         self.saved_demo_list = tkinter.Listbox(self.task_queue_frame, listvariable=self.saved_demo)
-        self.saved_demo_list.insert(tkinter.END, "HI")
-        self.saved_demo_list.insert(tkinter.END, "MY")
-        self.saved_demo_list.insert(tkinter.END, "HI")
-        self.saved_demo_list.insert(tkinter.END, "MY")
-        self.saved_demo_list.insert(tkinter.END, "HI")
-        self.saved_demo_list.insert(tkinter.END, "MY")
-        self.saved_demo_list.insert(tkinter.END, "HI")
-        self.saved_demo_list.insert(tkinter.END, "HI")
-        self.saved_demo_list.insert(tkinter.END, "MY")
-        self.saved_demo_list.insert(tkinter.END, "HI")
-        self.saved_demo_list.insert(tkinter.END, "MY")
-        self.saved_demo_list.insert(tkinter.END, "HI")
-        self.saved_demo_list.insert(tkinter.END, "MY")
-        self.saved_demo_list.insert(tkinter.END, "MY")
+        self.saved_demo_list.insert(tkinter.END, "TEMP 1")
+        self.saved_demo_list.insert(tkinter.END, "TEMP 2")
+        self.saved_demo_list.insert(tkinter.END, "TEMP 3")
+        self.saved_demo_list.insert(tkinter.END, "TEMP 4")
+        self.saved_demo_list.insert(tkinter.END, "TEMP 5")
+        self.saved_demo_list.insert(tkinter.END, "TEMP 6")
+        self.saved_demo_list.insert(tkinter.END, "TEMP 7")
+        self.saved_demo_list.insert(tkinter.END, "TEMP 8")
+        self.saved_demo_list.insert(tkinter.END, "TEMP 9")
         self.task_add_button = tkinter.ttk.Button(self.task_queue_frame, text=">>", command= self.add_demo_trigger)
         self.task_remove_button = tkinter.ttk.Button(self.task_queue_frame, text="<<", command = self.remove_demo_trigger)
         self.queued_demo = StringVar(value=[])
@@ -213,7 +208,7 @@ class SupervisorGUI():
         self.control_frame.columnconfigure(1, weight=1)
     
     def update_image_current(self, img_arr):
-        self.image_current = ImageTk.PhotoImage(img_arr)
+        self.image_current = ImageTk.PhotoImage(image = Image.fromarray(img_arr).resize((480,360)))
         self.image_current_label.configure(image=self.image_current)
     
     def update_current_action_plot(self, desired_vel = None, user_vel = None, agent_vel = None):
@@ -222,19 +217,19 @@ class SupervisorGUI():
                 self.current_action_desired_vel.remove()
             except:
                 pass
-            self.current_action_desired_vel = self.current_action_ax.scatter(desired_vel['linear'], desired_vel['angular'],c = 'tab:blue', label="desired velocity", alpha=0.8, marker='x')
+            self.current_action_desired_vel = self.current_action_ax.scatter(desired_vel['angular'], desired_vel['linear'],c = 'tab:blue', label="desired velocity", alpha=0.8, marker='x')
         if type(user_vel) == dict:
             try:
                 self.current_action_user_vel.remove()
             except:
                 pass
-            self.current_action_user_vel = self.current_action_ax.scatter(user_vel['linear'], user_vel['angular'],c = 'tab:orange', label="user velocity", alpha=0.8, marker='o')
+            self.current_action_user_vel = self.current_action_ax.scatter(user_vel['angular'], user_vel['linear'],c = 'tab:orange', label="user velocity", alpha=0.8, marker='o')
         if type(agent_vel) == dict:
             try:
                 self.current_action_agent_vel.remove()
             except:
                 pass
-            self.current_action_agent_vel = self.current_action_ax.scatter(agent_vel['linear'], agent_vel['angular'],c = 'tab:green', label="agent velocity", alpha = 0.8, marker='^')
+            self.current_action_agent_vel = self.current_action_ax.scatter(agent_vel['angular'], agent_vel['linear'],c = 'tab:green', label="agent velocity", alpha = 0.8, marker='^')
 
         self.current_action_ax.legend(loc='upper right', prop={'size': 8})
         self.current_action_plot.draw_idle()
@@ -304,8 +299,9 @@ class SupervisorGUI():
             self.state = SupervisorState.TASK_PAUSED
             self.automatic_start_button.configure(text="start")
             print("[INFO] Automatic control paused")
+
         try:
-            self.ros_node.update_state(self.state)
+            status = self.ros_node.update_state(self.state)
         except:
             pass
 
