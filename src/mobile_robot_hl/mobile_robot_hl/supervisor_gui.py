@@ -208,7 +208,8 @@ class SupervisorGUI():
         self.control_frame.columnconfigure(1, weight=1)
     
     def update_image_current(self, img_arr):
-        self.image_current = ImageTk.PhotoImage(image = Image.fromarray(img_arr).resize((480,360)))
+        image = Image.fromarray(img_arr).resize((480,360))
+        self.image_current = ImageTk.PhotoImage(image = image)
         self.image_current_label.configure(image=self.image_current)
     
     def update_current_action_plot(self, desired_vel = None, user_vel = None, agent_vel = None):
