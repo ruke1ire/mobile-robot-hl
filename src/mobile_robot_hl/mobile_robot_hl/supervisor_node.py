@@ -29,8 +29,8 @@ class SupervisorNode(Node):
     def __init__(self):
         super().__init__('supervisor')
 
-        self.demo_path = os.environ['MOBILE_ROBOT_HL_DEMO_PATH']
-        self.task_path = os.environ['MOBILE_ROBOT_HL_TASK_PATH']
+        demo_path = os.environ['MOBILE_ROBOT_HL_DEMO_PATH']
+        task_path = os.environ['MOBILE_ROBOT_HL_TASK_PATH']
         try:
             desired_velocity_topic_name = os.environ['MOBILE_ROBOT_HL_DESIRED_VELOCITY_TOPIC']
         except:
@@ -40,8 +40,8 @@ class SupervisorNode(Node):
         except:
             image_raw_topic_name = "image_raw/uncompressed"
         
-        self.demo_handler = DemoHandler(self.demo_path)
-        self.task_handler = TaskHandler(self.task_path)
+        self.demo_handler = DemoHandler(path=demo_path)
+        self.task_handler = TaskHandler(path=task_path, demo_handler = self.demo_handler)
         
         self.get_logger().info("Initializing Node")
 
@@ -87,8 +87,8 @@ class SupervisorNode(Node):
         self.agent_output = {}
         self.agent_input = None
         self.user_output = {}
-        self.demo = [] # {"image", "velocity", "termination_flag"}
-        self.task_episode = [] # {"image", "velocity", "termination_flag", "controller"}
+        self.demo = [] # list(dict(image, velocity, termination_flag)
+        self.task_episode = [] # list(dict(image, velocity, termination_flag, controller))
 
         self.desired_velocity = {'linear':0.0, 'angular': 0.0}
         self.state = SupervisorState.STANDBY
