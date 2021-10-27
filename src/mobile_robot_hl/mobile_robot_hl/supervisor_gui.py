@@ -277,7 +277,7 @@ class SupervisorGUI():
         self.action_plot_plot.draw_idle()
     
     def agent_start_button_trigger(self):
-        if self.selected_demo == None:
+        if self.selected_demo == None or self.selected_demo == "":
             print("[INFO] No demonstration selected")
             return
         if(self.state==SupervisorState.TASK_PAUSED or self.state == SupervisorState.STANDBY or self.state == SupervisorState.TASK_TAKE_OVER):
@@ -289,10 +289,19 @@ class SupervisorGUI():
             self.automatic_save_button.state(['!disabled'])
             self.demo_start_button.state(['disabled'])
             self.demo_save_button.state(['disabled'])
+            try:
+                self.ros_node.call_service('agent/select_demonstration', self.selected_demo)
+                self.ros_node.call_service('agent/start')
+            except:
+                pass
             print("[INFO] Automatic control started")
         elif(self.state == SupervisorState.TASK_RUNNING):
             self.state = SupervisorState.TASK_PAUSED
             self.automatic_start_button.configure(text="start")
+            try:
+                self.ros_node.call_service('agent/pause')
+            except:
+                pass
             print("[INFO] Automatic control paused")
 
         try:
@@ -310,6 +319,7 @@ class SupervisorGUI():
         self.demo_start_button.state(['!disabled'])
         try:
             self.ros_node.update_state(self.state)
+            self.ros_node.call_service('agent/stop')
         except:
             pass
         print("[INFO] Automatic control stopped")
@@ -326,6 +336,7 @@ class SupervisorGUI():
             print("[INFO] Supervisor take-over paused")
         try:
             self.ros_node.update_state(self.state)
+            self.ros_node.call_service('agent/take_over')
         except:
             pass
 
@@ -365,6 +376,7 @@ class SupervisorGUI():
         print("[INFO] Demonstration recording stopped")
         try:
             self.ros_node.update_state(self.state)
+            self.ros_node.call_service('agent/stop')
         except:
             pass
 
@@ -377,6 +389,7 @@ class SupervisorGUI():
             print("[INFO] Demonstration name not specified")
         else:
             self.ros_node.save_demo(demo_name)
+            self.update_available_demo_name(self.ros_node.demo_handler.get_names())
             print(f"[INFO] Demonstration saved as {demo_name}")
 
     def update_available_demo_name(self, name_array):
@@ -415,7 +428,7 @@ class SupervisorGUI():
         demo_id = self.saved_demo_id_list.get(tkinter.ANCHOR)
         if(demo_id == "" or demo_name == ""):
             return
-        demo = demo_name+"."+demo_id
+        demo = demo_name+"."+str(demo_id)
         self.queued_demo_list.insert(tkinter.END, demo)
         self.selected_demo = self.queued_demo_list.get(0)
 
@@ -426,6 +439,7 @@ class SupervisorGUI():
             return
         self.queued_demo_list.delete(tkinter.ANCHOR)
         self.selected_demo = self.queued_demo_list.get(0)
+        print(f"|{self.selected_demo}|")
 
     def saved_demo_name_list_trigger(self, event):
         demo_name = self.saved_demo_name_list.get(tkinter.ANCHOR)
@@ -439,6 +453,7 @@ class SupervisorGUI():
         demo_name = self.saved_demo_name_list.get(tkinter.ANCHOR)
         demo_id = self.saved_demo_id_list.get(tkinter.ANCHOR)
         try:
+            #TODO: make the following function create a asynchronous
             images, velocity, termination_flag = self.ros_node.demo_handler.get(demo_name, demo_id)
         except:
             pass

@@ -23,7 +23,7 @@ class DemoHandler():
 
         velocity = info['actions']['velocity']
         termination_flag = info['actions']['termination_flag']
-        images = [PImage.open(self.path+"/"+name+"/"+id_+"/"+image_id+".png") 
+        images = [PImage.open(f"{self.path}/{name}/{id_}/{image_id}.png") 
                     for image_id in info['observations']['image_id']]
         return images, velocity, termination_flag
     

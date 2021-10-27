@@ -22,7 +22,8 @@ class AgentNode(Node):
     def __init__(self):
         super().__init__('agent')
 
-        self.demo_path = os.environ['MOBILE_ROBOT_HL_DEMO_PATH']
+        demo_path = os.environ['MOBILE_ROBOT_HL_DEMO_PATH']
+        task_path = os.environ['MOBILE_ROBOT_HL_TASK_PATH']
         try:
             desired_velocity_topic_name = os.environ['MOBILE_ROBOT_HL_DESIRED_VELOCITY_TOPIC']
         except:
@@ -31,10 +32,13 @@ class AgentNode(Node):
             image_raw_topic_name = os.environ['MOBILE_ROBOT_HL_IMAGE_RAW_TOPIC']
         except:
             image_raw_topic_name = "image_raw/uncompressed"
+        
+        self.demo_handler = DemoHandler(path=demo_path)
+        self.task_handler = TaskHandler(path=task_path, demo_handler = self.demo_handler)
 
         self.get_logger().info("Initializing Node")
 
-        self.declare_parameter('frequency', 1.0)
+        self.declare_parameter('frequency', 2.0)
         self.frequency = self.get_parameter('frequency').get_parameter_value().double_value
 
         service_prefix = 'agent/'
@@ -79,14 +83,13 @@ class AgentNode(Node):
         self.get_logger().info(f"got image {self.image_raw.shape}")
 
     def desired_velocity_callback(self, msg):
-        self.get_logger().info("got desired velocity")
+        self.get_logger().info(f"got desired velocity {msg}")
 
     def termination_flag_callback(self, msg):
         data = msg.data
         self.get_logger().info(f"got termination flag {data}")
     
-    def start_service_callback(self):
-        response = Trigger()
+    def start_service_callback(self, request, response):
         if(self.demo == None):
             response.success = False
         else:
@@ -94,8 +97,7 @@ class AgentNode(Node):
             response.success = True
         return response
 
-    def pause_service_callback(self):
-        response = Trigger()
+    def pause_service_callback(self, request, response):
         if(self.state == AgentState.RUNNING or self.state == AgentState.TAKE_OVER):
             self.state = AgentState.PAUSED
             response.success = True
@@ -103,18 +105,13 @@ class AgentNode(Node):
             response.success = False
         return response
 
-    def stop_service_callback(self):
-        response = Trigger()
-        if(self.state == AgentState.RUNNING or self.state == AgentState.TAKE_OVER or self.state == AgentState.PAUSED):
-            self.state = AgentState.STANDBY
-            self.demo = None
-            response.success = True
-        else:
-            response.success = False
+    def stop_service_callback(self, request, response):
+        self.state = AgentState.STANDBY
+        self.demo = None
+        response.success = True
         return response
 
-    def take_over_service_callback(self):
-        response = Trigger()
+    def take_over_service_callback(self, request, response):
         if(self.state == AgentState.RUNNING or self.state == AgentState.PAUSED):
             self.state = AgentState.TAKE_OVER
             response.success = True
@@ -122,22 +119,22 @@ class AgentNode(Node):
             response.success = False
         return response
 
-    def select_demonstration_service_callback(self, msg):
-        response = Trigger()
+    def select_demonstration_service_callback(self, request, response):
         if(self.state == AgentState.STANDBY):
-            demo_split = msg.command.split('.')
+            demo_split = request.command.split('.')
             demo_name = demo_split[0]
             demo_id = demo_split[1]
-            #TODO: load the demo given the demo_name and demo_id
+            images, velocity, termination_flag = self.demo_handler.get(demo_name, demo_id)
+            self.demo = dict(image = images, velocity = velocity, termination_flag = termination_flag)
+            print(self.demo)
             response.success = True
         return response
 
-    def select_model_service_callback(self):
-        response = Trigger()
+    def select_model_service_callback(self, request, response):
         response.success = True
         return response
 
-    def select_mode_service_callback(self):
+    def select_mode_service_callback(self, request, response):
         response = Trigger()
         response.success = True
         return response

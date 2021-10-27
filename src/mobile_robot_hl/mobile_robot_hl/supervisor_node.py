@@ -9,6 +9,7 @@ from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool
 from std_srvs.srv import Trigger
+from geometry_msgs.msg import Vector3
 
 from .supervisor_gui import SupervisorGUI, SupervisorState
 from .utils import *
@@ -85,9 +86,9 @@ class SupervisorNode(Node):
 
         self.get_logger().info("Initialized Node")
         self.image_raw = None
-        self.agent_output = {}
+        self.agent_output = {'velocity':{'linear':0.0, 'angular': 0.0}, 'termination_flag':False}
         self.agent_input = None
-        self.user_output = {'velocity':0.0, 'termination_flag':False}
+        self.user_output =  {'velocity':{'linear':0.0, 'angular': 0.0}, 'termination_flag':False}
         self.demo = [] # list(dict(image, velocity, termination_flag)
         self.task_episode = [] # list(dict(image, velocity, termination_flag, controller))
 
@@ -110,9 +111,10 @@ class SupervisorNode(Node):
             if(len(self.task_episode) == 0):
                 self.task_episode.append({'image':image})
                 return
-            output_msg = Twist(linear=Twist.Vector3(x=self.agent_output['velocity']['linear'],y=0.0,z=0.0),angular=Twist.Vector3(x=0.0,y=0.0,z=self.agent_output['velocity']['angular']))
-            self.desired_velocity_publisher.publish(output_msg)
-            self.termination_flag_publisher.publish(self.agent_output['termination_flag'])
+            velocity_msg = Twist(linear=Vector3(x=self.agent_output['velocity']['linear'],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=self.agent_output['velocity']['angular']))
+            self.desired_velocity_publisher.publish(velocity_msg)
+            bool_msg = Bool(data=self.agent_output['termination_flag'])
+            self.termination_flag_publisher.publish(bool_msg)
             self.task_episode[-1]['velocity'] = self.agent_output['velocity']
             self.task_episode[-1]['termination_flag'] = self.agent_output['termination_flag']
             self.task_episode[-1]['controller'] = ControllerType.AGENT
@@ -121,7 +123,7 @@ class SupervisorNode(Node):
             if(len(self.task_episode) == 0):
                 self.task_episode.append({'image':image})
                 return
-            output_msg = Twist(linear=Twist.Vector3(x=self.user_output['velocity']['linear'],y=0.0,z=0.0),angular=Twist.Vector3(x=0.0,y=0.0,z=self.user_output['velocity']['angular']))
+            output_msg = Twist(linear=Vector3(x=self.user_output['velocity']['linear'],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=self.user_output['velocity']['angular']))
             self.desired_velocity_publisher.publish(output_msg)
             self.termination_flag_publisher.publish(self.user_output['termination_flag'])
             self.task_episode[-1]['velocity'] = self.user_output['velocity']
@@ -196,14 +198,6 @@ class SupervisorNode(Node):
     
     def update_state(self, state):
         self.state = state
-        if(self.state == SupervisorState.STANDBY):
-            self.call_service('agent/pause')
-        elif(self.state == SupervisorState.TASK_RUNNING):
-            self.call_service('agent/start')
-        elif(self.state == SupervisorState.TASK_PAUSED):
-            self.call_service('agent/pause')
-        elif(self.state == SupervisorState.TASK_TAKE_OVER):
-            self.call_service('agent/take_over')
 
     def reset_velocity(self):
         self.desired_velocity = {'linear':0.0, 'angular':0.0}
