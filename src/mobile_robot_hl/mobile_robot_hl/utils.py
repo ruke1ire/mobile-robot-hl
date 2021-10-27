@@ -1,6 +1,7 @@
 import os
 import glob
 import yaml
+import shutil
 from PIL import Image as PImage
 
 class DemoHandler():
@@ -30,21 +31,21 @@ class DemoHandler():
         '''
         Get all available demo names
         '''
-        demos = [os.basename(x) for x in glob.glob(self.path+"/*")]
+        demos = [os.path.basename(x) for x in glob.glob(self.path+"/*")]
         return demos
     
     def get_ids(self, name):
         '''
         Get all available demo ids
         '''
-        demos = [os.basename(x) for x in glob.glob(self.path+"/"+name+"/*") if "yaml" not in x]
+        demos = [int(os.path.basename(x)) for x in glob.glob(self.path+"/"+name+"/*") if "yaml" not in os.path.basename(x)]
         return demos
 
     def save(self, demo, name, id_=None):
         '''
         Save a demonstration => dict(observation=dict(image_id), actions=dict(velocity, termination_flag))
 
-        demo: array of dict(image, velocity, termination_flag)
+        demo: list(dict(image, velocity, termination_flag))
         name: name of demonstration
         id_: id of demonstration
         '''
@@ -53,14 +54,18 @@ class DemoHandler():
 
         if(id_ == None):
             try:
-                taken_id = max([x for x in self.get_ids() if type(x) == int])
+                taken_id = max([x for x in self.get_ids(name) if type(x) == int])
                 next_id = taken_id + 1
             except:
                 next_id = 0
         else:
             next_id = id_
 
+        if os.path.exists(f"{self.path}/{name}/{next_id}"):
+            shutil.rmtree(f"{self.path}/{name}/{next_id}", ignore_errors=True)
         os.mkdir(f"{self.path}/{name}/{next_id}")
+
+        demo = demo[:-1]
 
         image_ids = list(range(len(demo)))
         for i in image_ids:
@@ -127,7 +132,7 @@ class TaskHandler():
         '''
         Get all available task ids
         '''
-        task_episodes = [os.basename(x) for x in glob.glob(self.path+"/"+name+"/*") if "yaml" not in x]
+        task_episodes = [int(os.path.basename(x)) for x in glob.glob(self.path+"/"+name+"/*") if "yaml" not in os.path.basename(x)]
         return task_episodes
 
     def save(self, episode, demo_name, demo_id, task_id = None):

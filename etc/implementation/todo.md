@@ -6,8 +6,10 @@ The todo list is written to this file.
 
 - [ ] Implement supervisor_node
     - [ ] Implement every service and topic
+    - [ ] Add another listbox for the demo selection process, one should be to select the demo name, the other should be to select the demo id
+    - [ ] Test out demo_handler and task_handler
 - [ ] Implement agent_node
-    - [ ] Implement every service and topic | DO THIS NEXT
+    - [ ] Implement every service and topic
 - [ ] Implement trainer_node
     - [ ] Implement every service and topic
     - [ ] Implement neural network model

@@ -140,17 +140,10 @@ class SupervisorGUI():
 
         self.model_control_button_frame = tkinter.ttk.Frame(self.model_control_frame)
         self.model_start_button = tkinter.ttk.Button(self.model_control_button_frame, text="start", command = self.model_start_button_trigger)
-        self.saved_demo = StringVar(value=[])
-        self.saved_demo_list = tkinter.Listbox(self.task_queue_frame, listvariable=self.saved_demo)
-        self.saved_demo_list.insert(tkinter.END, "TEMP 1")
-        self.saved_demo_list.insert(tkinter.END, "TEMP 2")
-        self.saved_demo_list.insert(tkinter.END, "TEMP 3")
-        self.saved_demo_list.insert(tkinter.END, "TEMP 4")
-        self.saved_demo_list.insert(tkinter.END, "TEMP 5")
-        self.saved_demo_list.insert(tkinter.END, "TEMP 6")
-        self.saved_demo_list.insert(tkinter.END, "TEMP 7")
-        self.saved_demo_list.insert(tkinter.END, "TEMP 8")
-        self.saved_demo_list.insert(tkinter.END, "TEMP 9")
+        self.saved_demo_name_list = tkinter.Listbox(self.task_queue_frame)
+        self.saved_demo_id_list = tkinter.Listbox(self.task_queue_frame)
+        self.saved_demo_name_list.bind('<<ListboxSelect>>', self.saved_demo_name_list_trigger)
+        self.saved_demo_id_list.bind('<<ListboxSelect>>', self.saved_demo_id_list_trigger)
         self.task_add_button = tkinter.ttk.Button(self.task_queue_frame, text=">>", command= self.add_demo_trigger)
         self.task_remove_button = tkinter.ttk.Button(self.task_queue_frame, text="<<", command = self.remove_demo_trigger)
         self.queued_demo = StringVar(value=[])
@@ -189,12 +182,13 @@ class SupervisorGUI():
         self.model_control_frame.columnconfigure(0, weight=1)
 
         self.task_queue_frame.grid(column=0, row=2, columnspan = 2, sticky='nsew')
-        self.saved_demo_list_label.grid(column = 0, row = 0)
-        self.queued_demo_list_label.grid(column = 2, row = 0)
-        self.saved_demo_list.grid(column=0, row=1, rowspan=4, sticky='nsew')
-        self.queued_demo_list.grid(column=2, row=1, rowspan=4, sticky = 'nsew')
-        self.task_add_button.grid(column=1, row=2)
-        self.task_remove_button.grid(column=1, row=3)
+        self.saved_demo_list_label.grid(column = 0,  row = 0, columnspan = 2)
+        self.queued_demo_list_label.grid(column = 3, row = 0)
+        self.saved_demo_name_list.grid(column=0, row=1, rowspan=4, sticky='nsew')
+        self.saved_demo_id_list.grid(column=1, row=1, rowspan=4, sticky='nsew')
+        self.queued_demo_list.grid(column=3, row=1, rowspan=4, sticky = 'nsew')
+        self.task_add_button.grid(column=2, row=2)
+        self.task_remove_button.grid(column=2, row=3)
 
         self.task_queue_frame.rowconfigure(2, weight=1)
         self.task_queue_frame.rowconfigure(3, weight=1)
@@ -376,19 +370,25 @@ class SupervisorGUI():
 
     def demo_save_button_trigger(self):
         demo_name = self.demo_name_entry.get()
+        self.state = SupervisorState.DEMO_PAUSED
+        self.demo_start_button.configure(text="start")
+        self.ros_node.update_state(self.state)
         if demo_name == "":
             print("[INFO] Demonstration name not specified")
         else:
+            self.ros_node.save_demo(demo_name)
             print(f"[INFO] Demonstration saved as {demo_name}")
-        self.state = SupervisorState.DEMO_PAUSED
-        self.demo_start_button.configure(text="start")
-        try:
-            self.ros_node.update_state(self.state)
-        except:
-            pass
 
-    def demo_update_entry(self, demo_names_tuple):
-        self.demo_name_entry['values'] = demo_names_tuple
+    def update_available_demo_name(self, name_array):
+        self.saved_demo_name_list.delete(0, tkinter.END)
+        for name in name_array:
+            self.saved_demo_name_list.insert(0, name)
+        self.demo_name_entry['values'] = tuple(name_array)
+
+    def update_available_demo_id(self, id_array):
+        self.saved_demo_id_list.delete(0,tkinter.END)
+        for id_ in id_array:
+            self.saved_demo_id_list.insert(tkinter.END, id_)
     
     def model_start_button_trigger(self):
         if(self.model_training_state == 'no'):
@@ -411,8 +411,12 @@ class SupervisorGUI():
             print("[INFO] Model training stopped")
     
     def add_demo_trigger(self):
-        demo_name = self.saved_demo_list.get(tkinter.ANCHOR)
-        self.queued_demo_list.insert(tkinter.END, demo_name)
+        demo_name = self.saved_demo_name_list.get(tkinter.ANCHOR)
+        demo_id = self.saved_demo_id_list.get(tkinter.ANCHOR)
+        if(demo_id == "" or demo_name == ""):
+            return
+        demo = demo_name+"."+demo_id
+        self.queued_demo_list.insert(tkinter.END, demo)
         self.selected_demo = self.queued_demo_list.get(0)
 
     def remove_demo_trigger(self):
@@ -422,6 +426,24 @@ class SupervisorGUI():
             return
         self.queued_demo_list.delete(tkinter.ANCHOR)
         self.selected_demo = self.queued_demo_list.get(0)
+
+    def saved_demo_name_list_trigger(self, event):
+        demo_name = self.saved_demo_name_list.get(tkinter.ANCHOR)
+        try:
+            ids = self.ros_node.demo_handler.get_ids(demo_name)
+        except:
+            ids = []
+        self.update_available_demo_id(ids)
+    
+    def saved_demo_id_list_trigger(self, event):
+        demo_name = self.saved_demo_name_list.get(tkinter.ANCHOR)
+        demo_id = self.saved_demo_id_list.get(tkinter.ANCHOR)
+        try:
+            images, velocity, termination_flag = self.ros_node.demo_handler.get(demo_name, demo_id)
+        except:
+            pass
+        print("[INFO] Displaying selected demonstration")
+
 
 class SupervisorState(Enum):
     STANDBY = 0

@@ -81,12 +81,13 @@ class SupervisorNode(Node):
         self.services_[trainer_prefix+'pre_train'] = self.create_client(Trigger, trainer_prefix+'pre_train')
 
         self.gui = SupervisorGUI(ros_node=self)
-        self.gui.saved_demo = self.demo_handler.get_names()
+        self.gui.update_available_demo_name(self.demo_handler.get_names())
+
         self.get_logger().info("Initialized Node")
         self.image_raw = None
         self.agent_output = {}
         self.agent_input = None
-        self.user_output = {}
+        self.user_output = {'velocity':0.0, 'termination_flag':False}
         self.demo = [] # list(dict(image, velocity, termination_flag)
         self.task_episode = [] # list(dict(image, velocity, termination_flag, controller))
 
@@ -104,7 +105,7 @@ class SupervisorNode(Node):
     def agent_input_callback(self, img):
         image = rnp.numpify(img)
         self.agent_input = image
-        self.get_logger().info(f"got agent_input {self.agent_input}")
+        self.get_logger().info(f"got agent_input")
         if(self.state == SupervisorState.TASK_RUNNING):
             if(len(self.task_episode) == 0):
                 self.task_episode.append({'image':image})
@@ -128,7 +129,7 @@ class SupervisorNode(Node):
             self.task_episode[-1]['controller'] = ControllerType.USER
             self.task_episode.append({'image':image})
         elif(self.state == SupervisorState.DEMO_RECORDING):
-            if(len(self.task_episode) == 0):
+            if(len(self.demo) == 0):
                 self.demo.append({'image':image})
                 return
             self.demo[-1]['velocity'] = self.user_output['velocity']
@@ -168,9 +169,9 @@ class SupervisorNode(Node):
                 self.get_logger().info(f'{service_name} service error: {response.message}')
     
     def get_current_demo(self):
-        images = [data['image'] for data in self.demo]
-        velocity = [data['velocity'] for data in self.demo]
-        termination_flag = [data['termination_flag'] for data in self.demo]
+        images = [data['image'] for data in self.demo[:-1]]
+        velocity = [data['velocity'] for data in self.demo[:-1]]
+        termination_flag = [data['termination_flag'] for data in self.demo[:-1]]
         return images, velocity, termination_flag
     
     def append_demo(self, image, velocity, termination_flag):
@@ -206,6 +207,9 @@ class SupervisorNode(Node):
 
     def reset_velocity(self):
         self.desired_velocity = {'linear':0.0, 'angular':0.0}
+
+    def save_demo(self, name):
+        self.demo_handler.save(self.demo, name)
 
 class ControllerType(Enum):
     USER = 0
