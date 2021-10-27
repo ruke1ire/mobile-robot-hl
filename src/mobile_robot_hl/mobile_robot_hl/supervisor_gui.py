@@ -318,8 +318,8 @@ class SupervisorGUI():
         self.automatic_save_button.state(['disabled'])
         self.demo_start_button.state(['!disabled'])
         try:
-            self.ros_node.update_state(self.state)
             self.ros_node.call_service('agent/stop')
+            self.ros_node.update_state(self.state)
         except:
             pass
         print("[INFO] Automatic control stopped")
@@ -335,8 +335,8 @@ class SupervisorGUI():
             self.automatic_take_over_button.configure(text="take over")
             print("[INFO] Supervisor take-over paused")
         try:
-            self.ros_node.update_state(self.state)
             self.ros_node.call_service('agent/take_over')
+            self.ros_node.update_state(self.state)
         except:
             pass
 
@@ -375,8 +375,8 @@ class SupervisorGUI():
         self.automatic_start_button.state(['!disabled'])
         print("[INFO] Demonstration recording stopped")
         try:
-            self.ros_node.update_state(self.state)
             self.ros_node.call_service('agent/stop')
+            self.ros_node.update_state(self.state)
         except:
             pass
 
