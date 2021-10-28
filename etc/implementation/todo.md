@@ -6,7 +6,11 @@ The todo list is written to this file.
 
 - [ ] Implement supervisor_node
     - [ ] Implement every service and topic
-    - [ ] Create function to display the model_input_images, demo images, etc.
+    - [ ] Restructure the functions according to the efficient information structure for each scenario
+    - [ ] Create function to display information in the current episode
+        - [x] demonstration
+        - [ ] saved task episdoe
+        - [ ] current task episode
     - [ ] Use blit for matplotlib
     - [ ] Create list box for task episodes
 - [ ] Implement agent_node
@@ -20,6 +24,7 @@ The todo list is written to this file.
         - ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args --remap cmd_vel:=/diffbot_base_controller/cmd_vel_unstamped
         - ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args --remap cmd_vel:=user_input/velocity
         - ros2 run rviz2 rviz2 -d ./src/control/ros2_control_demo_description/diffbot_description/config/diffbot.rviz
+    - [ ] Create node to input actions from an xbox controller
 
 ## Done
 

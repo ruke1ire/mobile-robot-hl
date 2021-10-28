@@ -134,6 +134,26 @@ The trainer node trains the neural networks.
 - delete: Delete neural networks
 - pre-train: Pre-train the current actor model 
 
+## Program Information Structure
+
+### dict(each_variable=list(variable))
+
+- Eg: {'linear':[1,2,3,4,5], 'angular':[1,2,3,4,5]}
+- Efficient for plotting, mini-batch model inference
+- This structure will be used for the following:
+    - plotting across time
+    - conditioning model
+    - storing information
+
+### list(dict(each variable))
+
+- Eg: [{'linear':1, 'angular':1}, {'linear':2, 'angular':2}]
+- Efficient for appending live information, single-data model inference
+- This structure will be used for the following:
+    - plotting live information
+    - live model inference
+    - temporary data storange for recording demos/tasks
+
 ## Saved Files
 
 ### Demonstration Files

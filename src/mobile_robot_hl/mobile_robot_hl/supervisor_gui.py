@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import time
 
+from .utils import *
+
 class SupervisorGUI():
     def __init__(self, ros_node = None):
 
@@ -22,6 +24,8 @@ class SupervisorGUI():
         self.state = SupervisorState.STANDBY
         self.model_training_state = 'no'
         self.selected_demo = None
+        self.episode = None
+        self.slider_value = 0
 
         sns.set('notebook')
         sns.set_style("white")
@@ -32,7 +36,7 @@ class SupervisorGUI():
 
     def setup_extras(self):
         img = np.zeros([360,480,3],dtype=np.uint8)
-        img.fill(255)
+        img.fill(100)
         self.blank_image = Image.fromarray(img)
 
     def setup_mainframe(self):
@@ -49,11 +53,11 @@ class SupervisorGUI():
     
     def setup_display_frame(self):
         # setup display_frame section
-        self.image_model = ImageTk.PhotoImage(self.blank_image)
+        self.image_episode = ImageTk.PhotoImage(self.blank_image)
         self.image_current = ImageTk.PhotoImage(self.blank_image)
-        self.image_model_label = tkinter.Label(self.display_frame,image=self.image_model)
+        self.image_episode_label = tkinter.Label(self.display_frame,image=self.image_episode)
         self.image_current_label = tkinter.Label(self.display_frame,image=self.image_current)
-        self.image_slider = tkinter.ttk.Scale(self.display_frame, from_=0, to_= 100, orient=tkinter.HORIZONTAL)
+        self.image_slider = tkinter.ttk.Scale(self.display_frame, from_=0, to_= 1, orient=tkinter.HORIZONTAL, command=self.slider_trigger)
         self.info_frame = tkinter.ttk.Frame(self.display_frame, borderwidth=2, relief=tkinter.SUNKEN, padding = "10 10 10 10")
         self.info_frame_title = tkinter.ttk.Label(self.info_frame, text="Information")
         self.info_desired_vel = tkinter.ttk.Label(self.info_frame, text="Desired Velocity: \n\tLinear: 0.0 m/s\n\tAngular: 0.0 rad/s")
@@ -92,7 +96,7 @@ class SupervisorGUI():
 
         self.action_plot_plot = FigureCanvasTkAgg(self.action_plot_fig, self.display_frame)
 
-        self.image_model_label.grid(column=0, row=0)
+        self.image_episode_label.grid(column=0, row=0)
         self.current_action_plot.get_tk_widget().grid(column=1, row =0, sticky='nsew')
         self.action_plot_plot.get_tk_widget().grid(column=0, row =1, columnspan=2, sticky='ew')
         self.image_current_label.grid(column=0, row=4)
@@ -252,8 +256,8 @@ class SupervisorGUI():
             except:
                 pass
             list_range_desired_vel = list(range(1,1+len(desired_vel['linear'])))
-            self.action_plot_desired_vel_line_linear = self.action_plot_ax.plot(list_range_desired_vel,desired_vel['linear'], c = 'tab:blue', label="desired linear velocity", alpha=0.8)
-            self.action_plot_desired_vel_line_angular = self.action_plot_ax.plot(list_range_desired_vel,desired_vel['angular'], c = 'tab:cyan', label="desired angular velocity", alpha=0.8)
+            self.action_plot_desired_vel_line_linear = self.action_plot_ax.plot(list_range_desired_vel,desired_vel['linear'], c = 'tab:blue', label="desired linear velocity", alpha=0.8, marker='x')
+            self.action_plot_desired_vel_line_angular = self.action_plot_ax.plot(list_range_desired_vel,desired_vel['angular'], c = 'tab:cyan', label="desired angular velocity", alpha=0.8, marker = 'x')
         if type(user_vel) == dict:
             try:
                 self.action_plot_user_vel_line_linear.pop(0).remove()
@@ -261,8 +265,8 @@ class SupervisorGUI():
             except:
                 pass
             list_range_user_vel = list(range(1,1+len(user_vel['linear'])))
-            self.action_plot_user_vel_line_linear =  self.action_plot_ax.plot(list_range_user_vel, user_vel['linear'],c = 'tab:orange', label="user linear velocity", alpha=0.8)
-            self.action_plot_user_vel_line_angular =  self.action_plot_ax.plot(list_range_user_vel, user_vel['angular'],c = 'tab:brown', label="user angular velocity", alpha=0.8)
+            self.action_plot_user_vel_line_linear =  self.action_plot_ax.plot(list_range_user_vel, user_vel['linear'],c = 'tab:orange', label="user linear velocity", alpha=0.8, marker='o')
+            self.action_plot_user_vel_line_angular =  self.action_plot_ax.plot(list_range_user_vel, user_vel['angular'],c = 'tab:brown', label="user angular velocity", alpha=0.8, marker='o')
             #self.action_plot_user_vel_line = self.action_plot_ax.plot(user_vel['linear'], user_vel['angular'],c = 'tab:orange', alpha=0.8)
         if type(agent_vel) == dict:
             try:
@@ -271,8 +275,8 @@ class SupervisorGUI():
             except:
                 pass
             list_range_agent_vel = list(range(1, 1+len(agent_vel['linear'])))
-            self.action_plot_agent_vel_line_linear = self.action_plot_ax.plot(list_range_agent_vel, agent_vel['linear'],c = 'tab:green', label="agent linear velocity", alpha = 0.8)
-            self.action_plot_agent_vel_line_angular = self.action_plot_ax.plot(list_range_agent_vel, agent_vel['angular'],c = 'olive', label="agent angular velocity", alpha = 0.8)
+            self.action_plot_agent_vel_line_linear = self.action_plot_ax.plot(list_range_agent_vel, agent_vel['linear'],c = 'tab:green', label="agent linear velocity", alpha = 0.8, marker='^')
+            self.action_plot_agent_vel_line_angular = self.action_plot_ax.plot(list_range_agent_vel, agent_vel['angular'],c = 'olive', label="agent angular velocity", alpha = 0.8, marker='^')
 
         self.action_plot_ax.legend(loc='lower left', prop={'size': 8})
         self.action_plot_plot.draw_idle()
@@ -467,13 +471,47 @@ class SupervisorGUI():
     def saved_demo_id_list_trigger(self, event):
         demo_name = self.saved_demo_name_list.get(tkinter.ANCHOR)
         demo_id = self.saved_demo_id_list.get(tkinter.ANCHOR)
-        try:
-            #TODO: make the following function create a asynchronous
-            images, velocity, termination_flag = self.ros_node.demo_handler.get(demo_name, demo_id)
-        except:
-            pass
+        images, velocity, termination_flag = self.ros_node.demo_handler.get(demo_name, demo_id)
+        self.set_episode(image_array=images, velocity_array=velocity, termination_flag_array=termination_flag)
         print("[INFO] Displaying selected demonstration")
 
+    def set_episode(self, image_array, velocity_array, termination_flag_array, controller_array=None):
+        '''
+        Set the episode to be displayed
+
+        episde = list(dict(image, velocity, controller))
+        '''
+
+        if controller_array != None:
+            combined_information = zip(image_array, velocity_array, termination_flag_array, controller_array)
+            self.episode = [dict(image=image, velocity=velocity, termination_flag=termination_flag, controller=ControllerType[controller]) for (image, velocity, termination_flag, controller) in combined_information]
+            self.update_action_plot(desired_vel = {'linear':[vel['linear'] for vel in velocity_array], 'angular': [vel['angular'] for vel in velocity_array]}, user_vel = {'linear':[vel['linear'] for vel in velocity_array], 'angular': [vel['angular'] for vel in velocity_array]})
+        else:
+            combined_information = zip(image_array, velocity_array, termination_flag_array)
+            self.episode = [dict(image=image, velocity=velocity, termination_flag=termination_flag) for (image, velocity, termination_flag) in combined_information]
+            self.update_action_plot(desired_vel = {'linear':[vel['linear'] for vel in velocity_array], 'angular': [vel['angular'] for vel in velocity_array]}, user_vel = {'linear':[vel['linear'] for vel in velocity_array], 'angular': [vel['angular'] for vel in velocity_array]})
+
+        self.slider_trigger(self.slider_value)
+
+    def update_episode_image(self, episode_index):
+        image = self.episode[episode_index]['image'].resize((480,360))
+        self.image_episode = ImageTk.PhotoImage(image = image)
+        self.image_episode_label.configure(image=self.image_episode)
+        if('controller' in self.episode[episode_index].keys()):
+            if(self.episode[episode_index]['controller'] == ControllerType.USER):
+                self.update_current_action_plot(desired_vel = self.episode[episode_index]['velocity'], user_vel = self.episode[episode_index]['velocity'])
+            else:
+                self.update_current_action_plot(desired_vel = self.episode[episode_index]['velocity'], agent_vel = self.episode[episode_index]['velocity'])
+        else:
+            self.update_current_action_plot(desired_vel = self.episode[episode_index]['velocity'], user_vel = self.episode[episode_index]['velocity'])
+    
+    def slider_trigger(self, val):
+        self.slider_value = float(val)
+
+        if(self.episode != None):
+            episode_max_index = len(self.episode) - 1
+            current_selection = int(episode_max_index*self.slider_value)
+            self.update_episode_image(current_selection)
 
 class SupervisorState(Enum):
     STANDBY = 0

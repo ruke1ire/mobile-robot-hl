@@ -212,10 +212,6 @@ class SupervisorNode(Node):
     def save_task_episode(self, demo_name, demo_id):
         self.task_handler.save(self.task_episode, demo_name, demo_id)
 
-class ControllerType(Enum):
-    USER = 0
-    AGENT = 1
-
 def supervisor_node_thread_(node):
     while True:
         pass

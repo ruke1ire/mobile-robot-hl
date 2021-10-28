@@ -3,6 +3,7 @@ import glob
 import yaml
 import shutil
 from PIL import Image as PImage
+from enum import Enum
 
 class DemoHandler():
     DEMO_NAME_INFO_FILE = "info.yaml"
@@ -185,7 +186,17 @@ class TaskHandler():
         
         with open(f'{self.path}/{demo_name}/{next_id}/{TaskHandler.TASK_ID_INFO_FILE}', 'w') as outfile:
             yaml.dump(task_episode_dict, outfile)
+    
+def restructure2list_dict(data):
+    raise NotImplementedError()
+
+def restructure2dict_list(data):
+    raise NotImplementedError()
 
 class ModelHandler():
     def __init__(self):
         pass
+
+class ControllerType(Enum):
+    USER = 0
+    AGENT = 1
