@@ -145,6 +145,7 @@ class SupervisorGUI():
 
         self.model_control_button_frame = tkinter.ttk.Frame(self.model_control_frame)
         self.model_start_button = tkinter.ttk.Button(self.model_control_button_frame, text="start", command = self.model_start_button_trigger)
+        self.saved_task_episode_name_list = tkinter.Listbox(self.task_queue_frame)
         self.saved_demo_name_list = tkinter.Listbox(self.task_queue_frame)
         self.saved_demo_id_list = tkinter.Listbox(self.task_queue_frame)
         self.saved_demo_name_list.bind('<<ListboxSelect>>', self.saved_demo_name_list_trigger)
@@ -157,6 +158,7 @@ class SupervisorGUI():
         self.automatic_label = tkinter.ttk.Label(self.automatic_control_frame, text="Automatic Control Panel")
         self.model_label = tkinter.ttk.Label(self.model_control_frame, text="Model Control Panel")
         self.saved_demo_list_label = tkinter.ttk.Label(self.task_queue_frame, text="Available Demo")
+        self.saved_task_episode_list_label = tkinter.ttk.Label(self.task_queue_frame, text="Available Task Episode")
         self.queued_demo_list_label = tkinter.ttk.Label(self.task_queue_frame, text="Queued Demo")
 
         self.automatic_control_frame.grid(column=0, row=0, columnspan = 2, sticky='nsew')
@@ -187,16 +189,18 @@ class SupervisorGUI():
         self.model_control_frame.columnconfigure(0, weight=1)
 
         self.task_queue_frame.grid(column=0, row=2, columnspan = 2, sticky='nsew')
-        self.saved_demo_list_label.grid(column = 0,  row = 0, columnspan = 2)
+        self.saved_demo_list_label.grid(column = 0,  row = 0)
+        self.saved_task_episode_list_label.grid(column = 0, row = 3)
         self.queued_demo_list_label.grid(column = 3, row = 0)
-        self.saved_demo_name_list.grid(column=0, row=1, rowspan=4, sticky='nsew')
-        self.saved_demo_id_list.grid(column=1, row=1, rowspan=4, sticky='nsew')
-        self.queued_demo_list.grid(column=3, row=1, rowspan=4, sticky = 'nsew')
+        self.saved_demo_name_list.grid(column=0, row=1, rowspan=2, sticky='nsew')
+        self.saved_demo_id_list.grid(column=1, row=1, rowspan=5, sticky='nsew')
+        self.saved_task_episode_name_list.grid(column=0, row=4, rowspan=2, sticky='nsew')
+        self.queued_demo_list.grid(column=3, row=1, rowspan=5, sticky = 'nsew')
         self.task_add_button.grid(column=2, row=2)
-        self.task_remove_button.grid(column=2, row=3)
+        self.task_remove_button.grid(column=2, row=4)
 
         self.task_queue_frame.rowconfigure(2, weight=1)
-        self.task_queue_frame.rowconfigure(3, weight=1)
+        self.task_queue_frame.rowconfigure(4, weight=1)
         self.task_queue_frame.columnconfigure(0, weight=1)
         self.task_queue_frame.columnconfigure(2, weight=1)
 
