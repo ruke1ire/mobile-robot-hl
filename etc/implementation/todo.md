@@ -8,6 +8,7 @@ The todo list is written to this file.
     - [ ] Implement every service and topic
     - [ ] Create function to display the model_input_images, demo images, etc.
     - [ ] Use blit for matplotlib
+    - [ ] Create list box for task episodes
 - [ ] Implement agent_node
     - [ ] Implement every service and topic
 - [ ] Implement trainer_node
