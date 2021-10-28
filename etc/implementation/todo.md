@@ -6,8 +6,8 @@ The todo list is written to this file.
 
 - [ ] Implement supervisor_node
     - [ ] Implement every service and topic
-    - [ ] Finish function to save/delete the task episodes using the task handler
     - [ ] Create function to display the model_input_images, demo images, etc.
+    - [ ] Use blit for matplotlib
 - [ ] Implement agent_node
     - [ ] Implement every service and topic
 - [ ] Implement trainer_node
@@ -29,6 +29,7 @@ The todo list is written to this file.
     - [x] Create an entry for selecting the demonstration whenever starting the automatic controller, and make it required to select a demonstration, otherwise, disable the automatic start button
     - [x] Test out demo_handler and task_handler
     - [x] Add another listbox for the demo selection process, one should be to select the demo name, the other should be to select the demo id
+    - [x] Finish function to save/delete the task episodes using the task handler
 - [ ] Implement agent_node
     - [x] Setup base-line ros communication topics and services
 - [ ] Implement trainer_node

@@ -145,22 +145,28 @@ class TaskHandler():
         task_id: id of task episode
         '''
 
-        if not os.path.exists(f"self.path/{demo_name}"):
+        if not os.path.exists(f"{self.path}/{demo_name}"):
             os.mkdir(f"{self.path}/{demo_name}")
 
         if(task_id == None):
             try:
-                taken_id = max([x for x in self.get_ids() if type(x) == int])
+                taken_id = max([x for x in self.get_ids(demo_name) if type(x) == int])
                 next_id = taken_id + 1
             except:
                 next_id = 0
         else:
             next_id = task_id
 
+        if os.path.exists(f"{self.path}/{demo_name}/{next_id}"):
+            shutil.rmtree(f"{self.path}/{demo_name}/{next_id}", ignore_errors=True)
+        os.mkdir(f"{self.path}/{demo_name}/{next_id}")
+
+        episode = episode[:-1]
+
         image_ids = list(range(len(episode)))
         for i in image_ids:
             img = PImage.fromarray(episode[i]["image"])
-            img.save(f"{self.task_path}/{demo_name}/{next_id}/{i}.png")
+            img.save(f"{self.path}/{demo_name}/{next_id}/{i}.png")
         
         velocity = [data['velocity'] for data in episode]
         termination_flag = [data['termination_flag'] for data in episode]
@@ -172,12 +178,12 @@ class TaskHandler():
                         'actions':{
                             'velocity': velocity,
                             'termination_flag': termination_flag,
-                            'controller': controller
+                            'controller': [cont.name for cont in controller]
                         },
                         'demonstration': demo_id
                     }
         
-        with open('task_info_info.yaml', 'w') as outfile:
+        with open(f'{self.path}/{demo_name}/{next_id}/{TaskHandler.TASK_ID_INFO_FILE}', 'w') as outfile:
             yaml.dump(task_episode_dict, outfile)
 
 class ModelHandler():

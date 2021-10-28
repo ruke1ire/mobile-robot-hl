@@ -106,7 +106,7 @@ class SupervisorNode(Node):
     def agent_input_callback(self, img):
         image = rnp.numpify(img)
         self.agent_input = image
-        self.get_logger().info(f"got agent_input")
+        #self.get_logger().info(f"got agent_input")
         if(self.state == SupervisorState.TASK_RUNNING):
             if(len(self.task_episode) == 0):
                 self.task_episode.append({'image':image})
@@ -115,27 +115,31 @@ class SupervisorNode(Node):
             self.desired_velocity_publisher.publish(velocity_msg)
             bool_msg = Bool(data=self.agent_output['termination_flag'])
             self.termination_flag_publisher.publish(bool_msg)
-            self.task_episode[-1]['velocity'] = self.agent_output['velocity']
+            self.task_episode[-1]['velocity'] = self.agent_output['velocity'].copy()
             self.task_episode[-1]['termination_flag'] = self.agent_output['termination_flag']
             self.task_episode[-1]['controller'] = ControllerType.AGENT
+            self.get_logger().info(f'Episode Length: {len(self.task_episode)}')
             self.task_episode.append({'image':image})
         elif(self.state == SupervisorState.TASK_TAKE_OVER):
             if(len(self.task_episode) == 0):
                 self.task_episode.append({'image':image})
                 return
-            output_msg = Twist(linear=Vector3(x=self.user_output['velocity']['linear'],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=self.user_output['velocity']['angular']))
-            self.desired_velocity_publisher.publish(output_msg)
-            self.termination_flag_publisher.publish(self.user_output['termination_flag'])
-            self.task_episode[-1]['velocity'] = self.user_output['velocity']
+            velocity_msg = Twist(linear=Vector3(x=self.user_output['velocity']['linear'],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=self.user_output['velocity']['angular']))
+            self.desired_velocity_publisher.publish(velocity_msg)
+            bool_msg = Bool(data=self.user_output['termination_flag'])
+            self.termination_flag_publisher.publish(bool_msg)
+            self.task_episode[-1]['velocity'] = self.user_output['velocity'].copy()
             self.task_episode[-1]['termination_flag'] = self.user_output['termination_flag']
             self.task_episode[-1]['controller'] = ControllerType.USER
+            self.get_logger().info(f'Episode Length: {len(self.task_episode)}')
             self.task_episode.append({'image':image})
         elif(self.state == SupervisorState.DEMO_RECORDING):
             if(len(self.demo) == 0):
                 self.demo.append({'image':image})
                 return
-            self.demo[-1]['velocity'] = self.user_output['velocity']
+            self.demo[-1]['velocity'] = self.user_output['velocity'].copy()
             self.demo[-1]['termination_flag'] = self.user_output['termination_flag']
+            self.get_logger().info(f'Demonstration Length: {len(self.demo)}')
             self.demo.append({'image':image})
 
     def user_velocity_callback(self, vel):
@@ -204,6 +208,9 @@ class SupervisorNode(Node):
 
     def save_demo(self, name):
         self.demo_handler.save(self.demo, name)
+    
+    def save_task_episode(self, demo_name, demo_id):
+        self.task_handler.save(self.task_episode, demo_name, demo_id)
 
 class ControllerType(Enum):
     USER = 0

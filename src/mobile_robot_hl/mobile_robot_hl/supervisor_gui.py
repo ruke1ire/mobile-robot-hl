@@ -7,6 +7,7 @@ import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import time
 
 class SupervisorGUI():
     def __init__(self, ros_node = None):
@@ -318,8 +319,11 @@ class SupervisorGUI():
         self.automatic_save_button.state(['disabled'])
         self.demo_start_button.state(['!disabled'])
         try:
-            self.ros_node.call_service('agent/stop')
+            self.ros_node.call_service('agent/pause')
             self.ros_node.update_state(self.state)
+            time.sleep(1)
+            self.ros_node.call_service('agent/stop')
+            self.ros_node.reset_task_episode()
         except:
             pass
         print("[INFO] Automatic control stopped")
@@ -329,26 +333,32 @@ class SupervisorGUI():
             self.automatic_take_over_button.configure(text="pause")
             self.state = SupervisorState.TASK_TAKE_OVER
             self.automatic_start_button.configure(text="start")
+            try:
+                self.ros_node.call_service('agent/take_over')
+                self.ros_node.update_state(self.state)
+            except:
+                pass
             print("[INFO] Supervisor take-over")
         elif(self.state == SupervisorState.TASK_TAKE_OVER):
             self.state = SupervisorState.TASK_PAUSED
             self.automatic_take_over_button.configure(text="take over")
             print("[INFO] Supervisor take-over paused")
-        try:
-            self.ros_node.call_service('agent/take_over')
-            self.ros_node.update_state(self.state)
-        except:
-            pass
+            try:
+                self.ros_node.call_service('agent/pause')
+                self.ros_node.update_state(self.state)
+            except:
+                pass
 
     def agent_save_button_trigger(self):
         self.state = SupervisorState.TASK_PAUSED
         self.automatic_start_button.configure(text="start")
         self.automatic_take_over_button.configure(text="take over")
         print(f"[INFO] Saved task episode to {self.selected_demo}")
-        try:
-            self.ros_node.update_state(self.state)
-        except:
-            pass
+        self.ros_node.update_state(self.state)
+        selected_demo_split = self.selected_demo.split('.')
+        demo_name = selected_demo_split[0]
+        demo_id = selected_demo_split[1]
+        self.ros_node.save_task_episode(demo_name, demo_id)
     
     def demo_start_button_trigger(self):
         if(self.state == SupervisorState.STANDBY or self.state == SupervisorState.DEMO_PAUSED):
@@ -377,6 +387,7 @@ class SupervisorGUI():
         try:
             self.ros_node.call_service('agent/stop')
             self.ros_node.update_state(self.state)
+            self.ros_node.demo()
         except:
             pass
 
@@ -384,13 +395,16 @@ class SupervisorGUI():
         demo_name = self.demo_name_entry.get()
         self.state = SupervisorState.DEMO_PAUSED
         self.demo_start_button.configure(text="start")
-        self.ros_node.update_state(self.state)
-        if demo_name == "":
-            print("[INFO] Demonstration name not specified")
-        else:
-            self.ros_node.save_demo(demo_name)
-            self.update_available_demo_name(self.ros_node.demo_handler.get_names())
-            print(f"[INFO] Demonstration saved as {demo_name}")
+        try:
+            self.ros_node.update_state(self.state)
+            if demo_name == "":
+                print("[INFO] Demonstration name not specified")
+            else:
+                self.ros_node.save_demo(demo_name)
+                self.update_available_demo_name(self.ros_node.demo_handler.get_names())
+                print(f"[INFO] Demonstration saved as {demo_name}")
+        except:
+            pass
 
     def update_available_demo_name(self, name_array):
         self.saved_demo_name_list.delete(0, tkinter.END)
@@ -431,6 +445,7 @@ class SupervisorGUI():
         demo = demo_name+"."+str(demo_id)
         self.queued_demo_list.insert(tkinter.END, demo)
         self.selected_demo = self.queued_demo_list.get(0)
+        self.update_info(selected_demo = self.selected_demo)
 
     def remove_demo_trigger(self):
         selected_index = self.queued_demo_list.curselection()
@@ -439,7 +454,7 @@ class SupervisorGUI():
             return
         self.queued_demo_list.delete(tkinter.ANCHOR)
         self.selected_demo = self.queued_demo_list.get(0)
-        print(f"|{self.selected_demo}|")
+        self.update_info(selected_demo = self.selected_demo)
 
     def saved_demo_name_list_trigger(self, event):
         demo_name = self.saved_demo_name_list.get(tkinter.ANCHOR)

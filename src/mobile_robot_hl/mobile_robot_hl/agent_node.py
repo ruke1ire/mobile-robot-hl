@@ -75,19 +75,25 @@ class AgentNode(Node):
 
         self.state = AgentState.STANDBY
         self.demo = None
+
+        self.episode_length = 0
     
     def image_raw_callback(self, img):
         self.fill_int == None
         self.image_raw_msg = img
         self.image_raw = rnp.numpify(img)
-        self.get_logger().info(f"got image {self.image_raw.shape}")
+        #self.get_logger().info(f"got image {self.image_raw.shape}")
 
     def desired_velocity_callback(self, msg):
-        self.get_logger().info(f"got desired velocity {msg}")
+        #self.get_logger().info(f"got desired velocity {msg}")
+        pass
 
     def termination_flag_callback(self, msg):
         data = msg.data
-        self.get_logger().info(f"got termination flag {data}")
+
+        self.episode_length += 1
+        self.get_logger().info(f"Episode Length: {self.episode_length}")
+        #self.get_logger().info(f"got termination flag {data}")
     
     def start_service_callback(self, request, response):
         if(self.demo == None):
@@ -109,6 +115,7 @@ class AgentNode(Node):
         self.state = AgentState.STANDBY
         self.demo = None
         response.success = True
+        self.episode_length = 0
         return response
 
     def take_over_service_callback(self, request, response):
@@ -126,7 +133,7 @@ class AgentNode(Node):
             demo_id = demo_split[1]
             images, velocity, termination_flag = self.demo_handler.get(demo_name, demo_id)
             self.demo = dict(image = images, velocity = velocity, termination_flag = termination_flag)
-            print(self.demo)
+            self.get_logger().info(f"Selected demonstration: {request.command}")
             response.success = True
         return response
 
