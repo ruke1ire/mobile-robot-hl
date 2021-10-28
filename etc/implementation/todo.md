@@ -7,6 +7,10 @@ The todo list is written to this file.
 - [ ] Implement supervisor_node
     - [ ] Implement every service and topic
     - [ ] Restructure the functions according to the efficient information structure for each scenario
+    - [ ] Create classes for demonstration and task episodes and they should have functions to help append/set/get information with ease
+        - Appending information should be to add the observation
+        - Setting the information should be to set the actions performed for that observation
+        - Get function should assist in returning specific information in a specific data structure
     - [ ] Create function to display information in the current episode
         - [x] demonstration
         - [ ] saved task episdoe
