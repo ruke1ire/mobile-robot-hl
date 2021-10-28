@@ -83,6 +83,7 @@ class SupervisorNode(Node):
 
         self.gui = SupervisorGUI(ros_node=self)
         self.gui.update_available_demo_name(self.demo_handler.get_names())
+        self.gui.update_available_task_episode_name(self.task_handler.get_names())
 
         self.get_logger().info("Initialized Node")
         self.image_raw = None

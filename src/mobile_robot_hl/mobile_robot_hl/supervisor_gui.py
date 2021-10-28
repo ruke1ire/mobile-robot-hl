@@ -26,6 +26,7 @@ class SupervisorGUI():
         self.selected_demo = None
         self.episode = None
         self.slider_value = 0
+        self.selection = InformationType.NONE
 
         sns.set('notebook')
         sns.set_style("white")
@@ -149,6 +150,7 @@ class SupervisorGUI():
         self.saved_demo_name_list = tkinter.Listbox(self.task_queue_frame)
         self.saved_demo_id_list = tkinter.Listbox(self.task_queue_frame)
         self.saved_demo_name_list.bind('<<ListboxSelect>>', self.saved_demo_name_list_trigger)
+        self.saved_task_episode_name_list.bind('<<ListboxSelect>>', self.saved_task_episode_name_list_trigger)
         self.saved_demo_id_list.bind('<<ListboxSelect>>', self.saved_demo_id_list_trigger)
         self.task_add_button = tkinter.ttk.Button(self.task_queue_frame, text=">>", command= self.add_demo_trigger)
         self.task_remove_button = tkinter.ttk.Button(self.task_queue_frame, text="<<", command = self.remove_demo_trigger)
@@ -424,6 +426,11 @@ class SupervisorGUI():
         self.saved_demo_id_list.delete(0,tkinter.END)
         for id_ in id_array:
             self.saved_demo_id_list.insert(tkinter.END, id_)
+
+    def update_available_task_episode_name(self, name_array):
+        self.saved_task_episode_name_list.delete(0, tkinter.END)
+        for name in name_array:
+            self.saved_task_episode_name_list.insert(0, name)
     
     def model_start_button_trigger(self):
         if(self.model_training_state == 'no'):
@@ -471,13 +478,27 @@ class SupervisorGUI():
         except:
             ids = []
         self.update_available_demo_id(ids)
+        self.selection = InformationType.DEMO
+
+    def saved_task_episode_name_list_trigger(self, event):
+        demo_name = self.saved_task_episode_name_list.get(tkinter.ANCHOR)
+        try:
+            ids = self.ros_node.task_handler.get_ids(demo_name)
+        except:
+            ids = []
+        self.update_available_demo_id(ids)
+        self.selection = InformationType.TASK_EPISODE
     
     def saved_demo_id_list_trigger(self, event):
-        demo_name = self.saved_demo_name_list.get(tkinter.ANCHOR)
-        demo_id = self.saved_demo_id_list.get(tkinter.ANCHOR)
-        images, velocity, termination_flag = self.ros_node.demo_handler.get(demo_name, demo_id)
-        self.set_episode(image_array=images, velocity_array=velocity, termination_flag_array=termination_flag)
-        print("[INFO] Displaying selected demonstration")
+        if(self.selection == InformationType.DEMO):
+            demo_name = self.saved_demo_name_list.get(tkinter.ANCHOR)
+            demo_id = self.saved_demo_id_list.get(tkinter.ANCHOR)
+            images, velocity, termination_flag = self.ros_node.demo_handler.get(demo_name, demo_id)
+            self.set_episode(image_array=images, velocity_array=velocity, termination_flag_array=termination_flag)
+            print("[INFO] Displaying selected demonstration")
+        else:
+            #TODO: show the task episode here
+            print("[INFO] Displaying selected task episode")
 
     def set_episode(self, image_array, velocity_array, termination_flag_array, controller_array=None):
         '''

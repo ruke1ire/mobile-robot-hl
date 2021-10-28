@@ -126,7 +126,7 @@ class TaskHandler():
         '''
         Get all available task names
         '''
-        demos = [os.basename(x) for x in glob.glob(self.path+"/*")]
+        demos = [os.path.basename(x) for x in glob.glob(self.path+"/*")]
         return demos
     
     def get_ids(self, name):
@@ -200,3 +200,8 @@ class ModelHandler():
 class ControllerType(Enum):
     USER = 0
     AGENT = 1
+
+class InformationType(Enum):
+    NONE = 0
+    DEMO = 1
+    TASK_EPISODE = 2
