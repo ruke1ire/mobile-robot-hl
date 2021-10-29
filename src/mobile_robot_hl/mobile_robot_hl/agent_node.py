@@ -74,7 +74,7 @@ class AgentNode(Node):
         self.image_raw_msg = rnp.msgify(Image,img_tmp, encoding='rgb8')
 
         self.state = AgentState.STANDBY
-        self.demo = None
+        self.episode = EpisodeData(data=None, structure=DataStructure.LIST_DICT)
 
         self.episode_length = 0
     
@@ -96,7 +96,7 @@ class AgentNode(Node):
         #self.get_logger().info(f"got termination flag {data}")
     
     def start_service_callback(self, request, response):
-        if(self.demo == None):
+        if(self.episode.data_empty == True):
             response.success = False
         else:
             self.state = AgentState.RUNNING
@@ -113,7 +113,7 @@ class AgentNode(Node):
 
     def stop_service_callback(self, request, response):
         self.state = AgentState.STANDBY
-        self.demo = None
+        self.episode = EpisodeData(data=None, structure=DataStructure.LIST_DICT)
         response.success = True
         self.episode_length = 0
         return response
@@ -131,8 +131,11 @@ class AgentNode(Node):
             demo_split = request.command.split('.')
             demo_name = demo_split[0]
             demo_id = demo_split[1]
-            images, velocity, termination_flag = self.demo_handler.get(demo_name, demo_id)
-            self.demo = dict(image = images, velocity = velocity, termination_flag = termination_flag)
+            episode = self.demo_handler.get(demo_name, demo_id)
+            episode_data = EpisodeData(data=episode.data, structure=DataStructure.DICT_LIST)
+            episode_data.restructure(DataStructure.LIST_DICT)
+            self.episode = episode_data
+
             self.get_logger().info(f"Selected demonstration: {request.command}")
             response.success = True
         return response

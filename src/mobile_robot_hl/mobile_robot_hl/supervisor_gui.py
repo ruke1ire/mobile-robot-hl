@@ -24,7 +24,7 @@ class SupervisorGUI():
         self.state = SupervisorState.STANDBY
         self.model_training_state = 'no'
         self.selected_demo = None
-        self.episode = None
+        self.episode = EpisodeData(data=None, structure=DataStructure.LIST_DICT)
         self.slider_value = 0
         self.selection = InformationType.NONE
 
@@ -59,6 +59,7 @@ class SupervisorGUI():
         self.image_episode_label = tkinter.Label(self.display_frame,image=self.image_episode)
         self.image_current_label = tkinter.Label(self.display_frame,image=self.image_current)
         self.image_slider = tkinter.ttk.Scale(self.display_frame, from_=0, to_= 1, orient=tkinter.HORIZONTAL, command=self.slider_trigger)
+        self.action_plot_dummy_frame = tkinter.ttk.Frame(self.display_frame, padding = "17 17 17 17")
         self.info_frame = tkinter.ttk.Frame(self.display_frame, borderwidth=2, relief=tkinter.SUNKEN, padding = "10 10 10 10")
         self.info_frame_title = tkinter.ttk.Label(self.info_frame, text="Information")
         self.info_desired_vel = tkinter.ttk.Label(self.info_frame, text="Desired Velocity: \n\tLinear: 0.0 m/s\n\tAngular: 0.0 rad/s")
@@ -91,15 +92,16 @@ class SupervisorGUI():
         self.action_plot_ax.spines['bottom'].set_position('center')
         self.action_plot_ax.spines['left'].set_color('none')
         self.action_plot_ax.set_ylim([-1,1])
-        self.action_plot_ax.margins(x=0.015)
+        self.action_plot_ax.margins(x=0)
         self.action_plot_ax.grid(True)
         self.action_plot_ax.tick_params(labelsize=5)
 
-        self.action_plot_plot = FigureCanvasTkAgg(self.action_plot_fig, self.display_frame)
+        self.action_plot_plot = FigureCanvasTkAgg(self.action_plot_fig, self.action_plot_dummy_frame)
 
         self.image_episode_label.grid(column=0, row=0)
         self.current_action_plot.get_tk_widget().grid(column=1, row =0, sticky='nsew')
-        self.action_plot_plot.get_tk_widget().grid(column=0, row =1, columnspan=2, sticky='ew')
+        self.action_plot_dummy_frame.grid(column=0, row =1, columnspan=2, sticky='nsew')
+        self.action_plot_plot.get_tk_widget().grid(column=0, row =0, sticky='ew')
         self.image_current_label.grid(column=0, row=4)
         self.image_slider.grid(column=0, row = 2, columnspan = 2, sticky='ew')
         self.info_frame.grid(column=1, row=3, rowspan=2,sticky='nsew')
@@ -110,6 +112,8 @@ class SupervisorGUI():
         self.info_agent_vel.grid(column = 0, row =4, sticky='w')
         self.info_agent_termination_flag.grid(column = 0, row = 5, sticky='w')
         self.info_current_demo.grid(column = 0, row = 6, sticky='w')
+
+        self.action_plot_dummy_frame.columnconfigure(0, weight=1)
 
         self.info_frame.rowconfigure(0, weight=1)
         self.info_frame.columnconfigure(0, weight=1)
@@ -254,35 +258,39 @@ class SupervisorGUI():
         if type(selected_demo) == str:
             self.info_current_demo.configure(text=f"Selected Demonstration: {selected_demo}")
 
-    def update_action_plot(self, desired_vel = None, user_vel = None, agent_vel = None):
-        if type(desired_vel) == dict:
-            try:
-                self.action_plot_desired_vel_line_linear.pop(0).remove()
-                self.action_plot_desired_vel_line_angular.pop(0).remove()
-            except:
-                pass
-            list_range_desired_vel = list(range(1,1+len(desired_vel['linear'])))
-            self.action_plot_desired_vel_line_linear = self.action_plot_ax.plot(list_range_desired_vel,desired_vel['linear'], c = 'tab:blue', label="desired linear velocity", alpha=0.8, marker='x')
-            self.action_plot_desired_vel_line_angular = self.action_plot_ax.plot(list_range_desired_vel,desired_vel['angular'], c = 'tab:cyan', label="desired angular velocity", alpha=0.8, marker = 'x')
-        if type(user_vel) == dict:
-            try:
-                self.action_plot_user_vel_line_linear.pop(0).remove()
-                self.action_plot_user_vel_line_angular.pop(0).remove()
-            except:
-                pass
-            list_range_user_vel = list(range(1,1+len(user_vel['linear'])))
-            self.action_plot_user_vel_line_linear =  self.action_plot_ax.plot(list_range_user_vel, user_vel['linear'],c = 'tab:orange', label="user linear velocity", alpha=0.8, marker='o')
-            self.action_plot_user_vel_line_angular =  self.action_plot_ax.plot(list_range_user_vel, user_vel['angular'],c = 'tab:brown', label="user angular velocity", alpha=0.8, marker='o')
-            #self.action_plot_user_vel_line = self.action_plot_ax.plot(user_vel['linear'], user_vel['angular'],c = 'tab:orange', alpha=0.8)
-        if type(agent_vel) == dict:
-            try:
-                self.action_plot_agent_vel_line_linear.pop(0).remove()
-                self.action_plot_agent_vel_line_angular.pop(0).remove()
-            except:
-                pass
-            list_range_agent_vel = list(range(1, 1+len(agent_vel['linear'])))
-            self.action_plot_agent_vel_line_linear = self.action_plot_ax.plot(list_range_agent_vel, agent_vel['linear'],c = 'tab:green', label="agent linear velocity", alpha = 0.8, marker='^')
-            self.action_plot_agent_vel_line_angular = self.action_plot_ax.plot(list_range_agent_vel, agent_vel['angular'],c = 'olive', label="agent angular velocity", alpha = 0.8, marker='^')
+    def update_action_plot(self, episode):
+        desired_vel_linear = [user_vel if(controller == ControllerType.USER) else agent_vel for (user_vel, agent_vel, controller) in zip(episode.data['action']['user']['velocity']['linear'] ,episode.data['action']['agent']['velocity']['linear'], episode.data['action']['controller'])]
+        desired_vel_angular = [user_vel if(controller == ControllerType.USER) else agent_vel for (user_vel, agent_vel, controller) in zip(episode.data['action']['user']['velocity']['angular'] ,episode.data['action']['agent']['velocity']['angular'], episode.data['action']['controller'])]
+        desired_vel = {'linear':desired_vel_linear, 'angular': desired_vel_angular}
+
+        try:
+            self.action_plot_desired_vel_line_linear.pop(0).remove()
+            self.action_plot_desired_vel_line_angular.pop(0).remove()
+        except:
+            pass
+        list_range = list(range(1,episode.get_episode_length()+1))
+
+        self.action_plot_desired_vel_line_linear = self.action_plot_ax.plot(list_range,desired_vel['linear'], c = 'tab:blue', label="desired linear velocity", alpha=0.8, marker='x')
+        self.action_plot_desired_vel_line_angular = self.action_plot_ax.plot(list_range,desired_vel['angular'], c = 'tab:cyan', label="desired angular velocity", alpha=0.8, marker = 'x')
+
+        try:
+            self.action_plot_user_vel_line_linear.pop(0).remove()
+            self.action_plot_user_vel_line_angular.pop(0).remove()
+        except:
+            pass
+
+        self.action_plot_user_vel_line_linear =  self.action_plot_ax.plot(list_range, episode.data['action']['user']['velocity']['linear'],c = 'tab:orange', label="user linear velocity", alpha=0.8, marker='o')
+        self.action_plot_user_vel_line_angular =  self.action_plot_ax.plot(list_range, episode.data['action']['user']['velocity']['angular'],c = 'tab:brown', label="user angular velocity", alpha=0.8, marker='o')
+
+        try:
+            self.action_plot_agent_vel_line_linear.pop(0).remove()
+            self.action_plot_agent_vel_line_angular.pop(0).remove()
+        except:
+            pass
+        self.action_plot_agent_vel_line_linear = self.action_plot_ax.plot(list_range, episode.data['action']['agent']['velocity']['linear'],c = 'tab:green', label="agent linear velocity", alpha = 0.8, marker='^')
+        self.action_plot_agent_vel_line_angular = self.action_plot_ax.plot(list_range, episode.data['action']['agent']['velocity']['angular'],c = 'olive', label="agent angular velocity", alpha = 0.8, marker='^')
+
+        self.action_plot_ax.set_xlim([0.5,episode.get_episode_length()+0.5])
 
         self.action_plot_ax.legend(loc='lower left', prop={'size': 8})
         self.action_plot_plot.draw_idle()
@@ -333,7 +341,7 @@ class SupervisorGUI():
             self.ros_node.update_state(self.state)
             time.sleep(1)
             self.ros_node.call_service('agent/stop')
-            self.ros_node.reset_task_episode()
+            self.ros_node.reset_episode()
         except:
             pass
         print("[INFO] Automatic control stopped")
@@ -369,6 +377,7 @@ class SupervisorGUI():
         demo_name = selected_demo_split[0]
         demo_id = selected_demo_split[1]
         self.ros_node.save_task_episode(demo_name, demo_id)
+        self.update_available_task_episode_name(self.ros_node.task_handler.get_names())
     
     def demo_start_button_trigger(self):
         if(self.state == SupervisorState.STANDBY or self.state == SupervisorState.DEMO_PAUSED):
@@ -397,7 +406,6 @@ class SupervisorGUI():
         try:
             self.ros_node.call_service('agent/stop')
             self.ros_node.update_state(self.state)
-            self.ros_node.demo()
         except:
             pass
 
@@ -477,8 +485,8 @@ class SupervisorGUI():
             ids = self.ros_node.demo_handler.get_ids(demo_name)
         except:
             ids = []
-        self.update_available_demo_id(ids)
         self.selection = InformationType.DEMO
+        self.update_available_demo_id(ids)
 
     def saved_task_episode_name_list_trigger(self, event):
         demo_name = self.saved_task_episode_name_list.get(tkinter.ANCHOR)
@@ -486,56 +494,61 @@ class SupervisorGUI():
             ids = self.ros_node.task_handler.get_ids(demo_name)
         except:
             ids = []
-        self.update_available_demo_id(ids)
         self.selection = InformationType.TASK_EPISODE
+        self.update_available_demo_id(ids)
     
     def saved_demo_id_list_trigger(self, event):
         if(self.selection == InformationType.DEMO):
             demo_name = self.saved_demo_name_list.get(tkinter.ANCHOR)
             demo_id = self.saved_demo_id_list.get(tkinter.ANCHOR)
-            images, velocity, termination_flag = self.ros_node.demo_handler.get(demo_name, demo_id)
-            self.set_episode(image_array=images, velocity_array=velocity, termination_flag_array=termination_flag)
+            try:
+                demo = self.ros_node.demo_handler.get(demo_name, demo_id)
+                self.set_episode(episode = demo)
+            except:
+                pass
             print("[INFO] Displaying selected demonstration")
-        else:
+        elif(self.selection == InformationType.TASK_EPISODE):
             #TODO: show the task episode here
+            demo_name = self.saved_task_episode_name_list.get(tkinter.ANCHOR)
+            task_id = self.saved_demo_id_list.get(tkinter.ANCHOR)
+            try:
+                task = self.ros_node.task_handler.get(demo_name, task_id)
+                self.set_episode(episode = task)
+            except:
+                pass
             print("[INFO] Displaying selected task episode")
 
-    def set_episode(self, image_array, velocity_array, termination_flag_array, controller_array=None):
+    def set_episode(self, episode):
         '''
-        Set the episode to be displayed
+        episode DataStructure = DICT_LIST
 
-        episde = list(dict(image, velocity, controller))
+        self.episode DataStructure = LIST_DICT
         '''
 
-        if controller_array != None:
-            combined_information = zip(image_array, velocity_array, termination_flag_array, controller_array)
-            self.episode = [dict(image=image, velocity=velocity, termination_flag=termination_flag, controller=ControllerType[controller]) for (image, velocity, termination_flag, controller) in combined_information]
-            self.update_action_plot(desired_vel = {'linear':[vel['linear'] for vel in velocity_array], 'angular': [vel['angular'] for vel in velocity_array]}, user_vel = {'linear':[vel['linear'] for vel in velocity_array], 'angular': [vel['angular'] for vel in velocity_array]})
-        else:
-            combined_information = zip(image_array, velocity_array, termination_flag_array)
-            self.episode = [dict(image=image, velocity=velocity, termination_flag=termination_flag) for (image, velocity, termination_flag) in combined_information]
-            self.update_action_plot(desired_vel = {'linear':[vel['linear'] for vel in velocity_array], 'angular': [vel['angular'] for vel in velocity_array]}, user_vel = {'linear':[vel['linear'] for vel in velocity_array], 'angular': [vel['angular'] for vel in velocity_array]})
+        episode_data = EpisodeData(data=episode.data, structure=DataStructure.DICT_LIST)
+        episode_data.restructure(DataStructure.LIST_DICT)
+        self.episode = episode_data
+        self.update_action_plot(episode)
 
         self.slider_trigger(self.slider_value)
 
     def update_episode_image(self, episode_index):
-        image = self.episode[episode_index]['image'].resize((480,360))
+        image = self.episode.data[episode_index]['observation']['image'].resize((480,360))
         self.image_episode = ImageTk.PhotoImage(image = image)
         self.image_episode_label.configure(image=self.image_episode)
-        if('controller' in self.episode[episode_index].keys()):
-            if(self.episode[episode_index]['controller'] == ControllerType.USER):
-                self.update_current_action_plot(desired_vel = self.episode[episode_index]['velocity'], user_vel = self.episode[episode_index]['velocity'])
-            else:
-                self.update_current_action_plot(desired_vel = self.episode[episode_index]['velocity'], agent_vel = self.episode[episode_index]['velocity'])
+        if(self.episode.data[episode_index]['action']['controller'] == ControllerType.USER):
+            self.update_current_action_plot(desired_vel = self.episode.data[episode_index]['action']['user']['velocity'], user_vel = self.episode.data[episode_index]['action']['user']['velocity'], agent_vel=self.episode.data[episode_index]['action']['agent']['velocity'])
         else:
-            self.update_current_action_plot(desired_vel = self.episode[episode_index]['velocity'], user_vel = self.episode[episode_index]['velocity'])
-    
+            self.update_current_action_plot(desired_vel = self.episode.data[episode_index]['action']['agent']['velocity'], user_vel = self.episode.data[episode_index]['action']['user']['velocity'], agent_vel=self.episode.data[episode_index]['action']['agent']['velocity'])
+   
     def slider_trigger(self, val):
         self.slider_value = float(val)
 
-        if(self.episode != None):
-            episode_max_index = len(self.episode) - 1
-            current_selection = int(episode_max_index*self.slider_value)
+        if(self.episode.data_empty == False):
+            no_of_divs = self.episode.get_episode_length()
+            current_selection = int((self.slider_value/(1/no_of_divs)))
+            if(current_selection == no_of_divs):
+                current_selection -= 1
             self.update_episode_image(current_selection)
 
 class SupervisorState(Enum):
@@ -545,25 +558,3 @@ class SupervisorState(Enum):
     TASK_TAKE_OVER = 103
     DEMO_RECORDING = 201
     DEMO_PAUSED = 202
-
-def new_thread(gui):
-    import math
-    import time
-    data = []
-    i = 0
-    while True:
-        if len(data) > 50:
-            del data[0]
-        data.append(i)
-        gui.update_current_action_plot(desired_vel = {'linear':math.cos(i),'angular':math.cos(i)}, user_vel={'linear':math.cos(i),'angular':math.sin(i)}, agent_vel ={'linear':2*math.cos(2*i),'angular':math.sin(2*i)})
-        gui.update_info(desired_vel = {'linear':math.cos(i),'angular':math.cos(i)}, user_vel={'linear':math.cos(i),'angular':math.sin(i)}, agent_vel ={'linear':2*math.cos(2*i),'angular':math.sin(2*i)})
-        gui.update_action_plot(desired_vel = {'linear':[math.cos(j) for j in data], 'angular':[math.cos(j) for j in data]}, agent_vel = {'linear':[2*math.cos(2*j) for j in data], 'angular':[math.sin(2*j) for j in data]}, user_vel = {'linear':[math.cos(j) for j in data], 'angular':[math.sin(j) for j in data]})
-        i += 0.1
-
-if __name__ == "__main__":
-    from threading import Thread
-
-    gui = SupervisorGUI()
-    t = Thread(target=new_thread, args=(gui,))
-    t.start()
-    gui.window.mainloop()
