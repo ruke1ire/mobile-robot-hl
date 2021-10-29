@@ -38,7 +38,7 @@ class AgentNode(Node):
 
         self.get_logger().info("Initializing Node")
 
-        self.declare_parameter('frequency', 2.0)
+        self.declare_parameter('frequency', 1.0)
         self.frequency = self.get_parameter('frequency').get_parameter_value().double_value
 
         service_prefix = 'agent/'

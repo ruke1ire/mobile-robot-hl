@@ -65,21 +65,21 @@ class SupervisorNode(Node):
         trainer_prefix='trainer/'
 
         self.services_ = dict()
-        self.services_[agent_prefix+'start'] = self.create_client(Trigger, agent_prefix+'start')
-        self.services_[agent_prefix+'pause'] = self.create_client(Trigger, agent_prefix+'pause')
-        self.services_[agent_prefix+'stop'] = self.create_client(Trigger, agent_prefix+'stop')
-        self.services_[agent_prefix+'take_over'] = self.create_client(Trigger, agent_prefix+'take_over')
-        self.services_[agent_prefix+'select_demonstration'] = self.create_client(StringTrigger, agent_prefix+'select_demonstration')
-        self.services_[agent_prefix+'select_model'] = self.create_client(StringTrigger, agent_prefix+'select_model')
-        self.services_[agent_prefix+'select_mode'] = self.create_client(StringTrigger, agent_prefix+'select_mode')
+        self.services_[agent_prefix+'start'] = self.create_client(Trigger, agent_prefix+'start', callback_group=ReentrantCallbackGroup())
+        self.services_[agent_prefix+'pause'] = self.create_client(Trigger, agent_prefix+'pause', callback_group=ReentrantCallbackGroup())
+        self.services_[agent_prefix+'stop'] = self.create_client(Trigger, agent_prefix+'stop', callback_group=ReentrantCallbackGroup())
+        self.services_[agent_prefix+'take_over'] = self.create_client(Trigger, agent_prefix+'take_over', callback_group=ReentrantCallbackGroup())
+        self.services_[agent_prefix+'select_demonstration'] = self.create_client(StringTrigger, agent_prefix+'select_demonstration', callback_group=ReentrantCallbackGroup())
+        self.services_[agent_prefix+'select_model'] = self.create_client(StringTrigger, agent_prefix+'select_model', callback_group=ReentrantCallbackGroup())
+        self.services_[agent_prefix+'select_mode'] = self.create_client(StringTrigger, agent_prefix+'select_mode', callback_group=ReentrantCallbackGroup())
 
-        self.services_[trainer_prefix+'select_model'] = self.create_client(StringTrigger, trainer_prefix+'select_model')
-        self.services_[trainer_prefix+'start'] = self.create_client(Trigger, trainer_prefix+'start')
-        self.services_[trainer_prefix+'pause'] = self.create_client(Trigger, trainer_prefix+'pause')
-        self.services_[trainer_prefix+'stop'] = self.create_client(Trigger, trainer_prefix+'stop')
-        self.services_[trainer_prefix+'save'] = self.create_client(Trigger, trainer_prefix+'save')
-        self.services_[trainer_prefix+'delete'] = self.create_client(Trigger, trainer_prefix+'delete')
-        self.services_[trainer_prefix+'pre_train'] = self.create_client(Trigger, trainer_prefix+'pre_train')
+        self.services_[trainer_prefix+'select_model'] = self.create_client(StringTrigger, trainer_prefix+'select_model', callback_group=ReentrantCallbackGroup())
+        self.services_[trainer_prefix+'start'] = self.create_client(Trigger, trainer_prefix+'start', callback_group=ReentrantCallbackGroup())
+        self.services_[trainer_prefix+'pause'] = self.create_client(Trigger, trainer_prefix+'pause', callback_group=ReentrantCallbackGroup())
+        self.services_[trainer_prefix+'stop'] = self.create_client(Trigger, trainer_prefix+'stop', callback_group=ReentrantCallbackGroup())
+        self.services_[trainer_prefix+'save'] = self.create_client(Trigger, trainer_prefix+'save', callback_group=ReentrantCallbackGroup())
+        self.services_[trainer_prefix+'delete'] = self.create_client(Trigger, trainer_prefix+'delete', callback_group=ReentrantCallbackGroup())
+        self.services_[trainer_prefix+'pre_train'] = self.create_client(Trigger, trainer_prefix+'pre_train', callback_group=ReentrantCallbackGroup())
 
         self.gui = SupervisorGUI(ros_node=self)
         self.gui.update_available_demo_name(self.demo_handler.get_names())
@@ -104,7 +104,7 @@ class SupervisorNode(Node):
         self.get_logger().info(f"got agent_output {self.agent_output}")
 
     def agent_input_callback(self, img):
-        image = rnp.numpify(img)
+        image = PImage.fromarray(rnp.numpify(img))
         if(self.state == SupervisorState.TASK_RUNNING):
             if(self.episode_got_first_image == False):
                 self.episode_got_first_image = True
@@ -126,6 +126,7 @@ class SupervisorNode(Node):
                 controller=ControllerType.AGENT
                 )
 
+            self.gui.set_episode(self.episode)
             self.get_logger().info(f'Episode Length: {self.episode.get_episode_length()}')
 
         elif(self.state == SupervisorState.TASK_TAKE_OVER):
@@ -149,6 +150,7 @@ class SupervisorNode(Node):
                 controller=ControllerType.USER
                 )
 
+            self.gui.set_episode(self.episode)
             self.get_logger().info(f'Episode Length: {self.episode.get_episode_length()}')
 
         elif(self.state == SupervisorState.DEMO_RECORDING):
@@ -173,6 +175,7 @@ class SupervisorNode(Node):
                 controller=ControllerType.USER
                 )
 
+            self.gui.set_episode(self.episode)
             self.get_logger().info(f'Episode Length: {self.episode.get_episode_length()}')
 
         self.agent_input = image
@@ -188,7 +191,7 @@ class SupervisorNode(Node):
         self.get_logger().info(f"got user termination flag {self.user_output['termination_flag']}")
     
     def image_raw_callback(self, img):
-        self.image_raw = rnp.numpify(img)
+        self.image_raw = PImage.fromarray(rnp.numpify(img))
         self.gui.update_image_current(self.image_raw)
         #self.get_logger().info(f"got image raw {self.image_raw.shape}")
     

@@ -6,14 +6,11 @@ The todo list is written to this file.
 
 - [ ] Implement supervisor_node
     - [ ] Implement every service and topic
-    - [ ] Restructure the functions according to the efficient information structure for each scenario
-    - [ ] Create classes for demonstration and task episodes and they should have functions to help append/set/get information with ease
-        - Appending information should be to add the observation
-        - Setting the information should be to set the actions performed for that observation
-        - Get function should assist in returning specific information in a specific data structure
+    - [ ] Supervisor gui should run a separate thread for updating the plots and images
+    - [ ] Make sure agent information and supervisor information is in sync
     - [ ] Create function to display information in the current episode
         - [x] demonstration
-        - [ ] saved task episdoe
+        - [x] saved task episdoe
         - [ ] current task episode
     - [ ] Use blit for matplotlib
     - [ ] Create list box for task episodes
@@ -40,6 +37,11 @@ The todo list is written to this file.
     - [x] Test out demo_handler and task_handler
     - [x] Add another listbox for the demo selection process, one should be to select the demo name, the other should be to select the demo id
     - [x] Finish function to save/delete the task episodes using the task handler
+    - [x] Create classes for demonstration and task episodes and they should have functions to help append/set/get information with ease
+        - Appending information should be to add the observation
+        - Setting the information should be to set the actions performed for that observation
+        - Get function should assist in returning specific information in a specific data structure
+    - [x] Restructure the functions according to the efficient information structure for each scenario
 - [ ] Implement agent_node
     - [x] Setup base-line ros communication topics and services
 - [ ] Implement trainer_node

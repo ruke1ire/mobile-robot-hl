@@ -74,7 +74,7 @@ class DemoHandler():
 
         image_ids = list(range(demo.get_episode_length()))
         for i in image_ids:
-            img = PImage.fromarray(dict_data['observation']['image'][i])
+            img = dict_data['observation']['image'][i]
             img.save(f"{self.path}/{name}/{next_id}/{i}.png")
         
         del dict_data['observation']['image']
@@ -167,7 +167,7 @@ class TaskHandler():
 
         image_ids = list(range(episode.get_episode_length()))
         for i in image_ids:
-            img = PImage.fromarray(dict_data['observation']['image'][i])
+            img = dict_data['observation']['image'][i]
             img.save(f"{self.path}/{demo_name}/{next_id}/{i}.png")
         
         del dict_data['observation']['image']

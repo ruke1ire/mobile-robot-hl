@@ -216,8 +216,8 @@ class SupervisorGUI():
         self.control_frame.columnconfigure(0, weight=1)
         self.control_frame.columnconfigure(1, weight=1)
     
-    def update_image_current(self, img_arr):
-        image = Image.fromarray(img_arr).resize((480,360))
+    def update_image_current(self, image):
+        image = image.resize((480,360))
         self.image_current = ImageTk.PhotoImage(image = image)
         self.image_current_label.configure(image=self.image_current)
     
@@ -339,7 +339,7 @@ class SupervisorGUI():
         try:
             self.ros_node.call_service('agent/pause')
             self.ros_node.update_state(self.state)
-            time.sleep(1)
+            time.sleep(2)
             self.ros_node.call_service('agent/stop')
             self.ros_node.reset_episode()
         except:
@@ -402,12 +402,13 @@ class SupervisorGUI():
         self.demo_stop_button.state(['disabled'])
         self.demo_save_button.state(['disabled'])
         self.automatic_start_button.state(['!disabled'])
-        print("[INFO] Demonstration recording stopped")
         try:
-            self.ros_node.call_service('agent/stop')
             self.ros_node.update_state(self.state)
+            self.ros_node.reset_episode()
+
         except:
             pass
+        print("[INFO] Demonstration recording stopped")
 
     def demo_save_button_trigger(self):
         demo_name = self.demo_name_entry.get()
@@ -461,14 +462,18 @@ class SupervisorGUI():
             print("[INFO] Model training stopped")
     
     def add_demo_trigger(self):
-        demo_name = self.saved_demo_name_list.get(tkinter.ANCHOR)
-        demo_id = self.saved_demo_id_list.get(tkinter.ANCHOR)
-        if(demo_id == "" or demo_name == ""):
-            return
-        demo = demo_name+"."+str(demo_id)
-        self.queued_demo_list.insert(tkinter.END, demo)
-        self.selected_demo = self.queued_demo_list.get(0)
-        self.update_info(selected_demo = self.selected_demo)
+        if(self.selection == InformationType.DEMO):
+            demo_name = self.saved_demo_name_list.get(tkinter.ANCHOR)
+            demo_id = self.saved_demo_id_list.get(tkinter.ANCHOR)
+            if(demo_id == "" or demo_name == ""):
+                return
+            demo = demo_name+"."+str(demo_id)
+            self.queued_demo_list.insert(tkinter.END, demo)
+            self.selected_demo = self.queued_demo_list.get(0)
+            demo_episode = self.ros_node.demo_handler.get(demo_name, demo_id)
+            demo_episode.restructure(DataStructure.LIST_DICT)
+            self.ros_node.episode = demo_episode
+            self.update_info(selected_demo = self.selected_demo)
 
     def remove_demo_trigger(self):
         selected_index = self.queued_demo_list.curselection()
@@ -525,12 +530,18 @@ class SupervisorGUI():
         self.episode DataStructure = LIST_DICT
         '''
 
-        episode_data = EpisodeData(data=episode.data, structure=DataStructure.DICT_LIST)
-        episode_data.restructure(DataStructure.LIST_DICT)
-        self.episode = episode_data
-        self.update_action_plot(episode)
-
-        self.slider_trigger(self.slider_value)
+        if episode.structure == DataStructure.DICT_LIST:
+            episode_data = EpisodeData(data=episode.data, structure=DataStructure.DICT_LIST)
+            episode_data.restructure(DataStructure.LIST_DICT)
+            self.episode = episode_data
+            self.update_action_plot(episode)
+            self.slider_trigger(self.slider_value)
+        else:
+            self.episode = episode
+            episode_data = EpisodeData(data=episode.data, structure=DataStructure.LIST_DICT)
+            episode_data.restructure(DataStructure.DICT_LIST)
+            self.update_action_plot(episode_data)
+            self.slider_trigger(self.slider_value)
 
     def update_episode_image(self, episode_index):
         image = self.episode.data[episode_index]['observation']['image'].resize((480,360))
