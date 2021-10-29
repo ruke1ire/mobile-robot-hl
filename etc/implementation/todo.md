@@ -8,6 +8,7 @@ The todo list is written to this file.
     - [ ] Implement every service and topic
     - [ ] Supervisor gui should run a separate thread for updating the plots and images
     - [ ] Make sure agent information and supervisor information is in sync
+        - [ ] agent_output should be used to verify valid timesteps when using automatic control mode, demonstration doesn't need any validation because the user_output doesn't necessarily come at the same frequency as the controller
     - [ ] Create function to display information in the current episode
         - [x] demonstration
         - [x] saved task episdoe

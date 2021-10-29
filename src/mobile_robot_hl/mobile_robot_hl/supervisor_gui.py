@@ -405,7 +405,6 @@ class SupervisorGUI():
         try:
             self.ros_node.update_state(self.state)
             self.ros_node.reset_episode()
-
         except:
             pass
         print("[INFO] Demonstration recording stopped")
