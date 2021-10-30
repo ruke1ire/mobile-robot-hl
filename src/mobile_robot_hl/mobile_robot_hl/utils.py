@@ -27,6 +27,9 @@ class DemoHandler():
 
         info['observation']['image'] = images
         del info['observation']['image_id']
+        task_controller = [ControllerType[cont] for cont in info['action']['controller']]
+        info['action']['controller'] = task_controller
+
 
         episode_data = EpisodeData(data=info, structure=DataStructure.DICT_LIST)
         return episode_data
@@ -160,12 +163,18 @@ class TaskHandler():
             shutil.rmtree(f"{self.path}/{demo_name}/{next_id}", ignore_errors=True)
         os.mkdir(f"{self.path}/{demo_name}/{next_id}")
 
-        if(episode.structure == DataStructure.LIST_DICT):
-            episode.restructure(DataStructure.DICT_LIST)
+        episode_copy = EpisodeData(episode.data, structure=episode.structure)
 
-        dict_data = episode.data.copy()
+        if(episode_copy.structure == DataStructure.LIST_DICT):
+            episode_copy.restructure(DataStructure.DICT_LIST)
+        
+        task_index = episode_copy.data['action']['controller'].index(ControllerType.AGENT)
 
-        image_ids = list(range(episode.get_episode_length()))
+        episode_copy.remove_data(task_index-1, leftwards=True)
+
+        dict_data = episode_copy.get_data()
+
+        image_ids = list(range(episode_copy.get_episode_length()))
         for i in image_ids:
             img = dict_data['observation']['image'][i]
             img.save(f"{self.path}/{demo_name}/{next_id}/{i}.png")
@@ -325,16 +334,26 @@ class EpisodeData:
                                 controller=[]))
         self.data_empty = True
     
-    def restructure(self, structure):
+    def restructure(self, structure, inplace = True):
         if(self.structure != structure):
             if(self.structure == DataStructure.DICT_LIST):
-                self.data = restructure_dict2list(self.data)
-                self.structure = DataStructure.LIST_DICT
+                data = restructure_dict2list(self.data)
+                structure = DataStructure.LIST_DICT
             elif(self.structure == DataStructure.LIST_DICT):
-                self.data =restructure_list2dict(self.data)
-                self.structure = DataStructure.DICT_LIST
+                data = restructure_list2dict(self.data)
+                structure = DataStructure.DICT_LIST
             else:
                 raise Exception("Invalid data structure")
+        else:
+            data = self.data
+            structure = self.structure
+
+        if inplace == True:
+            self.data = data
+            self.structure = structure
+            return
+        else:
+            return data
 
     def append_episode_data(self, episode_data):
         if(episode_data.data_empty == True):
@@ -420,6 +439,29 @@ class EpisodeData:
             return len(self.data)
         else:
             return len(self.data['observation']['image'])
+    
+    def get_data(self, structure = None):
+        if structure == None:
+            structure = self.structure
+        data = self.restructure(structure, inplace=False)
+        return data
+    
+    def remove_data(self, index, leftwards=True):
+        if self.structure == DataStructure.LIST_DICT:
+            if leftwards == True:
+                self.data = self.data[index+1:]
+            else:
+                self.data = self.data[:index]
+        else:
+            list_strings = get_leaf_string(self.data)
+            for s in list_strings:
+                if leftwards == True:
+                    exec(f"self.data{s} = self.data{s}[{index+1}:]")
+                else:
+                    exec(f"self.data{s} = self.data{s}[:{index}]")
+        
+        if self.get_episode_length() == 0:
+            self.data_empty = True
 
 class ModelHandler():
     def __init__(self):
@@ -437,3 +479,12 @@ class InformationType(Enum):
 class DataStructure(Enum):
     LIST_DICT = 0
     DICT_LIST = 1
+
+def get_leaf_string(dict_, string = ""):
+    try:
+        for key in dict_.keys():
+            s = f"['{key}']"
+            ss = string + s
+            yield from get_leaf_string(dict_[key], ss)
+    except:
+        yield string

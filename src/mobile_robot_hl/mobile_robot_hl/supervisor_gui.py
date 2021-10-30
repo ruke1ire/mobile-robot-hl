@@ -530,15 +530,12 @@ class SupervisorGUI():
         '''
 
         if episode.structure == DataStructure.DICT_LIST:
-            episode_data = EpisodeData(data=episode.data, structure=DataStructure.DICT_LIST)
-            episode_data.restructure(DataStructure.LIST_DICT)
-            self.episode = episode_data
+            self.episode = EpisodeData(episode.get_data(DataStructure.LIST_DICT), structure=DataStructure.LIST_DICT)
             self.update_action_plot(episode)
             self.slider_trigger(self.slider_value)
         else:
             self.episode = episode
-            episode_data = EpisodeData(data=episode.data, structure=DataStructure.LIST_DICT)
-            episode_data.restructure(DataStructure.DICT_LIST)
+            episode_data = EpisodeData(episode.get_data(DataStructure.DICT_LIST), structure=DataStructure.DICT_LIST)
             self.update_action_plot(episode_data)
             self.slider_trigger(self.slider_value)
 

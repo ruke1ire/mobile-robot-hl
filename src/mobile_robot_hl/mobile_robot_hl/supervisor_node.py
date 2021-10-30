@@ -126,6 +126,7 @@ class SupervisorNode(Node):
                 controller=ControllerType.AGENT
                 )
 
+            self.get_logger().info(f'done')
             self.gui.set_episode(self.episode)
             self.get_logger().info(f'Episode Length: {self.episode.get_episode_length()}')
 
