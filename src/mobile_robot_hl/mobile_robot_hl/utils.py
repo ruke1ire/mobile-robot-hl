@@ -5,6 +5,20 @@ import shutil
 from PIL import Image as PImage
 from enum import Enum
 
+class ControllerType(Enum):
+    NONE = 0
+    USER = 1
+    AGENT = 2
+
+class InformationType(Enum):
+    NONE = 0
+    DEMO = 1
+    TASK_EPISODE = 2
+
+class DataStructure(Enum):
+    LIST_DICT = 0
+    DICT_LIST = 1
+
 class DemoHandler():
     DEMO_NAME_INFO_FILE = "info.yaml"
     DEMO_ID_INFO_FILE= "info.yaml"
@@ -432,6 +446,49 @@ class EpisodeData:
                                     termination_flag = user_termination_flag
                                 ),
                                 controller=controller)))
+    
+    def set_data(
+        self, 
+        index,
+        image=None, 
+        agent_linear_vel=None, agent_angular_vel=None, agent_termination_flag=None,
+        user_linear_vel=None, user_angular_vel=None, user_termination_flag=None,
+        controller=ControllerType.NONE):
+        if(self.data_empty == False):
+            assert index <= self.get_episode_length() - 1
+            if(self.structure == DataStructure.DICT_LIST):
+                self.data['observation']['image'][index] = image
+                self.data['action']['agent']['velocity']['linear'][index] = agent_linear_vel
+                self.data['action']['agent']['velocity']['angular'][index] = agent_angular_vel
+                self.data['action']['agent']['termination_flag'][index] = agent_termination_flag
+                self.data['action']['user']['velocity']['linear'][index] = user_linear_vel
+                self.data['action']['user']['velocity']['angular'][index] = user_angular_vel
+                self.data['action']['user']['termination_flag'][index] = user_termination_flag
+                self.data['action']['controller'][index] = controller
+            else:
+                self.data[index] = dict(
+                            observation=dict(image=image),
+                            action=dict(
+                                agent=dict(
+                                    velocity=dict(
+                                        linear=agent_linear_vel,
+                                        angular=agent_angular_vel
+                                    ),
+                                    termination_flag = agent_termination_flag
+                                ),
+                                user=dict(
+                                    velocity=dict(
+                                        linear=user_linear_vel,
+                                        angular=user_angular_vel
+                                    ),
+                                    termination_flag = user_termination_flag
+                                ),
+                                controller=controller))
+        else:
+            self.append_data(image, agent_linear_vel, agent_angular_vel, agent_termination_flag,
+            user_linear_vel, user_angular_vel, user_termination_flag,
+            controller)
+
     def get_episode_length(self):
         if(self.data_empty == True):
             return 0
@@ -467,18 +524,6 @@ class ModelHandler():
     def __init__(self):
         pass
 
-class ControllerType(Enum):
-    USER = 0
-    AGENT = 1
-
-class InformationType(Enum):
-    NONE = 0
-    DEMO = 1
-    TASK_EPISODE = 2
-
-class DataStructure(Enum):
-    LIST_DICT = 0
-    DICT_LIST = 1
 
 def get_leaf_string(dict_, string = ""):
     try:

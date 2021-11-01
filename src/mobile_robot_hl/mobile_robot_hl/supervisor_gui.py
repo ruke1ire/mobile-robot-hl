@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import time
+from threading import Timer, Thread
 
 from .utils import *
 
@@ -27,6 +28,8 @@ class SupervisorGUI():
         self.episode = EpisodeData(data=None, structure=DataStructure.LIST_DICT)
         self.slider_value = 0
         self.selection = InformationType.NONE
+        self.current_action = None # dict(user, agent, controller)
+        self.episode_index = 0
 
         sns.set('notebook')
         sns.set_style("white")
@@ -34,6 +37,13 @@ class SupervisorGUI():
         self.setup_mainframe()
         self.setup_display_frame()
         self.setup_control_frame()
+
+        self.action_plot_timer = Thread(target=self.update_action_plot_trigger)
+        self.current_action_plot_timer = Thread(target=self.update_current_action_plot_trigger)
+        #self.update_model_image_timer
+
+        self.action_plot_timer.start()
+        self.current_action_plot_timer.start()
 
     def setup_extras(self):
         img = np.zeros([360,480,3],dtype=np.uint8)
@@ -221,28 +231,40 @@ class SupervisorGUI():
         self.image_current = ImageTk.PhotoImage(image = image)
         self.image_current_label.configure(image=self.image_current)
     
-    def update_current_action_plot(self, desired_vel = None, user_vel = None, agent_vel = None):
-        if type(desired_vel) == dict:
-            try:
-                self.current_action_desired_vel.remove()
-            except:
-                pass
-            self.current_action_desired_vel = self.current_action_ax.scatter(desired_vel['angular'], desired_vel['linear'],c = 'tab:blue', label="desired velocity", alpha=0.8, marker='x')
-        if type(user_vel) == dict:
-            try:
-                self.current_action_user_vel.remove()
-            except:
-                pass
-            self.current_action_user_vel = self.current_action_ax.scatter(user_vel['angular'], user_vel['linear'],c = 'tab:orange', label="user velocity", alpha=0.8, marker='o')
-        if type(agent_vel) == dict:
-            try:
-                self.current_action_agent_vel.remove()
-            except:
-                pass
-            self.current_action_agent_vel = self.current_action_ax.scatter(agent_vel['angular'], agent_vel['linear'],c = 'tab:green', label="agent velocity", alpha = 0.8, marker='^')
+    def update_current_action_plot_trigger(self):
+        while True:
+            if(self.episode.data_empty == False):
+                if(self.episode.get_data(DataStructure.LIST_DICT)[self.episode_index]['action']['controller'] == ControllerType.USER):
+                    desired_vel = self.episode.get_data(DataStructure.LIST_DICT)[self.episode_index]['action']['user']['velocity']
+                else:
+                    desired_vel = self.episode.get_data(DataStructure.LIST_DICT)[self.episode_index]['action']['agent']['velocity']
 
-        self.current_action_ax.legend(loc='upper right', prop={'size': 8})
-        self.current_action_plot.draw_idle()
+                try:
+                    self.current_action_desired_vel.remove()
+                except:
+                    pass
+                try:
+                    self.current_action_user_vel.remove()
+                except:
+                    pass
+                try:
+                    self.current_action_agent_vel.remove()
+                except:
+                    pass
+
+                try:
+                    self.current_action_desired_vel = self.current_action_ax.scatter(desired_vel['angular'], desired_vel['linear'],c = 'tab:blue', label="desired velocity", alpha=0.8, marker='x')
+                    self.current_action_user_vel = self.current_action_ax.scatter(self.episode.get_data(DataStructure.LIST_DICT)[self.episode_index]['action']['user']['velocity']['angular'], self.episode.get_data(DataStructure.LIST_DICT)[self.episode_index]['action']['user']['velocity']['linear'],c = 'tab:orange', label="user velocity", alpha=0.8, marker='o')
+                    self.current_action_agent_vel = self.current_action_ax.scatter(self.episode.get_data(DataStructure.LIST_DICT)[self.episode_index]['action']['agent']['velocity']['angular'], self.episode.get_data(DataStructure.LIST_DICT)[self.episode_index]['action']['agent']['velocity']['linear'],c = 'tab:green', label="agent velocity", alpha = 0.8, marker='^')
+                except:
+                    pass
+
+                self.current_action_ax.legend(loc='upper right', prop={'size': 8})
+                try:
+                    self.current_action_plot.draw_idle()
+                except:
+                    pass
+            time.sleep(0.5)
     
     def update_info(self, desired_vel=None, user_vel=None, agent_vel=None, agent_termination=None, user_termination=None, selected_demo=None):
         if type(desired_vel) == dict:
@@ -258,42 +280,48 @@ class SupervisorGUI():
         if type(selected_demo) == str:
             self.info_current_demo.configure(text=f"Selected Demonstration: {selected_demo}")
 
-    def update_action_plot(self, episode):
-        desired_vel_linear = [user_vel if(controller == ControllerType.USER) else agent_vel for (user_vel, agent_vel, controller) in zip(episode.data['action']['user']['velocity']['linear'] ,episode.data['action']['agent']['velocity']['linear'], episode.data['action']['controller'])]
-        desired_vel_angular = [user_vel if(controller == ControllerType.USER) else agent_vel for (user_vel, agent_vel, controller) in zip(episode.data['action']['user']['velocity']['angular'] ,episode.data['action']['agent']['velocity']['angular'], episode.data['action']['controller'])]
-        desired_vel = {'linear':desired_vel_linear, 'angular': desired_vel_angular}
+    def update_action_plot_trigger(self):
+        while True:
+            episode = EpisodeData(data=self.episode.get_data(DataStructure.DICT_LIST), structure=DataStructure.DICT_LIST)
+            desired_vel_linear = [user_vel if(controller == ControllerType.USER) else agent_vel for (user_vel, agent_vel, controller) in zip(episode.data['action']['user']['velocity']['linear'] ,episode.data['action']['agent']['velocity']['linear'], episode.data['action']['controller'])]
+            desired_vel_angular = [user_vel if(controller == ControllerType.USER) else agent_vel for (user_vel, agent_vel, controller) in zip(episode.data['action']['user']['velocity']['angular'] ,episode.data['action']['agent']['velocity']['angular'], episode.data['action']['controller'])]
+            desired_vel = {'linear':desired_vel_linear, 'angular': desired_vel_angular}
 
-        try:
-            self.action_plot_desired_vel_line_linear.pop(0).remove()
-            self.action_plot_desired_vel_line_angular.pop(0).remove()
-        except:
-            pass
-        list_range = list(range(1,episode.get_episode_length()+1))
+            try:
+                self.action_plot_desired_vel_line_linear.pop(0).remove()
+                self.action_plot_desired_vel_line_angular.pop(0).remove()
+            except:
+                pass
+            list_range = list(range(1,episode.get_episode_length()+1))
 
-        self.action_plot_desired_vel_line_linear = self.action_plot_ax.plot(list_range,desired_vel['linear'], c = 'tab:blue', label="desired linear velocity", alpha=0.8, marker='x')
-        self.action_plot_desired_vel_line_angular = self.action_plot_ax.plot(list_range,desired_vel['angular'], c = 'tab:cyan', label="desired angular velocity", alpha=0.8, marker = 'x')
+            self.action_plot_desired_vel_line_linear = self.action_plot_ax.plot(list_range,desired_vel['linear'], c = 'tab:blue', label="desired linear velocity", alpha=0.8, marker='x')
+            self.action_plot_desired_vel_line_angular = self.action_plot_ax.plot(list_range,desired_vel['angular'], c = 'tab:cyan', label="desired angular velocity", alpha=0.8, marker = 'x')
 
-        try:
-            self.action_plot_user_vel_line_linear.pop(0).remove()
-            self.action_plot_user_vel_line_angular.pop(0).remove()
-        except:
-            pass
+            try:
+                self.action_plot_user_vel_line_linear.pop(0).remove()
+                self.action_plot_user_vel_line_angular.pop(0).remove()
+            except:
+                pass
 
-        self.action_plot_user_vel_line_linear =  self.action_plot_ax.plot(list_range, episode.data['action']['user']['velocity']['linear'],c = 'tab:orange', label="user linear velocity", alpha=0.8, marker='o')
-        self.action_plot_user_vel_line_angular =  self.action_plot_ax.plot(list_range, episode.data['action']['user']['velocity']['angular'],c = 'tab:brown', label="user angular velocity", alpha=0.8, marker='o')
+            self.action_plot_user_vel_line_linear =  self.action_plot_ax.plot(list_range, episode.data['action']['user']['velocity']['linear'],c = 'tab:orange', label="user linear velocity", alpha=0.8, marker='o')
+            self.action_plot_user_vel_line_angular =  self.action_plot_ax.plot(list_range, episode.data['action']['user']['velocity']['angular'],c = 'tab:brown', label="user angular velocity", alpha=0.8, marker='o')
 
-        try:
-            self.action_plot_agent_vel_line_linear.pop(0).remove()
-            self.action_plot_agent_vel_line_angular.pop(0).remove()
-        except:
-            pass
-        self.action_plot_agent_vel_line_linear = self.action_plot_ax.plot(list_range, episode.data['action']['agent']['velocity']['linear'],c = 'tab:green', label="agent linear velocity", alpha = 0.8, marker='^')
-        self.action_plot_agent_vel_line_angular = self.action_plot_ax.plot(list_range, episode.data['action']['agent']['velocity']['angular'],c = 'olive', label="agent angular velocity", alpha = 0.8, marker='^')
+            try:
+                self.action_plot_agent_vel_line_linear.pop(0).remove()
+                self.action_plot_agent_vel_line_angular.pop(0).remove()
+            except:
+                pass
+            self.action_plot_agent_vel_line_linear = self.action_plot_ax.plot(list_range, episode.data['action']['agent']['velocity']['linear'],c = 'tab:green', label="agent linear velocity", alpha = 0.8, marker='^')
+            self.action_plot_agent_vel_line_angular = self.action_plot_ax.plot(list_range, episode.data['action']['agent']['velocity']['angular'],c = 'olive', label="agent angular velocity", alpha = 0.8, marker='^')
 
-        self.action_plot_ax.set_xlim([0.5,episode.get_episode_length()+0.5])
+            self.action_plot_ax.set_xlim([0.5,episode.get_episode_length()+0.5])
 
-        self.action_plot_ax.legend(loc='lower left', prop={'size': 8})
-        self.action_plot_plot.draw_idle()
+            self.action_plot_ax.legend(loc='lower left', prop={'size': 8})
+            try:
+                self.action_plot_plot.draw_idle()
+            except:
+                pass
+            time.sleep(1.0)
     
     def agent_start_button_trigger(self):
         if self.selected_demo == None or self.selected_demo == "":
@@ -531,22 +559,18 @@ class SupervisorGUI():
 
         if episode.structure == DataStructure.DICT_LIST:
             self.episode = EpisodeData(episode.get_data(DataStructure.LIST_DICT), structure=DataStructure.LIST_DICT)
-            self.update_action_plot(episode)
+            self.ros_node.episode = self.episode
             self.slider_trigger(self.slider_value)
         else:
             self.episode = episode
-            episode_data = EpisodeData(episode.get_data(DataStructure.DICT_LIST), structure=DataStructure.DICT_LIST)
-            self.update_action_plot(episode_data)
+            self.ros_node.episode = self.episode
             self.slider_trigger(self.slider_value)
 
     def update_episode_image(self, episode_index):
         image = self.episode.data[episode_index]['observation']['image'].resize((480,360))
         self.image_episode = ImageTk.PhotoImage(image = image)
         self.image_episode_label.configure(image=self.image_episode)
-        if(self.episode.data[episode_index]['action']['controller'] == ControllerType.USER):
-            self.update_current_action_plot(desired_vel = self.episode.data[episode_index]['action']['user']['velocity'], user_vel = self.episode.data[episode_index]['action']['user']['velocity'], agent_vel=self.episode.data[episode_index]['action']['agent']['velocity'])
-        else:
-            self.update_current_action_plot(desired_vel = self.episode.data[episode_index]['action']['agent']['velocity'], user_vel = self.episode.data[episode_index]['action']['user']['velocity'], agent_vel=self.episode.data[episode_index]['action']['agent']['velocity'])
+        self.episode_index = episode_index
    
     def slider_trigger(self, val):
         self.slider_value = float(val)

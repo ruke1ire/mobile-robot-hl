@@ -100,7 +100,6 @@ class SupervisorNode(Node):
         termination_flag = msg.termination_flag
         self.agent_output['velocity'] = {'linear':velocity.linear.x, 'angular': velocity.angular.z}
         self.agent_output['termination_flag'] = termination_flag
-        self.gui.update_current_action_plot(agent_vel=self.agent_output['velocity'])
         self.get_logger().info(f"got agent_output {self.agent_output}")
 
     def agent_input_callback(self, img):
@@ -115,16 +114,31 @@ class SupervisorNode(Node):
             bool_msg = Bool(data=self.agent_output['termination_flag'])
             self.termination_flag_publisher.publish(bool_msg)
 
-            self.episode.append_data(
-                image=self.agent_input,
-                agent_linear_vel=self.agent_output['velocity']['linear'],
-                agent_angular_vel=self.agent_output['velocity']['angular'],
-                agent_termination_flag=self.agent_output['termination_flag'],
-                user_linear_vel=self.user_output['velocity']['linear'],
-                user_angular_vel=self.user_output['velocity']['angular'],
-                user_termination_flag=self.user_output['termination_flag'],
-                controller=ControllerType.AGENT
+            if(self.episode.get_data()[-1]['action']['controller'] in [ControllerType.NONE,None]):
+                length = self.episode.get_episode_length()
+                self.episode.set_data(
+                    index = length-1,
+                    image=self.agent_input,
+                    agent_linear_vel=self.agent_output['velocity']['linear'],
+                    agent_angular_vel=self.agent_output['velocity']['angular'],
+                    agent_termination_flag=self.agent_output['termination_flag'],
+                    user_linear_vel=self.user_output['velocity']['linear'],
+                    user_angular_vel=self.user_output['velocity']['angular'],
+                    user_termination_flag=self.user_output['termination_flag'],
+                    controller=ControllerType.AGENT
                 )
+
+            else:
+                self.episode.append_data(
+                    image=self.agent_input,
+                    agent_linear_vel=self.agent_output['velocity']['linear'],
+                    agent_angular_vel=self.agent_output['velocity']['angular'],
+                    agent_termination_flag=self.agent_output['termination_flag'],
+                    user_linear_vel=self.user_output['velocity']['linear'],
+                    user_angular_vel=self.user_output['velocity']['angular'],
+                    user_termination_flag=self.user_output['termination_flag'],
+                    controller=ControllerType.AGENT
+                    )
 
             self.get_logger().info(f'done')
             self.gui.set_episode(self.episode)
@@ -140,16 +154,30 @@ class SupervisorNode(Node):
             bool_msg = Bool(data=self.user_output['termination_flag'])
             self.termination_flag_publisher.publish(bool_msg)
 
-            self.episode.append_data(
-                image=self.agent_input,
-                agent_linear_vel=self.agent_output['velocity']['linear'],
-                agent_angular_vel=self.agent_output['velocity']['angular'],
-                agent_termination_flag=self.agent_output['termination_flag'],
-                user_linear_vel=self.user_output['velocity']['linear'],
-                user_angular_vel=self.user_output['velocity']['angular'],
-                user_termination_flag=self.user_output['termination_flag'],
-                controller=ControllerType.USER
+            if(self.episode.get_data()[-1]['action']['controller'] in [ControllerType.NONE,None]):
+                length = self.episode.get_episode_length()
+                self.episode.set_data(
+                    index = length-1,
+                    image=self.agent_input,
+                    agent_linear_vel=self.agent_output['velocity']['linear'],
+                    agent_angular_vel=self.agent_output['velocity']['angular'],
+                    agent_termination_flag=self.agent_output['termination_flag'],
+                    user_linear_vel=self.user_output['velocity']['linear'],
+                    user_angular_vel=self.user_output['velocity']['angular'],
+                    user_termination_flag=self.user_output['termination_flag'],
+                    controller=ControllerType.USER
                 )
+            else:
+                self.episode.append_data(
+                    image=self.agent_input,
+                    agent_linear_vel=self.agent_output['velocity']['linear'],
+                    agent_angular_vel=self.agent_output['velocity']['angular'],
+                    agent_termination_flag=self.agent_output['termination_flag'],
+                    user_linear_vel=self.user_output['velocity']['linear'],
+                    user_angular_vel=self.user_output['velocity']['angular'],
+                    user_termination_flag=self.user_output['termination_flag'],
+                    controller=ControllerType.USER
+                    )
 
             self.gui.set_episode(self.episode)
             self.get_logger().info(f'Episode Length: {self.episode.get_episode_length()}')
@@ -165,25 +193,64 @@ class SupervisorNode(Node):
             bool_msg = Bool(data=self.user_output['termination_flag'])
             self.termination_flag_publisher.publish(bool_msg)
 
-            self.episode.append_data(
-                image=self.agent_input,
-                agent_linear_vel=None,
-                agent_angular_vel=None,
-                agent_termination_flag=None,
-                user_linear_vel=self.user_output['velocity']['linear'],
-                user_angular_vel=self.user_output['velocity']['angular'],
-                user_termination_flag=self.user_output['termination_flag'],
-                controller=ControllerType.USER
+            if(self.episode.get_data()[-1]['action']['controller'] in [ControllerType.NONE,None]):
+                length = self.episode.get_episode_length()
+                self.episode.set_data(
+                    index = length-1,
+                    image=self.agent_input,
+                    agent_linear_vel=None,
+                    agent_angular_vel=None,
+                    agent_termination_flag=None,
+                    user_linear_vel=self.user_output['velocity']['linear'],
+                    user_angular_vel=self.user_output['velocity']['angular'],
+                    user_termination_flag=self.user_output['termination_flag'],
+                    controller=ControllerType.USER
                 )
+            else:
+                self.episode.append_data(
+                    image=self.agent_input,
+                    agent_linear_vel=None,
+                    agent_angular_vel=None,
+                    agent_termination_flag=None,
+                    user_linear_vel=self.user_output['velocity']['linear'],
+                    user_angular_vel=self.user_output['velocity']['angular'],
+                    user_termination_flag=self.user_output['termination_flag'],
+                    controller=ControllerType.USER
+                    )
 
             self.gui.set_episode(self.episode)
             self.get_logger().info(f'Episode Length: {self.episode.get_episode_length()}')
+        else:
+            if(self.episode.get_data()[-1]['action']['controller'] in [ControllerType.NONE,None]):
+                length = self.episode.get_episode_length()
+                self.episode.set_data(
+                    index = length-1,
+                    image=image,
+                    agent_linear_vel=self.agent_output['velocity']['linear'],
+                    agent_angular_vel=self.agent_output['velocity']['angular'],
+                    agent_termination_flag=self.agent_output['termination_flag'],
+                    user_linear_vel=self.user_output['velocity']['linear'],
+                    user_angular_vel=self.user_output['velocity']['angular'],
+                    user_termination_flag=self.user_output['termination_flag'],
+                    controller=ControllerType.NONE
+                )
+            else:
+                self.episode.append_data(
+                    image=image,
+                    agent_linear_vel=None,
+                    agent_angular_vel=None,
+                    agent_termination_flag=None,
+                    user_linear_vel=self.user_output['velocity']['linear'],
+                    user_angular_vel=self.user_output['velocity']['angular'],
+                    user_termination_flag=self.user_output['termination_flag'],
+                    controller=ControllerType.NONE
+                )
+            self.gui.set_episode(self.episode)
 
         self.agent_input = image
 
     def user_velocity_callback(self, vel):
         self.user_output['velocity'] = {'linear':vel.linear.x, 'angular': vel.angular.z}
-        self.gui.update_current_action_plot(user_vel=self.user_output['velocity'])
         self.gui.update_info(user_vel=self.user_output['velocity'])
         self.get_logger().info(f"got user velocity {self.user_output['velocity']}")
 
