@@ -264,7 +264,7 @@ class SupervisorGUI():
                     self.current_action_plot.draw_idle()
                 except:
                     pass
-            time.sleep(0.5)
+            time.sleep(1.0)
     
     def update_info(self, desired_vel=None, user_vel=None, agent_vel=None, agent_termination=None, user_termination=None, selected_demo=None):
         if type(desired_vel) == dict:
@@ -380,7 +380,7 @@ class SupervisorGUI():
             self.state = SupervisorState.TASK_TAKE_OVER
             self.automatic_start_button.configure(text="start")
             try:
-                self.ros_node.call_service('agent/take_over')
+                self.ros_node.call_service('agent/start')
                 self.ros_node.update_state(self.state)
             except:
                 pass

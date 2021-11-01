@@ -7,7 +7,7 @@ from custom_interfaces.msg import AgentOutput
 from custom_interfaces.srv import StringTrigger
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
 from std_srvs.srv import Trigger
 from geometry_msgs.msg import Vector3
 
@@ -53,13 +53,14 @@ class SupervisorNode(Node):
         best_effort_qos = QoSProfile(history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST, 
                                         depth=1, 
                                         reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
-        self.desired_velocity_publisher = self.create_publisher(Twist, desired_velocity_topic_name, reliable_qos)
-        self.termination_flag_publisher = self.create_publisher(Bool, 'termination_flag', reliable_qos)
-        self.agent_output_subscriber = self.create_subscription(AgentOutput, 'agent_output', self.agent_output_callback ,best_effort_qos)
-        self.agent_input_subscriber = self.create_subscription(Image, 'agent_input', self.agent_input_callback, reliable_qos)
-        self.user_velocity_subscriber = self.create_subscription(Twist, 'user_input/velocity', self.user_velocity_callback, best_effort_qos)
-        self.user_termination_flag_subscriber = self.create_subscription(Bool, 'user_input/termination_flag', self.user_termination_flag_callback, best_effort_qos)
-        self.image_raw_subscriber = self.create_subscription(Image, image_raw_topic_name, self.image_raw_callback ,best_effort_qos)
+        self.desired_velocity_publisher = self.create_publisher(Twist, desired_velocity_topic_name, reliable_qos, callback_group= ReentrantCallbackGroup())
+        self.termination_flag_publisher = self.create_publisher(Bool, 'termination_flag', reliable_qos, callback_group = ReentrantCallbackGroup())
+        self.action_controller_publisher = self.create_publisher(String, 'action_controller', reliable_qos, callback_group = ReentrantCallbackGroup())
+        self.agent_output_subscriber = self.create_subscription(AgentOutput, 'agent_output', self.agent_output_callback ,best_effort_qos, callback_group = ReentrantCallbackGroup())
+        self.agent_input_subscriber = self.create_subscription(Image, 'agent_input', self.agent_input_callback, reliable_qos, callback_group = ReentrantCallbackGroup())
+        self.user_velocity_subscriber = self.create_subscription(Twist, 'user_input/velocity', self.user_velocity_callback, best_effort_qos, callback_group = ReentrantCallbackGroup())
+        self.user_termination_flag_subscriber = self.create_subscription(Bool, 'user_input/termination_flag', self.user_termination_flag_callback, best_effort_qos, callback_group = ReentrantCallbackGroup())
+        self.image_raw_subscriber = self.create_subscription(Image, image_raw_topic_name, self.image_raw_callback ,best_effort_qos, callback_group = ReentrantCallbackGroup())
 
         agent_prefix = "agent/"
         trainer_prefix='trainer/'
@@ -68,7 +69,6 @@ class SupervisorNode(Node):
         self.services_[agent_prefix+'start'] = self.create_client(Trigger, agent_prefix+'start', callback_group=ReentrantCallbackGroup())
         self.services_[agent_prefix+'pause'] = self.create_client(Trigger, agent_prefix+'pause', callback_group=ReentrantCallbackGroup())
         self.services_[agent_prefix+'stop'] = self.create_client(Trigger, agent_prefix+'stop', callback_group=ReentrantCallbackGroup())
-        self.services_[agent_prefix+'take_over'] = self.create_client(Trigger, agent_prefix+'take_over', callback_group=ReentrantCallbackGroup())
         self.services_[agent_prefix+'select_demonstration'] = self.create_client(StringTrigger, agent_prefix+'select_demonstration', callback_group=ReentrantCallbackGroup())
         self.services_[agent_prefix+'select_model'] = self.create_client(StringTrigger, agent_prefix+'select_model', callback_group=ReentrantCallbackGroup())
         self.services_[agent_prefix+'select_mode'] = self.create_client(StringTrigger, agent_prefix+'select_mode', callback_group=ReentrantCallbackGroup())
@@ -91,7 +91,8 @@ class SupervisorNode(Node):
         self.agent_output = {'velocity':{'linear':0.0, 'angular': 0.0}, 'termination_flag':False}
         self.user_output =  {'velocity':{'linear':0.0, 'angular': 0.0}, 'termination_flag':False}
         self.episode = EpisodeData(data=None, structure=DataStructure.LIST_DICT)
-        self.episode_got_first_image = False
+        self.received_agent_output = False
+        self.agent_in_callback_lock = False
 
         self.state = SupervisorState.STANDBY
 
@@ -100,19 +101,24 @@ class SupervisorNode(Node):
         termination_flag = msg.termination_flag
         self.agent_output['velocity'] = {'linear':velocity.linear.x, 'angular': velocity.angular.z}
         self.agent_output['termination_flag'] = termination_flag
+        self.received_agent_output = True
         self.get_logger().info(f"got agent_output {self.agent_output}")
 
     def agent_input_callback(self, img):
+        self.agent_in_callback_lock = True
         image = PImage.fromarray(rnp.numpify(img))
+        self.agent_input = image
         if(self.state == SupervisorState.TASK_RUNNING):
-            if(self.episode_got_first_image == False):
-                self.episode_got_first_image = True
-                self.agent_input = image
-                return
+            while(self.received_agent_output == False):
+                if(self.state == SupervisorState.STANDBY):
+                    return
+
             velocity_msg = Twist(linear=Vector3(x=self.agent_output['velocity']['linear'],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=self.agent_output['velocity']['angular']))
             self.desired_velocity_publisher.publish(velocity_msg)
             bool_msg = Bool(data=self.agent_output['termination_flag'])
             self.termination_flag_publisher.publish(bool_msg)
+            controller_msg = String(data=ControllerType.AGENT.name)
+            self.action_controller_publisher.publish(controller_msg)
 
             if(self.episode.get_data()[-1]['action']['controller'] in [ControllerType.NONE,None]):
                 length = self.episode.get_episode_length()
@@ -145,14 +151,15 @@ class SupervisorNode(Node):
             self.get_logger().info(f'Episode Length: {self.episode.get_episode_length()}')
 
         elif(self.state == SupervisorState.TASK_TAKE_OVER):
-            if(self.episode_got_first_image == False):
-                self.episode_got_first_image = True
-                self.agent_input = image
-                return
+            while(self.received_agent_output == False):
+                pass
+
             velocity_msg = Twist(linear=Vector3(x=self.user_output['velocity']['linear'],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=self.user_output['velocity']['angular']))
             self.desired_velocity_publisher.publish(velocity_msg)
             bool_msg = Bool(data=self.user_output['termination_flag'])
             self.termination_flag_publisher.publish(bool_msg)
+            controller_msg = String(data=ControllerType.USER.name)
+            self.action_controller_publisher.publish(controller_msg)
 
             if(self.episode.get_data()[-1]['action']['controller'] in [ControllerType.NONE,None]):
                 length = self.episode.get_episode_length()
@@ -183,15 +190,13 @@ class SupervisorNode(Node):
             self.get_logger().info(f'Episode Length: {self.episode.get_episode_length()}')
 
         elif(self.state == SupervisorState.DEMO_RECORDING):
-            if(self.episode_got_first_image == False):
-                self.episode_got_first_image = True
-                self.agent_input = image
-                return
 
             velocity_msg = Twist(linear=Vector3(x=self.user_output['velocity']['linear'],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=self.user_output['velocity']['angular']))
             self.desired_velocity_publisher.publish(velocity_msg)
             bool_msg = Bool(data=self.user_output['termination_flag'])
             self.termination_flag_publisher.publish(bool_msg)
+            controller_msg = String(data=ControllerType.USER.name)
+            self.action_controller_publisher.publish(controller_msg)
 
             if(self.episode.get_data()[-1]['action']['controller'] in [ControllerType.NONE,None]):
                 length = self.episode.get_episode_length()
@@ -247,7 +252,7 @@ class SupervisorNode(Node):
                 )
             self.gui.set_episode(self.episode)
 
-        self.agent_input = image
+        self.agent_in_callback_lock = False
 
     def user_velocity_callback(self, vel):
         self.user_output['velocity'] = {'linear':vel.linear.x, 'angular': vel.angular.z}
@@ -273,8 +278,11 @@ class SupervisorNode(Node):
             else:
                 request = StringTrigger.Request()
                 request.command = str(command)
+                if service_name in ["agent/start", "agent/stop", "agent/pause", "agent/select_model", "agent/select_mode", "agent/select_demonstration"]:
+                    while(self.agent_in_callback_lock == True):
+                        pass
+                response = self.services_[service_name].call(request)
 
-            response = self.services_[service_name].call(request)
             if(response.success == True):
                 self.get_logger().info(f'service successful: {service_name}')
             else:
@@ -291,7 +299,7 @@ class SupervisorNode(Node):
 
     def reset_episode(self):
         self.episode.init_empty_structure()
-        self.episode_got_first_image = False
+        self.received_agent_output = False
 
 def supervisor_node_thread_(node):
     while True:

@@ -6,15 +6,9 @@ The todo list is written to this file.
 
 - [ ] Implement supervisor_node
     - [ ] Implement every service and topic
-    - [ ] Supervisor gui should run a separate thread for updating the plots and images
     - [ ] Make sure agent information and supervisor information is in sync
         - [ ] agent_output should be used to verify valid timesteps when using automatic control mode, demonstration doesn't need any validation because the user_output doesn't necessarily come at the same frequency as the controller
-    - [ ] Create function to display information in the current episode
-        - [x] demonstration
-        - [x] saved task episdoe
-        - [ ] current task episode
     - [ ] Use blit for matplotlib
-    - [ ] Create list box for task episodes
 - [ ] Implement agent_node
     - [ ] Implement every service and topic
 - [ ] Implement trainer_node
@@ -43,6 +37,12 @@ The todo list is written to this file.
         - Setting the information should be to set the actions performed for that observation
         - Get function should assist in returning specific information in a specific data structure
     - [x] Restructure the functions according to the efficient information structure for each scenario
+    - [x] Supervisor gui should run a separate thread for updating the plots and images
+    - [x] Create function to display information in the current episode
+        - [x] demonstration
+        - [x] saved task episdoe
+        - [x] current task episode
+    - [x] Create list box for task episodes
 - [ ] Implement agent_node
     - [x] Setup base-line ros communication topics and services
 - [ ] Implement trainer_node

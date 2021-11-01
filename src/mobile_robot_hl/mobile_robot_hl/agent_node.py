@@ -5,8 +5,10 @@ from custom_interfaces.msg import AgentOutput
 from custom_interfaces.srv import StringTrigger
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
 from std_srvs.srv import Trigger
+from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
 
 import threading
 import os
@@ -35,6 +37,16 @@ class AgentNode(Node):
         
         self.demo_handler = DemoHandler(path=demo_path)
         self.task_handler = TaskHandler(path=task_path, demo_handler = self.demo_handler)
+        self.received_desired_vel = False
+        self.received_termination_flag = False
+        self.received_action_controller = False
+        self.image_raw = None
+        self.fill_int = 255
+        img_tmp = np.zeros([240,320,3],dtype=np.uint8)
+        img_tmp.fill(self.fill_int)
+        self.image_raw_msg = rnp.msgify(Image,img_tmp, encoding='rgb8')
+        self.state = AgentState.STANDBY
+        self.episode = EpisodeData(data=None, structure=DataStructure.LIST_DICT)
 
         self.get_logger().info("Initializing Node")
 
@@ -50,50 +62,40 @@ class AgentNode(Node):
         best_effort_qos = QoSProfile(history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST, 
                                         depth=1, 
                                         reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
-        self.agent_output_publisher = self.create_publisher(AgentOutput, 'agent_output', reliable_qos)
-        self.agent_input_publisher = self.create_publisher(Image, 'agent_input', reliable_qos)
-        self.image_raw_subscriber = self.create_subscription(Image, image_raw_topic_name, self.image_raw_callback ,best_effort_qos)
-        self.desired_velocity_subscriber = self.create_subscription(Twist, desired_velocity_topic_name, self.desired_velocity_callback, reliable_qos)
-        self.termination_flag_subscriber = self.create_subscription(Bool, 'termination_flag', self.termination_flag_callback, reliable_qos)
+        self.agent_output_publisher = self.create_publisher(AgentOutput, 'agent_output', reliable_qos, callback_group=ReentrantCallbackGroup())
+        self.agent_input_publisher = self.create_publisher(Image, 'agent_input', reliable_qos, callback_group=ReentrantCallbackGroup())
+        self.image_raw_subscriber = self.create_subscription(Image, image_raw_topic_name, self.image_raw_callback ,best_effort_qos, callback_group=ReentrantCallbackGroup())
+        self.desired_velocity_subscriber = self.create_subscription(Twist, desired_velocity_topic_name, self.desired_velocity_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
+        self.termination_flag_subscriber = self.create_subscription(Bool, 'termination_flag', self.termination_flag_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
+        self.action_controller_subscriber = self.create_subscription(String, 'action_controller', self.action_controller_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
 
         self.start_service = self.create_service(Trigger, service_prefix+'start', self.start_service_callback)
         self.pause_service = self.create_service(Trigger, service_prefix+'pause', self.pause_service_callback)
         self.stop_service = self.create_service(Trigger, service_prefix+'stop', self.stop_service_callback)
-        self.take_over_service = self.create_service(Trigger, service_prefix+'take_over', self.take_over_service_callback)
         self.select_demonstration_service = self.create_service(StringTrigger, service_prefix+'select_demonstration', self.select_demonstration_service_callback)
         self.select_model_service = self.create_service(StringTrigger, service_prefix+'select_model', self.select_model_service_callback)
         self.select_mode_service = self.create_service(StringTrigger, service_prefix+'select_mode', self.select_mode_service_callback)
 
-        self.control_loop = self.create_timer(1/self.frequency, self.control_callback)
+        self.control_loop = self.create_timer(1/self.frequency, self.control_callback, callback_group=ReentrantCallbackGroup())
 
         self.get_logger().info("Initialized Node")
-        self.image_raw = None
-        self.fill_int = 255
-        img_tmp = np.zeros([240,320,3],dtype=np.uint8)
-        img_tmp.fill(self.fill_int)
-        self.image_raw_msg = rnp.msgify(Image,img_tmp, encoding='rgb8')
-
-        self.state = AgentState.STANDBY
-        self.episode = EpisodeData(data=None, structure=DataStructure.LIST_DICT)
-
-        self.episode_length = 0
     
     def image_raw_callback(self, img):
         self.fill_int == None
         self.image_raw_msg = img
         self.image_raw = rnp.numpify(img)
-        #self.get_logger().info(f"got image {self.image_raw.shape}")
 
     def desired_velocity_callback(self, msg):
-        #self.get_logger().info(f"got desired velocity {msg}")
-        pass
+        self.desired_vel = {'linear':msg.linear.x, 'angular':msg.angular.z}
+        self.received_desired_vel = True
 
     def termination_flag_callback(self, msg):
-        data = msg.data
-
-        self.episode_length += 1
-        self.get_logger().info(f"Episode Length: {self.episode_length}")
-        #self.get_logger().info(f"got termination flag {data}")
+        self.termination_flag = msg.data
+        self.received_termination_flag = True
+    
+    def action_controller_callback(self, msg):
+        self.action_controller = ControllerType[msg.data]
+        self.received_action_controller = True
     
     def start_service_callback(self, request, response):
         if(self.episode.data_empty == True):
@@ -118,14 +120,6 @@ class AgentNode(Node):
         self.episode_length = 0
         return response
 
-    def take_over_service_callback(self, request, response):
-        if(self.state == AgentState.RUNNING or self.state == AgentState.PAUSED):
-            self.state = AgentState.TAKE_OVER
-            response.success = True
-        else:
-            response.success = False
-        return response
-
     def select_demonstration_service_callback(self, request, response):
         if(self.state == AgentState.STANDBY):
             demo_split = request.command.split('.')
@@ -135,6 +129,9 @@ class AgentNode(Node):
             episode_data = EpisodeData(data=episode.data, structure=DataStructure.DICT_LIST)
             episode_data.restructure(DataStructure.LIST_DICT)
             self.episode = episode_data
+            self.received_desired_vel = True
+            self.received_termination_flag = True
+            self.received_action_controller = True
 
             self.get_logger().info(f"Selected demonstration: {request.command}")
             response.success = True
@@ -162,24 +159,37 @@ class AgentNode(Node):
         msg = self.image_raw_msg
         self.agent_input_publisher.publish(msg)
 
-        #TODO: below will be where the model inference be
+        if(self.state == AgentState.RUNNING):
+            while(self.received_desired_vel == False or self.received_termination_flag == False or self.received_action_controller == False):
+                pass
+            #TODO: publish agent_input
+            self.received_desired_vel = False
+            self.received_termination_flag = False
+            self.received_action_controller = False
+            #TODO: model inference + publish agent_output
+            #TODO: this is where new information will be appended to the model
+        elif(self.state == AgentState.PAUSED):
+            #TODO: publish agent_input
+            #TODO: model inference + publish agent_output, information is NOT appended
+            pass
+        else:
+            pass
 
 class AgentState(Enum):
     STANDBY = 0
     RUNNING = 1
     PAUSED = 2
-    TAKE_OVER = 3
 
-def spin_thread_(node):
-    while True:
-        rclpy.spin_once(node)
+def spin_thread_(node, executor):
+    rclpy.spin(node, executor)
 
 def main():
     rclpy.init()
 
     node = AgentNode()
+    executor = MultiThreadedExecutor()
 
-    spin_thread = threading.Thread(target=spin_thread_, args=(node,))
+    spin_thread = threading.Thread(target=spin_thread_, args=(node, executor, ))
     spin_thread.start()
     spin_thread.join()
 
