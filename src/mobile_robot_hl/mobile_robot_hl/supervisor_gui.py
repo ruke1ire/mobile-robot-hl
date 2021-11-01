@@ -336,11 +336,11 @@ class SupervisorGUI():
             self.automatic_save_button.state(['!disabled'])
             self.demo_start_button.state(['disabled'])
             self.demo_save_button.state(['disabled'])
-            try:
-                self.ros_node.call_service('agent/select_demonstration', self.selected_demo)
-                self.ros_node.call_service('agent/start')
-            except:
-                pass
+            if(self.ros_node.episode.get_episode_length() <= 1):
+                self.ros_node.episode = self.ros_node.demo_handler.get(self.selected_demo.split('.')[0],self.selected_demo.split('.')[1])
+                self.set_episode(self.ros_node.episode)
+            self.ros_node.call_service('agent/select_demonstration', self.selected_demo)
+            self.ros_node.call_service('agent/start')
             print("[INFO] Automatic control started")
         elif(self.state == SupervisorState.TASK_RUNNING):
             self.state = SupervisorState.TASK_PAUSED
@@ -365,10 +365,8 @@ class SupervisorGUI():
         self.automatic_save_button.state(['disabled'])
         self.demo_start_button.state(['!disabled'])
         try:
-            self.ros_node.call_service('agent/pause')
-            self.ros_node.update_state(self.state)
-            time.sleep(2)
             self.ros_node.call_service('agent/stop')
+            self.ros_node.update_state(self.state)
             self.ros_node.reset_episode()
         except:
             pass

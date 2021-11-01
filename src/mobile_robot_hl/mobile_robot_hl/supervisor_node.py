@@ -102,7 +102,7 @@ class SupervisorNode(Node):
         self.agent_output['velocity'] = {'linear':velocity.linear.x, 'angular': velocity.angular.z}
         self.agent_output['termination_flag'] = termination_flag
         self.received_agent_output = True
-        self.get_logger().info(f"got agent_output {self.agent_output}")
+        #self.get_logger().info(f"got agent_output {self.agent_output}")
 
     def agent_input_callback(self, img):
         self.agent_in_callback_lock = True
@@ -146,7 +146,6 @@ class SupervisorNode(Node):
                     controller=ControllerType.AGENT
                     )
 
-            self.get_logger().info(f'done')
             self.gui.set_episode(self.episode)
             self.get_logger().info(f'Episode Length: {self.episode.get_episode_length()}')
 
@@ -278,10 +277,7 @@ class SupervisorNode(Node):
             else:
                 request = StringTrigger.Request()
                 request.command = str(command)
-                if service_name in ["agent/start", "agent/stop", "agent/pause", "agent/select_model", "agent/select_mode", "agent/select_demonstration"]:
-                    while(self.agent_in_callback_lock == True):
-                        pass
-                response = self.services_[service_name].call(request)
+            response = self.services_[service_name].call(request)
 
             if(response.success == True):
                 self.get_logger().info(f'service successful: {service_name}')

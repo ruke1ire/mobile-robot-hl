@@ -4,7 +4,7 @@ from rclpy.qos import *
 from custom_interfaces.msg import AgentOutput
 from custom_interfaces.srv import StringTrigger
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, Vector3
 from std_msgs.msg import Bool, String
 from std_srvs.srv import Trigger
 from rclpy.callback_groups import ReentrantCallbackGroup
@@ -106,7 +106,7 @@ class AgentNode(Node):
         return response
 
     def pause_service_callback(self, request, response):
-        if(self.state == AgentState.RUNNING or self.state == AgentState.TAKE_OVER):
+        if(self.state == AgentState.RUNNING or self.state == AgentState.TAKE_OVER or self.state == AgentState.PAUSED):
             self.state = AgentState.PAUSED
             response.success = True
         else:
@@ -117,7 +117,6 @@ class AgentNode(Node):
         self.state = AgentState.STANDBY
         self.episode = EpisodeData(data=None, structure=DataStructure.LIST_DICT)
         response.success = True
-        self.episode_length = 0
         return response
 
     def select_demonstration_service_callback(self, request, response):
@@ -134,7 +133,7 @@ class AgentNode(Node):
             self.received_action_controller = True
 
             self.get_logger().info(f"Selected demonstration: {request.command}")
-            response.success = True
+        response.success = True
         return response
 
     def select_model_service_callback(self, request, response):
@@ -162,18 +161,34 @@ class AgentNode(Node):
         if(self.state == AgentState.RUNNING):
             while(self.received_desired_vel == False or self.received_termination_flag == False or self.received_action_controller == False):
                 pass
-            #TODO: publish agent_input
             self.received_desired_vel = False
             self.received_termination_flag = False
             self.received_action_controller = False
             #TODO: model inference + publish agent_output
+            agent_out = AgentOutput(velocity = Twist(linear=Vector3(x=0.0,y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=0.0)))
+            self.agent_output_publisher.publish(agent_out)
             #TODO: this is where new information will be appended to the model
+            self.episode.append_data(
+                image=None,
+                agent_linear_vel=None,
+                agent_angular_vel=None,
+                agent_termination_flag=None,
+                user_linear_vel=None,
+                user_angular_vel=None,
+                user_termination_flag=None,
+                controller=None
+            )
+
         elif(self.state == AgentState.PAUSED):
-            #TODO: publish agent_input
             #TODO: model inference + publish agent_output, information is NOT appended
+            agent_out = AgentOutput(velocity = Twist(linear=Vector3(x=0.0,y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=0.0)))
+            self.agent_output_publisher.publish(agent_out)
             pass
         else:
             pass
+
+        print(f"Episode Length: {self.episode.get_episode_length()}")
+
 
 class AgentState(Enum):
     STANDBY = 0
