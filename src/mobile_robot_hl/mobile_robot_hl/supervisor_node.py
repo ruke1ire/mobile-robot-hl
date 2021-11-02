@@ -43,6 +43,17 @@ class SupervisorNode(Node):
         
         self.demo_handler = DemoHandler(path=demo_path)
         self.task_handler = TaskHandler(path=task_path, demo_handler = self.demo_handler)
+
+        self.image_raw = None
+        self.agent_input = None
+        self.agent_output = {'velocity':{'linear':0.0, 'angular': 0.0}, 'termination_flag':False}
+        self.user_output =  {'velocity':{'linear':0.0, 'angular': 0.0}, 'termination_flag':False}
+        self.episode = EpisodeData(data=None, structure=DataStructure.LIST_DICT)
+        self.received_agent_output = False
+        self.agent_in_callback_lock = False
+
+        self.state = SupervisorState.STANDBY
+
         
         self.get_logger().info("Initializing Node")
 
@@ -86,15 +97,6 @@ class SupervisorNode(Node):
         self.gui.update_available_task_episode_name(self.task_handler.get_names())
 
         self.get_logger().info("Initialized Node")
-        self.image_raw = None
-        self.agent_input = None
-        self.agent_output = {'velocity':{'linear':0.0, 'angular': 0.0}, 'termination_flag':False}
-        self.user_output =  {'velocity':{'linear':0.0, 'angular': 0.0}, 'termination_flag':False}
-        self.episode = EpisodeData(data=None, structure=DataStructure.LIST_DICT)
-        self.received_agent_output = False
-        self.agent_in_callback_lock = False
-
-        self.state = SupervisorState.STANDBY
 
     def agent_output_callback(self, msg):
         velocity = msg.velocity
@@ -105,13 +107,18 @@ class SupervisorNode(Node):
         #self.get_logger().info(f"got agent_output {self.agent_output}")
 
     def agent_input_callback(self, img):
+        self.get_logger().info("Received agent_input")
+        current_state = self.state
         self.agent_in_callback_lock = True
         image = PImage.fromarray(rnp.numpify(img))
         self.agent_input = image
         if(self.state == SupervisorState.TASK_RUNNING):
+            self.get_logger().info("Waiting for agent_output")
             while(self.received_agent_output == False):
                 if(self.state == SupervisorState.STANDBY):
+                    self.get_logger().info("State changed to STANDBY")
                     return
+            self.get_logger().info("Received agent_output")
 
             velocity_msg = Twist(linear=Vector3(x=self.agent_output['velocity']['linear'],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=self.agent_output['velocity']['angular']))
             self.desired_velocity_publisher.publish(velocity_msg)
@@ -119,6 +126,7 @@ class SupervisorNode(Node):
             self.termination_flag_publisher.publish(bool_msg)
             controller_msg = String(data=ControllerType.AGENT.name)
             self.action_controller_publisher.publish(controller_msg)
+            self.get_logger().info("Published desired_velocity, termination_flag, and action_controller")
 
             if(self.episode.get_data()[-1]['action']['controller'] in [ControllerType.NONE,None]):
                 length = self.episode.get_episode_length()
@@ -146,12 +154,18 @@ class SupervisorNode(Node):
                     controller=ControllerType.AGENT
                     )
 
+            #set_ep_thread = threading.Thread(target=lambda: self.gui.set_episode(self.episode)).start()
             self.gui.set_episode(self.episode)
-            self.get_logger().info(f'Episode Length: {self.episode.get_episode_length()}')
+            self.get_logger().info("Completed setting up frame to GUI")
+            self.get_logger().info(f'Current Episode Length: {self.episode.get_episode_length()}')
 
         elif(self.state == SupervisorState.TASK_TAKE_OVER):
+            self.get_logger().info("Waiting for agent_output")
             while(self.received_agent_output == False):
-                pass
+                if(self.state == SupervisorState.STANDBY):
+                    self.get_logger().info("State changed to STANDBY")
+                    return
+            self.get_logger().info("Received agent_output")
 
             velocity_msg = Twist(linear=Vector3(x=self.user_output['velocity']['linear'],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=self.user_output['velocity']['angular']))
             self.desired_velocity_publisher.publish(velocity_msg)
@@ -159,6 +173,7 @@ class SupervisorNode(Node):
             self.termination_flag_publisher.publish(bool_msg)
             controller_msg = String(data=ControllerType.USER.name)
             self.action_controller_publisher.publish(controller_msg)
+            self.get_logger().info("Published desired_velocity, termination_flag, and action_controller")
 
             if(self.episode.get_data()[-1]['action']['controller'] in [ControllerType.NONE,None]):
                 length = self.episode.get_episode_length()
@@ -185,8 +200,13 @@ class SupervisorNode(Node):
                     controller=ControllerType.USER
                     )
 
+            if(current_state in [SupervisorState.TASK_RUNNING, SupervisorState.TASK_TAKE_OVER] and self.state == SupervisorState.STANDBY):
+                self.get_logger().info("Skipped frame and resetting episode")
+                self.reset_episode()
+                return
             self.gui.set_episode(self.episode)
-            self.get_logger().info(f'Episode Length: {self.episode.get_episode_length()}')
+            self.get_logger().info("Completed setting up frame to GUI")
+            self.get_logger().info(f'Current Episode Length: {self.episode.get_episode_length()}')
 
         elif(self.state == SupervisorState.DEMO_RECORDING):
 
@@ -196,6 +216,7 @@ class SupervisorNode(Node):
             self.termination_flag_publisher.publish(bool_msg)
             controller_msg = String(data=ControllerType.USER.name)
             self.action_controller_publisher.publish(controller_msg)
+            self.get_logger().info("Published desired_velocity, termination_flag, and action_controller")
 
             if(self.episode.get_data()[-1]['action']['controller'] in [ControllerType.NONE,None]):
                 length = self.episode.get_episode_length()
@@ -223,7 +244,8 @@ class SupervisorNode(Node):
                     )
 
             self.gui.set_episode(self.episode)
-            self.get_logger().info(f'Episode Length: {self.episode.get_episode_length()}')
+            self.get_logger().info("Completed setting up frame to GUI")
+            self.get_logger().info(f'Current Episode Length: {self.episode.get_episode_length()}')
         else:
             if(self.episode.get_data()[-1]['action']['controller'] in [ControllerType.NONE,None]):
                 length = self.episode.get_episode_length()
@@ -250,6 +272,7 @@ class SupervisorNode(Node):
                     controller=ControllerType.NONE
                 )
             self.gui.set_episode(self.episode)
+            self.get_logger().info("Completed setting up frame to GUI")
 
         self.agent_in_callback_lock = False
 
@@ -264,7 +287,7 @@ class SupervisorNode(Node):
     
     def image_raw_callback(self, img):
         self.image_raw = PImage.fromarray(rnp.numpify(img))
-        self.gui.update_image_current(self.image_raw)
+        #self.gui.update_image_current(self.image_raw)
         #self.get_logger().info(f"got image raw {self.image_raw.shape}")
     
     def call_service(self, service_name, command=None):

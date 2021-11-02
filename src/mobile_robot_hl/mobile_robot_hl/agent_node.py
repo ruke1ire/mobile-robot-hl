@@ -14,6 +14,7 @@ import threading
 import os
 from enum import Enum
 import numpy as np
+import time
 
 import ros2_numpy as rnp
 
@@ -47,10 +48,11 @@ class AgentNode(Node):
         self.image_raw_msg = rnp.msgify(Image,img_tmp, encoding='rgb8')
         self.state = AgentState.STANDBY
         self.episode = EpisodeData(data=None, structure=DataStructure.LIST_DICT)
+        self.wait = False
 
         self.get_logger().info("Initializing Node")
 
-        self.declare_parameter('frequency', 1.0)
+        self.declare_parameter('frequency', 0.5)
         self.frequency = self.get_parameter('frequency').get_parameter_value().double_value
 
         service_prefix = 'agent/'
@@ -81,7 +83,7 @@ class AgentNode(Node):
         self.get_logger().info("Initialized Node")
     
     def image_raw_callback(self, img):
-        self.fill_int == None
+        self.fill_int = None
         self.image_raw_msg = img
         self.image_raw = rnp.numpify(img)
 
@@ -101,6 +103,10 @@ class AgentNode(Node):
         if(self.episode.data_empty == True):
             response.success = False
         else:
+            if(self.state == AgentState.STANDBY):
+                self.wait = True
+                time.sleep(2.0)
+                self.wait = False
             self.state = AgentState.RUNNING
             response.success = True
         return response
@@ -146,6 +152,9 @@ class AgentNode(Node):
         return response
 
     def control_callback(self):
+        if(self.wait == True):
+            return
+        self.get_logger().info("Publishing agent_in")
         if(self.fill_int != None):
             img_tmp = np.zeros([240,320,3],dtype=np.uint8)
             if(self.fill_int == 255):
@@ -157,16 +166,21 @@ class AgentNode(Node):
 
         msg = self.image_raw_msg
         self.agent_input_publisher.publish(msg)
+        self.get_logger().info("Published agent_in")
 
         if(self.state == AgentState.RUNNING):
+            self.get_logger().info("Verifying that previous actions are received")
             while(self.received_desired_vel == False or self.received_termination_flag == False or self.received_action_controller == False):
                 pass
             self.received_desired_vel = False
             self.received_termination_flag = False
             self.received_action_controller = False
+            self.get_logger().info("Computing agent_output")
+            self.get_logger().info("Publishing agent_output")
             #TODO: model inference + publish agent_output
             agent_out = AgentOutput(velocity = Twist(linear=Vector3(x=0.0,y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=0.0)))
             self.agent_output_publisher.publish(agent_out)
+            self.get_logger().info("Published agent_output")
             #TODO: this is where new information will be appended to the model
             self.episode.append_data(
                 image=None,
@@ -180,14 +194,17 @@ class AgentNode(Node):
             )
 
         elif(self.state == AgentState.PAUSED):
+            self.get_logger().info("Computing agent_output")
+            self.get_logger().info("Publishing agent_output")
             #TODO: model inference + publish agent_output, information is NOT appended
             agent_out = AgentOutput(velocity = Twist(linear=Vector3(x=0.0,y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=0.0)))
             self.agent_output_publisher.publish(agent_out)
+            self.get_logger().info("Published agent_output")
             pass
         else:
             pass
 
-        print(f"Episode Length: {self.episode.get_episode_length()}")
+        self.get_logger().info(f"Current Episode Length: {self.episode.get_episode_length()}")
 
 
 class AgentState(Enum):

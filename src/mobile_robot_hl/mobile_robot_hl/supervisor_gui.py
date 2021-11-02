@@ -40,10 +40,12 @@ class SupervisorGUI():
 
         self.action_plot_timer = Thread(target=self.update_action_plot_trigger)
         self.current_action_plot_timer = Thread(target=self.update_current_action_plot_trigger)
+        self.update_image_current_timer = Thread(target=self.update_image_current)
         #self.update_model_image_timer
 
         self.action_plot_timer.start()
         self.current_action_plot_timer.start()
+        self.update_image_current_timer.start()
 
     def setup_extras(self):
         img = np.zeros([360,480,3],dtype=np.uint8)
@@ -226,10 +228,16 @@ class SupervisorGUI():
         self.control_frame.columnconfigure(0, weight=1)
         self.control_frame.columnconfigure(1, weight=1)
     
-    def update_image_current(self, image):
-        image = image.resize((480,360))
-        self.image_current = ImageTk.PhotoImage(image = image)
-        self.image_current_label.configure(image=self.image_current)
+    def update_image_current(self):
+        while True:
+            if(self.ros_node.image_raw == None):
+                pass
+            else:
+                image = self.ros_node.image_raw
+                image = image.resize((480,360))
+                self.image_current = ImageTk.PhotoImage(image = image)
+                self.image_current_label.configure(image=self.image_current)
+            time.sleep(0.2)
     
     def update_current_action_plot_trigger(self):
         while True:
@@ -328,6 +336,9 @@ class SupervisorGUI():
             print("[INFO] No demonstration selected")
             return
         if(self.state==SupervisorState.TASK_PAUSED or self.state == SupervisorState.STANDBY or self.state == SupervisorState.TASK_TAKE_OVER):
+            if(self.state == SupervisorState.STANDBY):
+                self.ros_node.episode = self.ros_node.demo_handler.get(self.selected_demo.split('.')[0],self.selected_demo.split('.')[1])
+                self.set_episode(self.ros_node.episode)
             self.state = SupervisorState.TASK_RUNNING
             self.automatic_take_over_button.configure(text="take over")
             self.automatic_start_button.configure(text="pause")
@@ -336,9 +347,6 @@ class SupervisorGUI():
             self.automatic_save_button.state(['!disabled'])
             self.demo_start_button.state(['disabled'])
             self.demo_save_button.state(['disabled'])
-            if(self.ros_node.episode.get_episode_length() <= 1):
-                self.ros_node.episode = self.ros_node.demo_handler.get(self.selected_demo.split('.')[0],self.selected_demo.split('.')[1])
-                self.set_episode(self.ros_node.episode)
             self.ros_node.call_service('agent/select_demonstration', self.selected_demo)
             self.ros_node.call_service('agent/start')
             print("[INFO] Automatic control started")
@@ -407,6 +415,9 @@ class SupervisorGUI():
     
     def demo_start_button_trigger(self):
         if(self.state == SupervisorState.STANDBY or self.state == SupervisorState.DEMO_PAUSED):
+            if(self.state == SupervisorState.STANDBY):
+                self.ros_node.reset_episode()
+                self.set_episode(self.ros_node.episode)
             self.state = SupervisorState.DEMO_RECORDING
             self.demo_start_button.configure(text="pause")
             self.demo_stop_button.state(['!disabled'])
@@ -558,11 +569,13 @@ class SupervisorGUI():
         if episode.structure == DataStructure.DICT_LIST:
             self.episode = EpisodeData(episode.get_data(DataStructure.LIST_DICT), structure=DataStructure.LIST_DICT)
             self.ros_node.episode = self.episode
-            self.slider_trigger(self.slider_value)
+            Thread(target=lambda: self.slider_trigger(self.slider_value)).start()
+            #self.slider_trigger(self.slider_value)
         else:
             self.episode = episode
             self.ros_node.episode = self.episode
-            self.slider_trigger(self.slider_value)
+            Thread(target=lambda: self.slider_trigger(self.slider_value)).start()
+            #self.slider_trigger(self.slider_value)
 
     def update_episode_image(self, episode_index):
         image = self.episode.data[episode_index]['observation']['image'].resize((480,360))
