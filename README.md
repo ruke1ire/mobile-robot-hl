@@ -9,4 +9,4 @@ This repo contains code that allows mobile robots to be trained for any navigati
 
 ## Requirements
 
-- [ros2 foxy](https://docs.ros.org/en/foxy/Installation.html)
+- [ROS2 Foxy](https://docs.ros.org/en/foxy/Installation.html)

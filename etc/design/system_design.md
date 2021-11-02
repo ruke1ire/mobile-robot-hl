@@ -160,6 +160,7 @@ The trainer node trains the neural networks.
 
 Demonstration files store observed images and actions performed in a demonstration.
 
+- Information regarding the types of tasks/demonstrations are discussed in [etc/implementation/dataset.md](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/implementation/dataset.md)
 - All demonstrations are saved into a path specified in the environment variable **MOBILE_ROBOT_HL_DEMO_PATH**
 - The demonstration name is the name of the task
 - Each unique demonstration name has a unique directory
