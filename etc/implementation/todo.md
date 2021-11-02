@@ -4,21 +4,23 @@ The todo list is written to this file.
 
 ## In Progress
 
+- [ ] How can i add the information about the time between consecutive dt? or should i not because it uses a convolution?
 - [ ] Implement supervisor_node
+    - [ ] Make the information panel better make it update with the correct information
     - [ ] Implement every service and topic
     - [ ] Use blit for matplotlib
 - [ ] Implement agent_node
+    - [ ] Create config file for setting the frequency
     - [ ] Implement every service and topic
 - [ ] Implement trainer_node
     - [ ] Implement every service and topic
     - [ ] Implement neural network model
 - [ ] Other nodes
-    - [ ] Add launch files for starting up all the other necessary nodes 
+    - [ ] Add launch files for starting up all the other necessary nodes | DO THIS NEXT!!!!
         - ros2 run image_transport republish compressed in/compressed:=image_raw/compressed raw out:=image_raw/uncompressed
         - ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args --remap cmd_vel:=/diffbot_base_controller/cmd_vel_unstamped
         - ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args --remap cmd_vel:=user_input/velocity
         - ros2 run rviz2 rviz2 -d ./src/control/ros2_control_demo_description/diffbot_description/config/diffbot.rviz
-    - [ ] Create node to input actions from an xbox controller | DO THIS NEXT!!
 
 ## Done
 
@@ -49,5 +51,6 @@ The todo list is written to this file.
     - [x] Setup base-line ros communication topics and services
 - [ ] Other nodes
     - [x] Install and buy necessary hardware for robot parts
+    - [x] Create node to input actions from an xbox controller | DO THIS NEXT!!
 - [ ] Create custom interfaces
     - [x] agent_output
