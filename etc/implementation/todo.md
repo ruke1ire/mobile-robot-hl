@@ -6,8 +6,6 @@ The todo list is written to this file.
 
 - [ ] Implement supervisor_node
     - [ ] Implement every service and topic
-    - [ ] Make sure agent information and supervisor information is in sync
-        - [ ] agent_output should be used to verify valid timesteps when using automatic control mode, demonstration doesn't need any validation because the user_output doesn't necessarily come at the same frequency as the controller
     - [ ] Use blit for matplotlib
 - [ ] Implement agent_node
     - [ ] Implement every service and topic
@@ -20,7 +18,7 @@ The todo list is written to this file.
         - ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args --remap cmd_vel:=/diffbot_base_controller/cmd_vel_unstamped
         - ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args --remap cmd_vel:=user_input/velocity
         - ros2 run rviz2 rviz2 -d ./src/control/ros2_control_demo_description/diffbot_description/config/diffbot.rviz
-    - [ ] Create node to input actions from an xbox controller
+    - [ ] Create node to input actions from an xbox controller | DO THIS NEXT!!
 
 ## Done
 
@@ -43,6 +41,8 @@ The todo list is written to this file.
         - [x] saved task episdoe
         - [x] current task episode
     - [x] Create list box for task episodes
+    - [x] Make sure agent information and supervisor information is in sync
+        - [x] agent_output should be used to verify valid timesteps when using automatic control mode, demonstration doesn't need any validation because the user_output doesn't necessarily come at the same frequency as the controller
 - [ ] Implement agent_node
     - [x] Setup base-line ros communication topics and services
 - [ ] Implement trainer_node
