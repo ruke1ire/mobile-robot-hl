@@ -352,7 +352,6 @@ class EpisodeData:
     def restructure(self, structure, inplace = True):
         if(self.structure != structure):
             if(self.structure == DataStructure.DICT_LIST):
-                print(self.data)
                 data = restructure_dict2list(self.data)
                 structure = DataStructure.LIST_DICT
             elif(self.structure == DataStructure.LIST_DICT):
