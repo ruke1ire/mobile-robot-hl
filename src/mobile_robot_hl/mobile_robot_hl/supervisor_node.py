@@ -12,6 +12,7 @@ from std_srvs.srv import Trigger
 from geometry_msgs.msg import Vector3
 
 from .supervisor_gui import SupervisorGUI, SupervisorState
+from .joy_handler import JoyHandler, InterfaceType
 from .utils import *
 
 import ros2_numpy as rnp
@@ -43,6 +44,7 @@ class SupervisorNode(Node):
         
         self.demo_handler = DemoHandler(path=demo_path)
         self.task_handler = TaskHandler(path=task_path, demo_handler = self.demo_handler)
+        self.joy_handler = JoyHandler(0.05, 0.125)
 
         self.image_raw = None
         self.agent_input = None
@@ -73,6 +75,7 @@ class SupervisorNode(Node):
         self.user_termination_flag_subscriber = self.create_subscription(Bool, 'user_input/termination_flag', self.user_termination_flag_callback, best_effort_qos, callback_group = ReentrantCallbackGroup())
         self.image_raw_subscriber = self.create_subscription(Image, image_raw_topic_name, self.image_raw_callback ,best_effort_qos, callback_group = ReentrantCallbackGroup())
 
+        supervisor_prefix = "supervisor/"
         agent_prefix = "agent/"
         trainer_prefix='trainer/'
 
@@ -97,6 +100,9 @@ class SupervisorNode(Node):
         self.gui.update_available_task_episode_name(self.task_handler.get_names())
 
         self.get_logger().info("Initialized Node")
+
+        threading.Thread(target=lambda: self.joy_event_handler_thread()).start()
+        threading.Thread(target=lambda: self.joy_action_handler_thread()).start()
 
     def agent_output_callback(self, msg):
         velocity = msg.velocity
@@ -247,6 +253,7 @@ class SupervisorNode(Node):
             self.get_logger().info("Completed setting up frame to GUI")
             self.get_logger().info(f'Current Episode Length: {self.episode.get_episode_length()}')
         else:
+
             if(self.episode.get_data()[-1]['action']['controller'] in [ControllerType.NONE,None]):
                 length = self.episode.get_episode_length()
                 self.episode.set_data(
@@ -319,6 +326,48 @@ class SupervisorNode(Node):
     def reset_episode(self):
         self.episode.init_empty_structure()
         self.received_agent_output = False
+
+    def joy_action_handler_thread(self):
+        while True:
+            joy_state = self.joy_handler.get_state()
+
+            self.user_output =  {'velocity':{'linear':joy_state[InterfaceType.LINEAR_VELOCITY.name], 'angular': joy_state[InterfaceType.ANGULAR_VELOCITY.name]}, 'termination_flag':joy_state[InterfaceType.TERMINATION_FLAG.name]}
+            self.episode.data[-1]['action']['user']['velocity'] = self.user_output['velocity']
+            self.episode.data[-1]['action']['user']['termination_flag'] = self.user_output['termination_flag']
+
+            if(self.state == SupervisorState.STANDBY):
+                velocity_msg = Twist(linear=Vector3(x=self.user_output['velocity']['linear'],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=self.user_output['velocity']['angular']))
+                self.desired_velocity_publisher.publish(velocity_msg)
+                bool_msg = Bool(data=self.user_output['termination_flag'])
+                self.termination_flag_publisher.publish(bool_msg)
+                controller_msg = String(data=ControllerType.USER.name)
+                self.action_controller_publisher.publish(controller_msg)
+
+            self.gui.update_info(user_vel=self.user_output['velocity'], user_termination=self.user_output['termination_flag'])
+
+    def joy_event_handler_thread(self):
+        prev_joy_state = self.joy_handler.get_state()
+        while True:
+            joy_state = self.joy_handler.get_state()
+            if(prev_joy_state[InterfaceType.STOP.name] == False and joy_state[InterfaceType.STOP.name] == True):
+                if(self.gui.state in [SupervisorState.TASK_RUNNING, SupervisorState.TASK_PAUSED, SupervisorState.TASK_TAKE_OVER]):
+                    self.gui.agent_stop_button_trigger()
+                elif(self.gui.state in [SupervisorState.DEMO_RECORDING, SupervisorState.DEMO_PAUSED]):
+                    self.gui.demo_stop_button_trigger()
+            elif(prev_joy_state[InterfaceType.START_PAUSE_TASK.name] == False and joy_state[InterfaceType.START_PAUSE_TASK.name] == True):
+                if(self.gui.state in [SupervisorState.STANDBY, SupervisorState.TASK_RUNNING, SupervisorState.TASK_PAUSED, SupervisorState.TASK_TAKE_OVER]):
+                    self.gui.agent_start_button_trigger()
+            elif(prev_joy_state[InterfaceType.TAKE_OVER_TASK.name] == False and joy_state[InterfaceType.TAKE_OVER_TASK.name] == True):
+                if(self.gui.state in [SupervisorState.TASK_RUNNING, SupervisorState.TASK_PAUSED, SupervisorState.TASK_TAKE_OVER]):
+                    self.gui.agent_take_over_button_trigger()
+            elif(prev_joy_state[InterfaceType.START_PAUSE_DEMO.name] == False and joy_state[InterfaceType.START_PAUSE_DEMO.name] == True):
+                if(self.gui.state in [SupervisorState.STANDBY, SupervisorState.DEMO_RECORDING, SupervisorState.DEMO_PAUSED]):
+                    self.gui.demo_start_button_trigger()
+
+            prev_joy_state = joy_state.copy()
+            time.sleep(0.05)
+
+
 
 def supervisor_node_thread_(node):
     while True:

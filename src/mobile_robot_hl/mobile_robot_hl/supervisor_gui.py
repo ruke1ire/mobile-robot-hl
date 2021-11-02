@@ -10,6 +10,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import time
 from threading import Timer, Thread
 
+from .joy_handler import InterfaceType
+
 from .utils import *
 
 class SupervisorGUI():
@@ -46,6 +48,7 @@ class SupervisorGUI():
         self.action_plot_timer.start()
         self.current_action_plot_timer.start()
         self.update_image_current_timer.start()
+
 
     def setup_extras(self):
         img = np.zeros([360,480,3],dtype=np.uint8)
@@ -592,7 +595,7 @@ class SupervisorGUI():
             if(current_selection == no_of_divs):
                 current_selection -= 1
             self.update_episode_image(current_selection)
-
+    
 class SupervisorState(Enum):
     STANDBY = 0
     TASK_RUNNING = 101
