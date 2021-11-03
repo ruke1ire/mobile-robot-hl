@@ -546,8 +546,7 @@ class SupervisorGUI():
             demo_name = self.saved_demo_name_list.get(tkinter.ANCHOR)
             demo_id = self.saved_demo_id_list.get(tkinter.ANCHOR)
             try:
-                demo = self.ros_node.demo_handler.get(demo_name, demo_id)
-                self.set_episode(episode = demo)
+                Thread(target=lambda: self.set_episode(episode = self.ros_node.demo_handler.get(demo_name, demo_id))).start()
             except:
                 pass
             print("[INFO] Displaying selected demonstration")
@@ -556,8 +555,7 @@ class SupervisorGUI():
             demo_name = self.saved_task_episode_name_list.get(tkinter.ANCHOR)
             task_id = self.saved_demo_id_list.get(tkinter.ANCHOR)
             try:
-                task = self.ros_node.task_handler.get(demo_name, task_id)
-                self.set_episode(episode = task)
+                Thread(target=lambda: self.set_episode(episode = self.ros_node.demo_handler.get(demo_name, task_id))).start()
             except:
                 pass
             print("[INFO] Displaying selected task episode")

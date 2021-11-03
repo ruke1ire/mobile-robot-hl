@@ -33,9 +33,9 @@ The following are the tasks and behaviors that will be demonstrated to train the
 
 ### Recording location
 
-- Home
-- University
+- Home (Tokyo, Saitama)
+- University (Basement)
 
 ## Number of demonstrations
 
-- ?
+- 10 for each task/behavior/location

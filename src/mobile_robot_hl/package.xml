@@ -21,6 +21,7 @@
   <depend>python3-numpy</depend>
   <depend>python3-yaml</depend>
   <depend>python3-pygame</depend>
+  <depend>image_transport</depend>
 
   <export>
     <build_type>ament_python</build_type>
