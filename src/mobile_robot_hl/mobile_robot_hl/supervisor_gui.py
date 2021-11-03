@@ -264,9 +264,9 @@ class SupervisorGUI():
                     pass
 
                 try:
-                    self.current_action_desired_vel = self.current_action_ax.scatter(desired_vel['angular'], desired_vel['linear'],c = 'tab:blue', label="desired velocity", alpha=0.8, marker='x')
-                    self.current_action_user_vel = self.current_action_ax.scatter(self.episode.get_data(DataStructure.LIST_DICT)[self.episode_index]['action']['user']['velocity']['angular'], self.episode.get_data(DataStructure.LIST_DICT)[self.episode_index]['action']['user']['velocity']['linear'],c = 'tab:orange', label="user velocity", alpha=0.8, marker='o')
-                    self.current_action_agent_vel = self.current_action_ax.scatter(self.episode.get_data(DataStructure.LIST_DICT)[self.episode_index]['action']['agent']['velocity']['angular'], self.episode.get_data(DataStructure.LIST_DICT)[self.episode_index]['action']['agent']['velocity']['linear'],c = 'tab:green', label="agent velocity", alpha = 0.8, marker='^')
+                    self.current_action_desired_vel = self.current_action_ax.scatter(desired_vel['angular'], desired_vel['linear'],s = 100, c = 'tab:blue', label="desired velocity", alpha=1.0, marker='x')
+                    self.current_action_user_vel = self.current_action_ax.scatter(self.episode.get_data(DataStructure.LIST_DICT)[self.episode_index]['action']['user']['velocity']['angular'], self.episode.get_data(DataStructure.LIST_DICT)[self.episode_index]['action']['user']['velocity']['linear'], s = 50, c = 'tab:orange', label="user velocity", alpha=1.0, marker='o')
+                    self.current_action_agent_vel = self.current_action_ax.scatter(self.episode.get_data(DataStructure.LIST_DICT)[self.episode_index]['action']['agent']['velocity']['angular'], self.episode.get_data(DataStructure.LIST_DICT)[self.episode_index]['action']['agent']['velocity']['linear'], s = 20, c = 'tab:green', label="agent velocity", alpha = 1.0, marker='^')
                 except:
                     pass
 
@@ -305,8 +305,8 @@ class SupervisorGUI():
                 pass
             list_range = list(range(1,episode.get_episode_length()+1))
 
-            self.action_plot_desired_vel_line_linear = self.action_plot_ax.plot(list_range,desired_vel['linear'], c = 'tab:blue', label="desired linear velocity", alpha=0.8, marker='x')
-            self.action_plot_desired_vel_line_angular = self.action_plot_ax.plot(list_range,desired_vel['angular'], c = 'tab:cyan', label="desired angular velocity", alpha=0.8, marker = 'x')
+            self.action_plot_desired_vel_line_linear = self.action_plot_ax.plot(list_range,desired_vel['linear'], c = 'tab:blue', label="desired linear velocity", alpha=1.0, marker='x', linewidth=8, markersize=10)
+            self.action_plot_desired_vel_line_angular = self.action_plot_ax.plot(list_range,desired_vel['angular'], c = 'tab:cyan', label="desired angular velocity", alpha=1.0, marker = 'x', linewidth=8, markersize=10)
 
             try:
                 self.action_plot_user_vel_line_linear.pop(0).remove()
@@ -314,16 +314,16 @@ class SupervisorGUI():
             except:
                 pass
 
-            self.action_plot_user_vel_line_linear =  self.action_plot_ax.plot(list_range, episode.data['action']['user']['velocity']['linear'],c = 'tab:orange', label="user linear velocity", alpha=0.8, marker='o')
-            self.action_plot_user_vel_line_angular =  self.action_plot_ax.plot(list_range, episode.data['action']['user']['velocity']['angular'],c = 'tab:brown', label="user angular velocity", alpha=0.8, marker='o')
+            self.action_plot_user_vel_line_linear =  self.action_plot_ax.plot(list_range, episode.data['action']['user']['velocity']['linear'],c = 'tab:orange', label="user linear velocity", alpha=1.0, marker='o', linewidth = 3, markersize = 7)
+            self.action_plot_user_vel_line_angular =  self.action_plot_ax.plot(list_range, episode.data['action']['user']['velocity']['angular'],c = 'tab:brown', label="user angular velocity", alpha=1.0, marker='o', linewidth = 3, markersize = 7)
 
             try:
                 self.action_plot_agent_vel_line_linear.pop(0).remove()
                 self.action_plot_agent_vel_line_angular.pop(0).remove()
             except:
                 pass
-            self.action_plot_agent_vel_line_linear = self.action_plot_ax.plot(list_range, episode.data['action']['agent']['velocity']['linear'],c = 'tab:green', label="agent linear velocity", alpha = 0.8, marker='^')
-            self.action_plot_agent_vel_line_angular = self.action_plot_ax.plot(list_range, episode.data['action']['agent']['velocity']['angular'],c = 'olive', label="agent angular velocity", alpha = 0.8, marker='^')
+            self.action_plot_agent_vel_line_linear = self.action_plot_ax.plot(list_range, episode.data['action']['agent']['velocity']['linear'],c = 'tab:green', label="agent linear velocity", alpha = 1.0, marker='^', linewidth = 1, markersize = 4)
+            self.action_plot_agent_vel_line_angular = self.action_plot_ax.plot(list_range, episode.data['action']['agent']['velocity']['angular'],c = 'olive', label="agent angular velocity", alpha = 1.0, marker='^', linewidth = 1, markersize = 4)
 
             self.action_plot_ax.set_xlim([0.5,episode.get_episode_length()+0.5])
 
@@ -545,17 +545,22 @@ class SupervisorGUI():
         if(self.selection == InformationType.DEMO):
             demo_name = self.saved_demo_name_list.get(tkinter.ANCHOR)
             demo_id = self.saved_demo_id_list.get(tkinter.ANCHOR)
+            self.ros_node.get_logger().info(f"|{demo_name}|{demo_id}|")
+            if(demo_id == '' or demo_id == None):
+                return
             try:
                 Thread(target=lambda: self.set_episode(episode = self.ros_node.demo_handler.get(demo_name, demo_id))).start()
             except:
                 pass
             print("[INFO] Displaying selected demonstration")
         elif(self.selection == InformationType.TASK_EPISODE):
-            #TODO: show the task episode here
             demo_name = self.saved_task_episode_name_list.get(tkinter.ANCHOR)
             task_id = self.saved_demo_id_list.get(tkinter.ANCHOR)
+            self.ros_node.get_logger().info(f"|{demo_name}|{task_id}|")
+            if(task_id == '' or task_id == None):
+                return
             try:
-                Thread(target=lambda: self.set_episode(episode = self.ros_node.demo_handler.get(demo_name, task_id))).start()
+                Thread(target=lambda: self.set_episode(episode = self.ros_node.task_handler.get(demo_name, task_id))).start()
             except:
                 pass
             print("[INFO] Displaying selected task episode")

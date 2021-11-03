@@ -34,7 +34,7 @@ class DemoHandler():
             with open(f"{self.path}/{name}/{id_}/{DemoHandler.DEMO_ID_INFO_FILE}", 'r') as stream:
                 info = yaml.safe_load(stream)
         except:
-            raise Exception("Invalid demo name and id! Name: {name} ID: {id_}")
+            raise Exception(f'Invalid demo name: {name} ID: {id_}')
 
         images = [PImage.open(f"{self.path}/{name}/{id_}/{image_id}.png") 
                     for image_id in info['observation']['image_id']]
@@ -119,7 +119,8 @@ class TaskHandler():
             with open(f"{self.path}/{name}/{id_}/{TaskHandler.TASK_ID_INFO_FILE}", 'r') as stream:
                 info = yaml.safe_load(stream)
         except:
-            raise Exception("Invalid task name and id! Name: {name} ID: {id_}")
+            raise Exception(f'Invalid task name: {name} ID: {id_}')
+
         demo_id = info['demonstration']
 
         demo_episode_data = self.demo_handler.get(name, demo_id)
