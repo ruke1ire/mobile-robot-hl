@@ -5,12 +5,12 @@ The todo list is written to this file.
 ## In Progress
 
 - [ ] How can i add the information about the time between consecutive dt? or should i not because it uses a convolution?
+- [ ] Implement neural network module
 - [ ] Implement supervisor_node
     - [ ] Make the information panel better make it update with the correct information
     - [ ] Implement every service and topic
     - [ ] Use blit for matplotlib
 - [ ] Implement agent_node
-    - [ ] Create config file for setting the frequency
     - [ ] Implement every service and topic
 - [ ] Implement trainer_node
     - [ ] Implement every service and topic
@@ -46,6 +46,7 @@ The todo list is written to this file.
         - [x] agent_output should be used to verify valid timesteps when using automatic control mode, demonstration doesn't need any validation because the user_output doesn't necessarily come at the same frequency as the controller
 - [ ] Implement agent_node
     - [x] Setup base-line ros communication topics and services
+    - [x] Create config file for setting the frequency
 - [ ] Implement trainer_node
     - [x] Setup base-line ros communication topics and services
 - [ ] Other nodes
