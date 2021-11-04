@@ -499,7 +499,7 @@ class EpisodeData:
         else:
             return len(self.data['observation']['image'])
     
-    def get_data(self, structure = None):
+    def get_data(self, structure = None, index = None):
         if structure == None:
             structure = self.structure
         data = self.restructure(structure, inplace=False)

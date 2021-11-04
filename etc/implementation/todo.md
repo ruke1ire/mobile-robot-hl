@@ -8,6 +8,7 @@ The todo list is written to this file.
 - [ ] Implement neural network module
 - [ ] Implement supervisor_node
     - [ ] Make the information panel better make it update with the correct information
+    - [ ] Make so that the episdoe data structure is always dict(list)
     - [ ] Implement every service and topic
     - [ ] Use blit for matplotlib
 - [ ] Implement agent_node

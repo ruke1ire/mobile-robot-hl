@@ -240,7 +240,6 @@ class SupervisorGUI():
                 image = image.resize((480,360))
                 self.image_current = ImageTk.PhotoImage(image = image)
                 self.image_current_label.configure(image=self.image_current)
-            time.sleep(0.2)
     
     def update_current_action_plot_trigger(self):
         while True:
@@ -339,10 +338,6 @@ class SupervisorGUI():
             print("[INFO] No demonstration selected")
             return
         if(self.state==SupervisorState.TASK_PAUSED or self.state == SupervisorState.STANDBY or self.state == SupervisorState.TASK_TAKE_OVER):
-            if(self.state == SupervisorState.STANDBY):
-                self.ros_node.episode = self.ros_node.demo_handler.get(self.selected_demo.split('.')[0],self.selected_demo.split('.')[1])
-                self.set_episode(self.ros_node.episode)
-            self.state = SupervisorState.TASK_RUNNING
             self.automatic_take_over_button.configure(text="take over")
             self.automatic_start_button.configure(text="pause")
             self.automatic_take_over_button.state(['!disabled'])
@@ -350,22 +345,22 @@ class SupervisorGUI():
             self.automatic_save_button.state(['!disabled'])
             self.demo_start_button.state(['disabled'])
             self.demo_save_button.state(['disabled'])
+            Thread(target=lambda: self.agent_start_asynchronous()).start()
             self.ros_node.call_service('agent/select_demonstration', self.selected_demo)
             self.ros_node.call_service('agent/start')
             print("[INFO] Automatic control started")
         elif(self.state == SupervisorState.TASK_RUNNING):
             self.state = SupervisorState.TASK_PAUSED
             self.automatic_start_button.configure(text="start")
-            try:
-                self.ros_node.call_service('agent/pause')
-            except:
-                pass
+            self.ros_node.call_service('agent/pause')
             print("[INFO] Automatic control paused")
 
-        try:
-            status = self.ros_node.update_state(self.state)
-        except:
-            pass
+        status = self.ros_node.update_state(self.state)
+    
+    def agent_start_asynchronous(self):
+            if(self.state == SupervisorState.STANDBY):
+                self.set_episode(self.ros_node.demo_handler.get(self.selected_demo.split('.')[0],self.selected_demo.split('.')[1]))
+            self.state = SupervisorState.TASK_RUNNING
 
     def agent_stop_button_trigger(self):
         self.state = SupervisorState.STANDBY
@@ -408,8 +403,11 @@ class SupervisorGUI():
         self.state = SupervisorState.TASK_PAUSED
         self.automatic_start_button.configure(text="start")
         self.automatic_take_over_button.configure(text="take over")
-        print(f"[INFO] Saved task episode to {self.selected_demo}")
         self.ros_node.update_state(self.state)
+        print(f"[INFO] Saved task episode to {self.selected_demo}")
+        Thread(target=lambda: self.agent_save_asynchronous()).start()
+    
+    def agent_save_asynchronous(self):
         selected_demo_split = self.selected_demo.split('.')
         demo_name = selected_demo_split[0]
         demo_id = selected_demo_split[1]
@@ -418,14 +416,14 @@ class SupervisorGUI():
     
     def demo_start_button_trigger(self):
         if(self.state == SupervisorState.STANDBY or self.state == SupervisorState.DEMO_PAUSED):
-            if(self.state == SupervisorState.STANDBY):
-                self.ros_node.reset_episode()
-                self.set_episode(self.ros_node.episode)
-            self.state = SupervisorState.DEMO_RECORDING
             self.demo_start_button.configure(text="pause")
             self.demo_stop_button.state(['!disabled'])
             self.demo_save_button.state(['!disabled'])
             self.automatic_start_button.state(['disabled'])
+            if(self.state == SupervisorState.STANDBY):
+                self.ros_node.reset_episode()
+                self.set_episode(self.ros_node.episode)
+            self.state = SupervisorState.DEMO_RECORDING
             print("[INFO] Demonstration recording started")
         elif(self.state == SupervisorState.DEMO_RECORDING):
             self.state = SupervisorState.DEMO_PAUSED
@@ -450,19 +448,19 @@ class SupervisorGUI():
         print("[INFO] Demonstration recording stopped")
 
     def demo_save_button_trigger(self):
-        demo_name = self.demo_name_entry.get()
         self.state = SupervisorState.DEMO_PAUSED
         self.demo_start_button.configure(text="start")
-        try:
-            self.ros_node.update_state(self.state)
-            if demo_name == "":
-                print("[INFO] Demonstration name not specified")
-            else:
-                self.ros_node.save_demo(demo_name)
-                self.update_available_demo_name(self.ros_node.demo_handler.get_names())
-                print(f"[INFO] Demonstration saved as {demo_name}")
-        except:
-            pass
+        self.ros_node.update_state(self.state)
+        Thread(target= lambda: self.demo_save_asynchronous()).start()
+    
+    def demo_save_asynchronous(self):
+        demo_name = self.demo_name_entry.get()
+        if demo_name == "":
+            print("[INFO] Demonstration name not specified")
+        else:
+            self.ros_node.save_demo(demo_name)
+            self.update_available_demo_name(self.ros_node.demo_handler.get_names())
+            print(f"[INFO] Demonstration saved as {demo_name}")
 
     def update_available_demo_name(self, name_array):
         self.saved_demo_name_list.delete(0, tkinter.END)
@@ -545,7 +543,6 @@ class SupervisorGUI():
         if(self.selection == InformationType.DEMO):
             demo_name = self.saved_demo_name_list.get(tkinter.ANCHOR)
             demo_id = self.saved_demo_id_list.get(tkinter.ANCHOR)
-            self.ros_node.get_logger().info(f"|{demo_name}|{demo_id}|")
             if(demo_id == '' or demo_id == None):
                 return
             try:
@@ -556,7 +553,6 @@ class SupervisorGUI():
         elif(self.selection == InformationType.TASK_EPISODE):
             demo_name = self.saved_task_episode_name_list.get(tkinter.ANCHOR)
             task_id = self.saved_demo_id_list.get(tkinter.ANCHOR)
-            self.ros_node.get_logger().info(f"|{demo_name}|{task_id}|")
             if(task_id == '' or task_id == None):
                 return
             try:
@@ -575,15 +571,16 @@ class SupervisorGUI():
         if episode.structure == DataStructure.DICT_LIST:
             self.episode = EpisodeData(episode.get_data(DataStructure.LIST_DICT), structure=DataStructure.LIST_DICT)
             self.ros_node.episode = self.episode
-            Thread(target=lambda: self.slider_trigger(self.slider_value)).start()
-            #self.slider_trigger(self.slider_value)
+            self.slider_trigger(self.slider_value)
         else:
             self.episode = episode
             self.ros_node.episode = self.episode
-            Thread(target=lambda: self.slider_trigger(self.slider_value)).start()
-            #self.slider_trigger(self.slider_value)
+            self.slider_trigger(self.slider_value)
 
     def update_episode_image(self, episode_index):
+        if(episode_index >= self.episode.get_episode_length()):
+            return
+
         image = self.episode.data[episode_index]['observation']['image'].resize((480,360))
         self.image_episode = ImageTk.PhotoImage(image = image)
         self.image_episode_label.configure(image=self.image_episode)
@@ -597,7 +594,7 @@ class SupervisorGUI():
             current_selection = int((self.slider_value/(1/no_of_divs)))
             if(current_selection == no_of_divs):
                 current_selection -= 1
-            self.update_episode_image(current_selection)
+            Thread(target=lambda: self.update_episode_image(current_selection)).start()
     
 class SupervisorState(Enum):
     STANDBY = 0
