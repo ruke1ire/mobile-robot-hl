@@ -134,13 +134,15 @@ The trainer node trains the neural networks.
 - delete: Delete neural networks
 - pre-train: Pre-train the current actor model 
 
-## Program Information Structure
+## Episode Data Structure
+
+The following section discusses the data structures that will be used to store information about the episode.
 
 ### dict(each_variable=list(variable))
 
 - Eg: {'linear':[1,2,3,4,5], 'angular':[1,2,3,4,5]}
 - Efficient for plotting, mini-batch model inference
-- This structure will be used for the following:
+- This structure is good for:
     - plotting across time
     - conditioning model
     - storing information
@@ -149,10 +151,14 @@ The trainer node trains the neural networks.
 
 - Eg: [{'linear':1, 'angular':1}, {'linear':2, 'angular':2}]
 - Efficient for appending live information, single-data model inference
-- This structure will be used for the following:
+- This structure is good for:
     - plotting live information
     - live model inference
     - temporary data storange for recording demos/tasks
+
+This program will primarily use the dict(list) data structure. But in order to make it easier to work with live inference/plotting, helper functions will be made to:
+- 1. Get data -> returns data dict(each variable) format
+- 2. Append data -> allows easily appending information for storing while recording demos/tasks
 
 ## Saved Files
 

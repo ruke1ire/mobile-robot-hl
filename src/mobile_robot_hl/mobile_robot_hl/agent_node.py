@@ -19,6 +19,7 @@ import time
 import ros2_numpy as rnp
 
 from .utils import *
+from .model.model import *
 
 class AgentNode(Node):
 
