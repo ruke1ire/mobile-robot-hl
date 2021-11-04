@@ -4,8 +4,8 @@ The todo list is written to this file.
 
 ## In Progress
 
-- [ ] How can i add the information about the time between consecutive dt? or should i not because it uses a convolution?
 - [ ] Implement neural network module
+    - The dense blocks should not use the constant padding because sometimes we do not want any padding (the const padding should only be used on the very first frame)
 - [ ] Implement supervisor_node
     - [ ] Make the information panel better make it update with the correct information
     - [ ] Make so that the episdoe data structure is always dict(list)
