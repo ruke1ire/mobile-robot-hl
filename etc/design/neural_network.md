@@ -45,4 +45,5 @@ Output of a whole batch is computed in parallel using convolution neural network
 - **Input**
 	- Batch of frames
 - **Output**
-- Output of every frame
+	- Output of every frame
+
