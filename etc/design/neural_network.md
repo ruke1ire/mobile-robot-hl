@@ -28,27 +28,21 @@ The actor-critic reinforcement learning methodology will be utilized.
 
 ## Modes of operation
 
-## Live inference
+### Live inference
 
 Latent vectors of each frame is computed from the previous frame. Therefore the neural network has to perform inference on the current frame. This means that a convolution mechanism turns into a simple MLP mechanism.
 
-### Input
+- **Input** 
+	- Pre-computed latent vectors of every layer and every previous frame
+	- Current frame
+- **Output**
+	- Output of the current frame
 
-- Pre-computed latent vectors of every layer and every previous frame
-- Current frame
-
-### Output
-
-- Output of the current frame
-
-## Batch training
+### Batch training
 
 Output of a whole batch is computed in parallel using convolution neural network module.
 
-### Input
-
-- Batch of frames
-
-### Output
-
+- **Input**
+	- Batch of frames
+- **Output**
 - Output of every frame
