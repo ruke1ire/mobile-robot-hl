@@ -48,7 +48,7 @@ class AgentNode(Node):
         img_tmp.fill(self.fill_int)
         self.image_raw_msg = rnp.msgify(Image,img_tmp, encoding='rgb8')
         self.state = AgentState.STANDBY
-        self.episode = EpisodeData(data=None, structure=DataStructure.LIST_DICT)
+        self.episode = EpisodeData(data=None)
         self.wait = False
 
         self.get_logger().info("Initializing Node")
@@ -65,9 +65,9 @@ class AgentNode(Node):
         self.max_linear_velocity = self.get_parameter('max_linear_velocity').get_parameter_value().double_value
         self.max_angular_velocity = self.get_parameter('max_angular_velocity').get_parameter_value().double_value
 
-        self.get_logger().info(f"Parameter 'frequency' = {self.frequency}")
-        self.get_logger().info(f"Parameter 'max_linear_velocity' = {self.max_linear_velocity}")
-        self.get_logger().info(f"Parameter 'max_angular_velocity' = {self.max_angular_velocity}")
+        self.get_logger().info(f"Parameter <frequency> = {self.frequency}")
+        self.get_logger().info(f"Parameter <max_linear_velocity> = {self.max_linear_velocity}")
+        self.get_logger().info(f"Parameter <max_angular_velocity> = {self.max_angular_velocity}")
 
         service_prefix = 'agent/'
 
@@ -85,10 +85,9 @@ class AgentNode(Node):
         self.termination_flag_subscriber = self.create_subscription(Bool, 'termination_flag', self.termination_flag_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
         self.action_controller_subscriber = self.create_subscription(String, 'action_controller', self.action_controller_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
 
-        self.start_service = self.create_service(Trigger, service_prefix+'start', self.start_service_callback)
+        self.start_service = self.create_service(StringTrigger, service_prefix+'start', self.start_service_callback)
         self.pause_service = self.create_service(Trigger, service_prefix+'pause', self.pause_service_callback)
         self.stop_service = self.create_service(Trigger, service_prefix+'stop', self.stop_service_callback)
-        self.select_demonstration_service = self.create_service(StringTrigger, service_prefix+'select_demonstration', self.select_demonstration_service_callback)
         self.select_model_service = self.create_service(StringTrigger, service_prefix+'select_model', self.select_model_service_callback)
         self.select_mode_service = self.create_service(StringTrigger, service_prefix+'select_mode', self.select_mode_service_callback)
 
@@ -114,15 +113,24 @@ class AgentNode(Node):
         self.received_action_controller = True
     
     def start_service_callback(self, request, response):
-        if(self.episode.data_empty == True):
-            response.success = False
-        else:
-            if(self.state == AgentState.STANDBY):
-                self.wait = True
-                time.sleep(2.0)
-                self.wait = False
-            self.state = AgentState.RUNNING
-            response.success = True
+        if(self.state == AgentState.STANDBY):
+            demo_split = request.command.split('.')
+            demo_name = demo_split[0]
+            demo_id = demo_split[1]
+            self.episode = self.demo_handler.get(demo_name, demo_id)
+            self.received_desired_vel = True
+            self.received_termination_flag = True
+            self.received_action_controller = True
+
+            self.get_logger().info(f"Selected demonstration: {request.command}")
+            self.get_logger().info(f"Episode Length: {self.episode.get_episode_length()}")
+
+            self.wait = True
+            time.sleep(3.0)
+            self.wait = False
+        self.get_logger().info(f"Starting Task")
+        response.success = True
+        self.state = AgentState.RUNNING
         return response
 
     def pause_service_callback(self, request, response):
@@ -135,24 +143,7 @@ class AgentNode(Node):
 
     def stop_service_callback(self, request, response):
         self.state = AgentState.STANDBY
-        self.episode = EpisodeData(data=None, structure=DataStructure.LIST_DICT)
-        response.success = True
-        return response
-
-    def select_demonstration_service_callback(self, request, response):
-        if(self.state == AgentState.STANDBY):
-            demo_split = request.command.split('.')
-            demo_name = demo_split[0]
-            demo_id = demo_split[1]
-            episode = self.demo_handler.get(demo_name, demo_id)
-            episode_data = EpisodeData(data=episode.data, structure=DataStructure.DICT_LIST)
-            episode_data.restructure(DataStructure.LIST_DICT)
-            self.episode = episode_data
-            self.received_desired_vel = True
-            self.received_termination_flag = True
-            self.received_action_controller = True
-
-            self.get_logger().info(f"Selected demonstration: {request.command}")
+        self.episode = EpisodeData(data=None)
         response.success = True
         return response
 

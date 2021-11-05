@@ -7,8 +7,6 @@ The todo list is written to this file.
 - [ ] Implement neural network module
     - The dense blocks should not use the constant padding because sometimes we do not want any padding (the const padding should only be used on the very first frame)
 - [ ] Implement supervisor_node
-    - [ ] Make the information panel better make it update with the correct information
-    - [ ] Make so that the episdoe data structure is always dict(list)
     - [ ] Implement every service and topic
     - [ ] Use blit for matplotlib
 - [ ] Implement agent_node
@@ -45,6 +43,9 @@ The todo list is written to this file.
     - [x] Create list box for task episodes
     - [x] Make sure agent information and supervisor information is in sync
         - [x] agent_output should be used to verify valid timesteps when using automatic control mode, demonstration doesn't need any validation because the user_output doesn't necessarily come at the same frequency as the controller
+    - [x] Make the information panel better make it update with the correct information
+    - [x] Make so that the episdoe data structure is always dict(list)
+    - [x] Removed select_demo service in favour of only have start service with demo variable
 - [ ] Implement agent_node
     - [x] Setup base-line ros communication topics and services
     - [x] Create config file for setting the frequency

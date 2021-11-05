@@ -49,7 +49,7 @@ class SupervisorNode(Node):
         self.agent_input = None
         self.agent_output = {'velocity':{'linear':0.0, 'angular': 0.0}, 'termination_flag':False}
         self.user_output =  {'velocity':{'linear':0.0, 'angular': 0.0}, 'termination_flag':False}
-        self.episode = EpisodeData(data=None, structure=DataStructure.LIST_DICT)
+        self.episode = EpisodeData(data=None)
         self.received_agent_output = False
         self.agent_in_callback_lock = False
 
@@ -66,8 +66,8 @@ class SupervisorNode(Node):
             ])
         self.max_linear_velocity = self.get_parameter('max_linear_velocity').get_parameter_value().double_value
         self.max_angular_velocity = self.get_parameter('max_angular_velocity').get_parameter_value().double_value
-        self.get_logger().info(f"Parameter 'max_linear_velocity' = {self.max_linear_velocity}")
-        self.get_logger().info(f"Parameter 'max_angular_velocity' = {self.max_angular_velocity}")
+        self.get_logger().info(f"Parameter <max_linear_velocity> = {self.max_linear_velocity}")
+        self.get_logger().info(f"Parameter <max_angular_velocity> = {self.max_angular_velocity}")
 
         reliable_qos = QoSProfile(history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST, 
                                         depth=10, 
@@ -90,10 +90,9 @@ class SupervisorNode(Node):
         trainer_prefix='trainer/'
 
         self.services_ = dict()
-        self.services_[agent_prefix+'start'] = self.create_client(Trigger, agent_prefix+'start', callback_group=ReentrantCallbackGroup())
+        self.services_[agent_prefix+'start'] = self.create_client(StringTrigger, agent_prefix+'start', callback_group=ReentrantCallbackGroup())
         self.services_[agent_prefix+'pause'] = self.create_client(Trigger, agent_prefix+'pause', callback_group=ReentrantCallbackGroup())
         self.services_[agent_prefix+'stop'] = self.create_client(Trigger, agent_prefix+'stop', callback_group=ReentrantCallbackGroup())
-        self.services_[agent_prefix+'select_demonstration'] = self.create_client(StringTrigger, agent_prefix+'select_demonstration', callback_group=ReentrantCallbackGroup())
         self.services_[agent_prefix+'select_model'] = self.create_client(StringTrigger, agent_prefix+'select_model', callback_group=ReentrantCallbackGroup())
         self.services_[agent_prefix+'select_mode'] = self.create_client(StringTrigger, agent_prefix+'select_mode', callback_group=ReentrantCallbackGroup())
 
@@ -147,7 +146,9 @@ class SupervisorNode(Node):
             self.action_controller_publisher.publish(controller_msg)
             self.get_logger().info("Published desired_velocity, termination_flag, and action_controller")
 
-            if(self.episode.get_data()[-1]['action']['controller'] in [ControllerType.NONE,None]):
+            #self.get_logger().info(str(self.episode.get_data()))
+
+            if(self.episode.get_data(index=-1)['action']['controller'] in [ControllerType.NONE,None]):
                 length = self.episode.get_episode_length()
                 self.episode.set_data(
                     index = length-1,
@@ -195,7 +196,7 @@ class SupervisorNode(Node):
             self.action_controller_publisher.publish(controller_msg)
             self.get_logger().info("Published desired_velocity, termination_flag, and action_controller")
 
-            if(self.episode.get_data()[-1]['action']['controller'] in [ControllerType.NONE,None]):
+            if(self.episode.get_data(index=-1)['action']['controller'] in [ControllerType.NONE,None]):
                 length = self.episode.get_episode_length()
                 self.episode.set_data(
                     index = length-1,
@@ -238,7 +239,7 @@ class SupervisorNode(Node):
             self.action_controller_publisher.publish(controller_msg)
             self.get_logger().info("Published desired_velocity, termination_flag, and action_controller")
 
-            if(self.episode.get_data()[-1]['action']['controller'] in [ControllerType.NONE,None]):
+            if(self.episode.get_data(index = -1)['action']['controller'] in [ControllerType.NONE,None]):
                 length = self.episode.get_episode_length()
                 self.episode.set_data(
                     index = length-1,
@@ -268,14 +269,14 @@ class SupervisorNode(Node):
             self.get_logger().info(f'Current Episode Length: {self.episode.get_episode_length()}')
         else:
             self.gui.update_info(controller=ControllerType.USER)
-            if(self.episode.get_data()[-1]['action']['controller'] in [ControllerType.NONE,None]):
+            if(self.episode.get_data(index = -1)['action']['controller'] in [ControllerType.NONE,None]):
                 length = self.episode.get_episode_length()
                 self.episode.set_data(
                     index = length-1,
                     image=image,
-                    agent_linear_vel=self.agent_output['velocity']['linear'],
-                    agent_angular_vel=self.agent_output['velocity']['angular'],
-                    agent_termination_flag=self.agent_output['termination_flag'],
+                    agent_linear_vel=None,
+                    agent_angular_vel=None,
+                    agent_termination_flag=None,
                     user_linear_vel=self.user_output['velocity']['linear'],
                     user_angular_vel=self.user_output['velocity']['angular'],
                     user_termination_flag=self.user_output['termination_flag'],
@@ -332,7 +333,9 @@ class SupervisorNode(Node):
         self.state = state
 
     def save_demo(self, name):
+        self.get_logger().info("Saving demonstration")
         self.demo_handler.save(self.episode, name)
+        self.get_logger().info("Saved demonstration")
     
     def save_task_episode(self, demo_name, demo_id):
         self.task_handler.save(self.episode, demo_name, demo_id)
@@ -346,8 +349,10 @@ class SupervisorNode(Node):
             joy_state = self.joy_handler.get_state()
 
             self.user_output =  {'velocity':{'linear':joy_state[InterfaceType.LINEAR_VELOCITY.name], 'angular': joy_state[InterfaceType.ANGULAR_VELOCITY.name]}, 'termination_flag':joy_state[InterfaceType.TERMINATION_FLAG.name]}
-            self.episode.data[-1]['action']['user']['velocity'] = self.user_output['velocity']
-            self.episode.data[-1]['action']['user']['termination_flag'] = self.user_output['termination_flag']
+
+            self.episode.set_key_value(key = 'action.user.velocity.linear', value = self.user_output['velocity']['linear'], index = -1)
+            self.episode.set_key_value(key = 'action.user.velocity.angular', value = self.user_output['velocity']['angular'], index = -1)
+            self.episode.set_key_value(key = 'action.user.termination_flag', value = self.user_output['termination_flag'], index = -1)
 
             if(self.state == SupervisorState.STANDBY):
                 velocity_msg = Twist(linear=Vector3(x=self.user_output['velocity']['linear'],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=self.user_output['velocity']['angular']))

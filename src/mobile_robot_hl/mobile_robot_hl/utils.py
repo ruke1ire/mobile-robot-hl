@@ -4,6 +4,7 @@ import yaml
 import shutil
 from PIL import Image as PImage
 from enum import Enum
+import copy
 
 class ControllerType(Enum):
     NONE = 0
@@ -14,10 +15,6 @@ class InformationType(Enum):
     NONE = 0
     DEMO = 1
     TASK_EPISODE = 2
-
-class DataStructure(Enum):
-    LIST_DICT = 0
-    DICT_LIST = 1
 
 class DemoHandler():
     DEMO_NAME_INFO_FILE = "info.yaml"
@@ -45,7 +42,7 @@ class DemoHandler():
         info['action']['controller'] = task_controller
 
 
-        episode_data = EpisodeData(data=info, structure=DataStructure.DICT_LIST)
+        episode_data = EpisodeData(data=info)
         return episode_data
     
     def get_names(self):
@@ -68,7 +65,12 @@ class DemoHandler():
         name: name of demonstration
         id_: id of demonstration
         '''
-        demo = EpisodeData(data=demo.data, structure=demo.structure)
+
+        demo_copy = EpisodeData(data=demo.data)
+
+        if(demo_copy.get_data(index = -1)['action']['controller'] in [None, ControllerType.NONE]):
+            demo_copy.remove_data(index=-1, leftwards=False)
+
         if not os.path.exists(f"{self.path}/{name}"):
             os.mkdir(f"{self.path}/{name}")
 
@@ -85,12 +87,9 @@ class DemoHandler():
             shutil.rmtree(f"{self.path}/{name}/{next_id}", ignore_errors=True)
         os.mkdir(f"{self.path}/{name}/{next_id}")
 
-        if(demo.structure == DataStructure.LIST_DICT):
-            demo.restructure(DataStructure.DICT_LIST)
+        dict_data = demo_copy.data.copy()
 
-        dict_data = demo.data.copy()
-
-        image_ids = list(range(demo.get_episode_length()))
+        image_ids = list(range(demo_copy.get_episode_length()))
         for i in image_ids:
             img = dict_data['observation']['image'][i]
             img.save(f"{self.path}/{name}/{next_id}/{i}.png")
@@ -134,7 +133,7 @@ class TaskHandler():
         del info['observation']['image_id']
         del info['demonstration']
 
-        task_episode_data = EpisodeData(data=info, structure=DataStructure.DICT_LIST)
+        task_episode_data = EpisodeData(data=info)
         demo_episode_data.append_episode_data(task_episode_data)
 
         return demo_episode_data
@@ -179,10 +178,10 @@ class TaskHandler():
             shutil.rmtree(f"{self.path}/{demo_name}/{next_id}", ignore_errors=True)
         os.mkdir(f"{self.path}/{demo_name}/{next_id}")
 
-        episode_copy = EpisodeData(episode.data, structure=episode.structure)
+        episode_copy = EpisodeData(episode.data)
 
-        if(episode_copy.structure == DataStructure.LIST_DICT):
-            episode_copy.restructure(DataStructure.DICT_LIST)
+        if(episode_copy.get_data(index = -1)['action']['controller'] in [None, ControllerType.NONE]):
+            episode_copy.remove_data(index = -1, leftwards=False)
         
         task_index = episode_copy.data['action']['controller'].index(ControllerType.AGENT)
 
@@ -203,194 +202,47 @@ class TaskHandler():
         with open(f'{self.path}/{demo_name}/{next_id}/{TaskHandler.TASK_ID_INFO_FILE}', 'w') as outfile:
             yaml.dump(dict_data, outfile)
     
-def restructure_list2dict(list_data):
-    '''
-    list = [dict(observation, action)]
-    dict = dict(observation=list(observation), action=list(action))
-
-    observation = dict(image)
-    action = dict(user, agent, controller)
-    user, agent = dict(velocity, termination_flag)
-    *_velocity = dict(linear, angular)
-    '''
-    
-    agent_linear_vel = []
-    agent_angular_vel = []
-    agent_termination_flag = []
-    user_linear_vel = []
-    user_angular_vel = []
-    user_termination_flag = []
-    controller = []
-    image = []
-
-    for d in list_data:
-        agent_linear_vel.append(d['action']['agent']['velocity']['linear'])
-        agent_angular_vel.append(d['action']['agent']['velocity']['angular'])
-        agent_termination_flag.append(d['action']['agent']['termination_flag'])
-        user_linear_vel.append(d['action']['user']['velocity']['linear'])
-        user_angular_vel.append(d['action']['user']['velocity']['angular'])
-        user_termination_flag.append(d['action']['user']['termination_flag'])
-        controller.append(d['action']['controller'])
-        image.append(d['observation']['image'])
-    return dict(
-        observation=dict(image=image), 
-        action=dict(
-            agent=dict(
-                velocity=dict(
-                    linear=agent_linear_vel,
-                    angular=agent_angular_vel
-                ),
-                termination_flag=agent_termination_flag
-            ),
-            user=dict(
-                velocity=dict(
-                    linear=user_linear_vel,
-                    angular=user_angular_vel
-                ),
-                termination_flag=user_termination_flag
-            ),
-            controller = controller
-        ))
-
-def restructure_dict2list(dict_data):
-    '''
-    dict = dict(observation=list(observation), action=list(action))
-    list = [dict(observation, action)]
-
-    observation = dict(image)
-    action = dict(user, agent, controller)
-    user, agent = dict(velocity, termination_flag)
-    *_velocity = dict(linear, angular)
-    '''
-    agent_linear_vel = dict_data['action']['agent']['velocity']['linear']
-    agent_angular_vel = dict_data['action']['agent']['velocity']['angular']
-    agent_termination_flag = dict_data['action']['agent']['termination_flag']
-    user_linear_vel = dict_data['action']['user']['velocity']['linear']
-    user_angular_vel = dict_data['action']['user']['velocity']['angular']
-    user_termination_flag = dict_data['action']['user']['termination_flag']
-    controller = dict_data['action']['controller']
-    image = dict_data['observation']['image']
-    combined_data = zip(
-        image,
-        agent_linear_vel,
-        agent_angular_vel,
-        agent_termination_flag,
-        user_linear_vel,
-        user_angular_vel,
-        user_termination_flag,
-        controller,
-    )
-    return [dict(
-        observation=dict(image=img),
-        action=dict(
-            agent=dict(
-                velocity=dict(
-                    linear=agent_lin,
-                    angular=agent_ang
-                ),
-                termination_flag = agent_term
-            ),
-            user=dict(
-                velocity=dict(
-                    linear=user_lin,
-                    angular=user_ang
-                ),
-                termination_flag = user_term
-            ),
-            controller=ctrl
-        )) for (img, agent_lin, agent_ang, agent_term, user_lin, user_ang, user_term, ctrl) in combined_data]
-
 class EpisodeData:
-    def __init__(self, data, structure):
-        self.structure = structure
+    def __init__(self, data):
         if data == None:
             self.init_empty_structure()
         else:
-            self.data = data.copy()
+            self.data = copy.deepcopy(data)
             self.data_empty = False
 
     def init_empty_structure(self):
-        if self.structure == DataStructure.LIST_DICT:
-            self.data = [dict(
-                            observation=dict(image=None),
-                            action=dict(
-                                agent=dict(
-                                    velocity=dict(
-                                        linear=None,
-                                        angular=None
-                                    ),
-                                    termination_flag = None
+        self.data = dict(
+                        observation=dict(image=[None]),
+                        action=dict(
+                            agent=dict(
+                                velocity=dict(
+                                    linear=[None],
+                                    angular=[None]
                                 ),
-                                user=dict(
-                                    velocity=dict(
-                                        linear=None,
-                                        angular=None
-                                    ),
-                                    termination_flag = None
+                                termination_flag = [None]
+                            ),
+                            user=dict(
+                                velocity=dict(
+                                    linear=[None],
+                                    angular=[None]
                                 ),
-                                controller=None))]
-        else:
-            self.data = dict(
-                            observation=dict(image=[]),
-                            action=dict(
-                                agent=dict(
-                                    velocity=dict(
-                                        linear=[],
-                                        angular=[]
-                                    ),
-                                    termination_flag = []
-                                ),
-                                user=dict(
-                                    velocity=dict(
-                                        linear=[],
-                                        angular=[]
-                                    ),
-                                    termination_flag = []
-                                ),
-                                controller=[]))
+                                termination_flag = [None]
+                            ),
+                            controller=[None]))
         self.data_empty = True
     
-    def restructure(self, structure, inplace = True):
-        if(self.structure != structure):
-            if(self.structure == DataStructure.DICT_LIST):
-                data = restructure_dict2list(self.data)
-                structure = DataStructure.LIST_DICT
-            elif(self.structure == DataStructure.LIST_DICT):
-                data = restructure_list2dict(self.data)
-                structure = DataStructure.DICT_LIST
-            else:
-                raise Exception("Invalid data structure")
-        else:
-            data = self.data
-            structure = self.structure
-
-        if inplace == True:
-            self.data = data
-            self.structure = structure
+    def append_episode_data(self, episode):
+        if(episode.data_empty == True):
             return
         else:
-            return data
-
-    def append_episode_data(self, episode_data):
-        if(episode_data.data_empty == True):
-            return
-        else:
-            episode_data_data = episode_data.data
-            if(self.structure == DataStructure.LIST_DICT):
-                if(episode_data.structure != self.structure):
-                    episode_data_data = restructure_dict2list(episode_data_data)
-                self.data += episode_data_data
-            else:
-                if(episode_data.structure != self.structure):
-                    episode_data_data = restructure_list2dict(episode_data_data)
-                self.data['observation']['image'] += episode_data_data['observation']['image']
-                self.data['action']['agent']['velocity']['linear'] += episode_data_data['action']['agent']['velocity']['linear']
-                self.data['action']['agent']['velocity']['angular'] +=  episode_data_data['action']['agent']['velocity']['angular']
-                self.data['action']['agent']['termination_flag'] +=  episode_data_data['action']['agent']['termination_flag']
-                self.data['action']['user']['velocity']['linear'] +=  episode_data_data['action']['user']['velocity']['linear']
-                self.data['action']['user']['velocity']['angular'] +=  episode_data_data['action']['user']['velocity']['angular']
-                self.data['action']['user']['termination_flag'] +=  episode_data_data['action']['user']['termination_flag']
-                self.data['action']['controller'] +=  episode_data_data['action']['controller']
+            self.data['observation']['image'] += episode.data['observation']['image']
+            self.data['action']['agent']['velocity']['linear'] += episode.data['action']['agent']['velocity']['linear']
+            self.data['action']['agent']['velocity']['angular'] += episode.data['action']['agent']['velocity']['angular']
+            self.data['action']['agent']['termination_flag'] += episode.data['action']['agent']['termination_flag']
+            self.data['action']['user']['velocity']['linear'] += episode.data['action']['user']['velocity']['linear']
+            self.data['action']['user']['velocity']['angular'] += episode.data['action']['user']['velocity']['angular']
+            self.data['action']['user']['termination_flag'] += episode.data['action']['user']['termination_flag']
+            self.data['action']['controller'] += episode.data['action']['controller']
             self.data_empty = False
 
     def append_data(
@@ -400,55 +252,41 @@ class EpisodeData:
         user_linear_vel, user_angular_vel, user_termination_flag,
         controller):
         if(self.data_empty == True):
-            if(self.structure==DataStructure.DICT_LIST):
-                self.data['observation']['image'] = [image]
-                self.data['action']['agent']['velocity']['linear'] = [agent_linear_vel]
-                self.data['action']['agent']['velocity']['angular'] = [agent_angular_vel]
-                self.data['action']['agent']['termination_flag'] = [agent_termination_flag]
-                self.data['action']['user']['velocity']['linear'] = [user_linear_vel]
-                self.data['action']['user']['velocity']['angular'] = [user_angular_vel]
-                self.data['action']['user']['termination_flag'] = [user_termination_flag]
-                self.data['action']['controller'] = [controller]
-            else:
-                self.data[0]['observation']['image'] = image
-                self.data[0]['action']['agent']['velocity']['linear'] = agent_linear_vel
-                self.data[0]['action']['agent']['velocity']['angular'] = agent_angular_vel
-                self.data[0]['action']['agent']['termination_flag'] = agent_termination_flag
-                self.data[0]['action']['user']['velocity']['linear'] = user_linear_vel
-                self.data[0]['action']['user']['velocity']['angular'] = user_angular_vel
-                self.data[0]['action']['user']['termination_flag'] = user_termination_flag
-                self.data[0]['action']['controller'] = controller
+            self.data['observation']['image'] = [image]
+            self.data['action']['agent']['velocity']['linear'] = [agent_linear_vel]
+            self.data['action']['agent']['velocity']['angular'] = [agent_angular_vel]
+            self.data['action']['agent']['termination_flag'] = [agent_termination_flag]
+            self.data['action']['user']['velocity']['linear'] = [user_linear_vel]
+            self.data['action']['user']['velocity']['angular'] = [user_angular_vel]
+            self.data['action']['user']['termination_flag'] = [user_termination_flag]
+            self.data['action']['controller'] = [controller]
             self.data_empty = False
         else:
-            if(self.structure==DataStructure.DICT_LIST):
-                self.data['observation']['image'].append(image)
-                self.data['action']['agent']['velocity']['linear'].append(agent_linear_vel)
-                self.data['action']['agent']['velocity']['angular'].append(agent_angular_vel)
-                self.data['action']['agent']['termination_flag'].append(agent_termination_flag)
-                self.data['action']['user']['velocity']['linear'].append(user_linear_vel)
-                self.data['action']['user']['velocity']['angular'].append(user_angular_vel)
-                self.data['action']['user']['termination_flag'].append(user_termination_flag)
-                self.data['action']['controller'].append(controller)
-            else:
-                self.data.append(dict(
-                            observation=dict(image=image),
-                            action=dict(
-                                agent=dict(
-                                    velocity=dict(
-                                        linear=agent_linear_vel,
-                                        angular=agent_angular_vel
-                                    ),
-                                    termination_flag = agent_termination_flag
-                                ),
-                                user=dict(
-                                    velocity=dict(
-                                        linear=user_linear_vel,
-                                        angular=user_angular_vel
-                                    ),
-                                    termination_flag = user_termination_flag
-                                ),
-                                controller=controller)))
-    
+            self.data['observation']['image'].append(image)
+            self.data['action']['agent']['velocity']['linear'].append(agent_linear_vel)
+            self.data['action']['agent']['velocity']['angular'].append(agent_angular_vel)
+            self.data['action']['agent']['termination_flag'].append(agent_termination_flag)
+            self.data['action']['user']['velocity']['linear'].append(user_linear_vel)
+            self.data['action']['user']['velocity']['angular'].append(user_angular_vel)
+            self.data['action']['user']['termination_flag'].append(user_termination_flag)
+            self.data['action']['controller'].append(controller)
+
+    def set_key_value(self, key, value, index = None):
+        '''
+        key = string of keys separated by "."
+        Eg. "action.agent.velocity.linear"
+        '''
+        key_split = key.split('.')
+        dict_string = ''
+        for k in key_split:
+            dict_string += "['"
+            dict_string += k
+            dict_string += "']"
+        if type(index) is not int:
+            exec(f"self.data{dict_string} = {value}")
+        else:
+            exec(f"self.data{dict_string}[{index}] = {value}")
+
     def set_data(
         self, 
         index,
@@ -458,34 +296,14 @@ class EpisodeData:
         controller=ControllerType.NONE):
         if(self.data_empty == False):
             assert index <= self.get_episode_length() - 1
-            if(self.structure == DataStructure.DICT_LIST):
-                self.data['observation']['image'][index] = image
-                self.data['action']['agent']['velocity']['linear'][index] = agent_linear_vel
-                self.data['action']['agent']['velocity']['angular'][index] = agent_angular_vel
-                self.data['action']['agent']['termination_flag'][index] = agent_termination_flag
-                self.data['action']['user']['velocity']['linear'][index] = user_linear_vel
-                self.data['action']['user']['velocity']['angular'][index] = user_angular_vel
-                self.data['action']['user']['termination_flag'][index] = user_termination_flag
-                self.data['action']['controller'][index] = controller
-            else:
-                self.data[index] = dict(
-                            observation=dict(image=image),
-                            action=dict(
-                                agent=dict(
-                                    velocity=dict(
-                                        linear=agent_linear_vel,
-                                        angular=agent_angular_vel
-                                    ),
-                                    termination_flag = agent_termination_flag
-                                ),
-                                user=dict(
-                                    velocity=dict(
-                                        linear=user_linear_vel,
-                                        angular=user_angular_vel
-                                    ),
-                                    termination_flag = user_termination_flag
-                                ),
-                                controller=controller))
+            self.data['observation']['image'][index] = image
+            self.data['action']['agent']['velocity']['linear'][index] = agent_linear_vel
+            self.data['action']['agent']['velocity']['angular'][index] = agent_angular_vel
+            self.data['action']['agent']['termination_flag'][index] = agent_termination_flag
+            self.data['action']['user']['velocity']['linear'][index] = user_linear_vel
+            self.data['action']['user']['velocity']['angular'][index] = user_angular_vel
+            self.data['action']['user']['termination_flag'][index] = user_termination_flag
+            self.data['action']['controller'][index] = controller
         else:
             self.append_data(image, agent_linear_vel, agent_angular_vel, agent_termination_flag,
             user_linear_vel, user_angular_vel, user_termination_flag,
@@ -494,30 +312,67 @@ class EpisodeData:
     def get_episode_length(self):
         if(self.data_empty == True):
             return 0
-        if(self.structure == DataStructure.LIST_DICT):
-            return len(self.data)
         else:
             return len(self.data['observation']['image'])
     
-    def get_data(self, structure = None, index = None):
-        if structure == None:
-            structure = self.structure
-        data = self.restructure(structure, inplace=False)
-        return data
-    
-    def remove_data(self, index, leftwards=True):
-        if self.structure == DataStructure.LIST_DICT:
-            if leftwards == True:
-                self.data = self.data[index+1:]
-            else:
-                self.data = self.data[:index]
+    def get_data(self, index = None):
+        if(type(index) is not int):
+            return self.data
         else:
-            list_strings = get_leaf_string(self.data)
-            for s in list_strings:
-                if leftwards == True:
-                    exec(f"self.data{s} = self.data{s}[{index+1}:]")
-                else:
-                    exec(f"self.data{s} = self.data{s}[:{index}]")
+            if(self.data_empty == False):
+                return dict(
+                    observation = dict(
+                        image = self.data['observation']['image'][index]
+                    ),
+                    action = dict(
+                        controller = self.data['action']['controller'][index],
+                        agent = dict(
+                            velocity = dict(
+                                linear = self.data['action']['agent']['velocity']['linear'][index],
+                                angular = self.data['action']['agent']['velocity']['angular'][index]
+                            ),
+                            termination_flag = self.data['action']['agent']['termination_flag']
+                        ),
+                        user = dict(
+                            velocity = dict(
+                                linear = self.data['action']['user']['velocity']['linear'][index],
+                                angular = self.data['action']['user']['velocity']['angular'][index]
+                            ),
+                            termination_flag = self.data['action']['user']['termination_flag']
+                        ),
+                    )
+                )
+            else:
+                return dict(
+                    observation = dict(
+                        image = None
+                    ),
+                    action = dict(
+                        controller = None,
+                        agent = dict(
+                            velocity = dict(
+                                linear = None,
+                                angular = None
+                            ),
+                            termination_flag = None,
+                        ),
+                        user = dict(
+                            velocity = dict(
+                                linear = None,
+                                angular = None
+                            ),
+                            termination_flag = None
+                        ),
+                    )
+                )
+
+    def remove_data(self, index, leftwards=True):
+        list_strings = get_leaf_string(self.data)
+        for s in list_strings:
+            if leftwards == True:
+                exec(f"self.data{s} = self.data{s}[{index+1}:]")
+            else:
+                exec(f"self.data{s} = self.data{s}[:{index}]")
         
         if self.get_episode_length() == 0:
             self.data_empty = True
