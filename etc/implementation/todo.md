@@ -7,6 +7,8 @@ The todo list is written to this file.
 - [ ] Implement neural network module
     - The dense blocks should not use the constant padding because sometimes we do not want any padding (the const padding should only be used on the very first frame)
 - [ ] Implement supervisor_node
+    - [ ] Can i do multiprocessing instead of multithreading?
+    - [ ] synchronize agent and supervisor because it sometimes isn't depending on when I click call the agent_start command
     - [ ] Implement every service and topic
     - [ ] Use blit for matplotlib
 - [ ] Implement agent_node
