@@ -1,3 +1,0 @@
-agent:
-    ros__parameters:
-        frequency: 0.6

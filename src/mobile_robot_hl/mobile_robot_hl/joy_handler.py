@@ -49,11 +49,6 @@ class JoyHandler:
 				if e.type == pygame.locals.JOYAXISMOTION:
 					self.state[InterfaceType.LINEAR_VELOCITY.name] = -self.joystick.get_axis(4)*self.max_linear_vel
 					self.state[InterfaceType.ANGULAR_VELOCITY.name] = -self.joystick.get_axis(3)*self.max_angular_vel
-#					if(self.state[InterfaceType.LINEAR_VELOCITY.name] > 0):
-#						self.state[InterfaceType.ANGULAR_VELOCITY.name] = -self.joystick.get_axis(3)*self.max_angular_vel
-#					else:
-#						self.state[InterfaceType.ANGULAR_VELOCITY.name] = self.joystick.get_axis(3)*self.max_angular_vel
-
 				elif e.type == pygame.locals.JOYBUTTONDOWN:
 					if e.button in [0,1,2,3]:
 						self.state[InterfaceType.STOP.name] = True

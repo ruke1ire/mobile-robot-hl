@@ -15,7 +15,7 @@ def generate_launch_description():
     config = os.path.join(
         get_package_share_directory('mobile_robot_hl'),
         'config',
-        'agent.yaml'
+        'config.yaml'
         )
     return launch.LaunchDescription([
         launch_ros.actions.Node(

@@ -58,6 +58,11 @@ The supervisor node handles all output/input to/from the supervisor (user).
 - When creating user demonstrations or supervisor take-overs, the frequency of the control output from the supervisor will be limited to the control frequency of the agent node therefore this requires the agent node to be present.
 - Supervisor take-over is similar to a user-demonstration therefore the start/pause buttons of the user demonstration can be used to start/pause the supervisor take-over. To restart the automatic control press the start button in the automatic control section.
 - Defaults to manual control mode where there isn't any frequency limitation for controlling the mobile robot. This mode changes if the start buttons are pressed for automatic control or creating user demonstrations.
+- Information panel should contain the following informations:
+    - Selected demonstration
+    - User action
+    - Agent action
+    - Controller
 - GUI design can be found in [etc/design/supervisor_GUI_design.md](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/design/supervisor_GUI_design.md)
 - Below is the state-flow-diagram 
 

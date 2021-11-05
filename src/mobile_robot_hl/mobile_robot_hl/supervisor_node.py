@@ -44,7 +44,6 @@ class SupervisorNode(Node):
         
         self.demo_handler = DemoHandler(path=demo_path)
         self.task_handler = TaskHandler(path=task_path, demo_handler = self.demo_handler)
-        self.joy_handler = JoyHandler(0.05, 0.125)
 
         self.image_raw = None
         self.agent_input = None
@@ -58,6 +57,17 @@ class SupervisorNode(Node):
 
         
         self.get_logger().info("Initializing Node")
+
+        self.declare_parameters(
+            namespace='',
+            parameters=[
+                ('max_linear_velocity', 0.05),
+                ('max_angular_velocity', 0.125),
+            ])
+        self.max_linear_velocity = self.get_parameter('max_linear_velocity').get_parameter_value().double_value
+        self.max_angular_velocity = self.get_parameter('max_angular_velocity').get_parameter_value().double_value
+        self.get_logger().info(f"Parameter 'max_linear_velocity' = {self.max_linear_velocity}")
+        self.get_logger().info(f"Parameter 'max_angular_velocity' = {self.max_angular_velocity}")
 
         reliable_qos = QoSProfile(history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST, 
                                         depth=10, 
@@ -101,6 +111,8 @@ class SupervisorNode(Node):
 
         self.get_logger().info("Initialized Node")
 
+        self.joy_handler = JoyHandler(self.max_linear_velocity, self.max_angular_velocity)
+
         threading.Thread(target=lambda: self.joy_event_handler_thread()).start()
         threading.Thread(target=lambda: self.joy_action_handler_thread()).start()
 
@@ -110,7 +122,7 @@ class SupervisorNode(Node):
         self.agent_output['velocity'] = {'linear':velocity.linear.x, 'angular': velocity.angular.z}
         self.agent_output['termination_flag'] = termination_flag
         self.received_agent_output = True
-        #self.get_logger().info(f"got agent_output {self.agent_output}")
+        self.gui.update_info(agent_vel = self.agent_output['velocity'], agent_termination=self.agent_output['termination_flag'])
 
     def agent_input_callback(self, img):
         self.get_logger().info("Received agent_input")
@@ -119,6 +131,7 @@ class SupervisorNode(Node):
         image = PImage.fromarray(rnp.numpify(img))
         self.agent_input = image
         if(self.state == SupervisorState.TASK_RUNNING):
+            self.gui.update_info(controller=ControllerType.AGENT)
             self.get_logger().info("Waiting for agent_output")
             while(self.received_agent_output == False):
                 if(self.state == SupervisorState.STANDBY):
@@ -166,6 +179,7 @@ class SupervisorNode(Node):
             self.get_logger().info(f'Current Episode Length: {self.episode.get_episode_length()}')
 
         elif(self.state == SupervisorState.TASK_TAKE_OVER):
+            self.gui.update_info(controller=ControllerType.USER)
             self.get_logger().info("Waiting for agent_output")
             while(self.received_agent_output == False):
                 if(self.state == SupervisorState.STANDBY):
@@ -215,7 +229,7 @@ class SupervisorNode(Node):
             self.get_logger().info(f'Current Episode Length: {self.episode.get_episode_length()}')
 
         elif(self.state == SupervisorState.DEMO_RECORDING):
-
+            self.gui.update_info(controller=ControllerType.USER)
             velocity_msg = Twist(linear=Vector3(x=self.user_output['velocity']['linear'],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=self.user_output['velocity']['angular']))
             self.desired_velocity_publisher.publish(velocity_msg)
             bool_msg = Bool(data=self.user_output['termination_flag'])
@@ -253,7 +267,7 @@ class SupervisorNode(Node):
             self.get_logger().info("Completed setting up frame to GUI")
             self.get_logger().info(f'Current Episode Length: {self.episode.get_episode_length()}')
         else:
-
+            self.gui.update_info(controller=ControllerType.USER)
             if(self.episode.get_data()[-1]['action']['controller'] in [ControllerType.NONE,None]):
                 length = self.episode.get_episode_length()
                 self.episode.set_data(

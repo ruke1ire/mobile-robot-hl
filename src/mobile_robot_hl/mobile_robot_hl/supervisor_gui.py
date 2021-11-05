@@ -32,6 +32,7 @@ class SupervisorGUI():
         self.selection = InformationType.NONE
         self.current_action = None # dict(user, agent, controller)
         self.episode_index = 0
+        self.image_episode_temp = None
 
         sns.set('notebook')
         sns.set_style("white")
@@ -75,14 +76,28 @@ class SupervisorGUI():
         self.image_current_label = tkinter.Label(self.display_frame,image=self.image_current)
         self.image_slider = tkinter.ttk.Scale(self.display_frame, from_=0, to_= 1, orient=tkinter.HORIZONTAL, command=self.slider_trigger)
         self.action_plot_dummy_frame = tkinter.ttk.Frame(self.display_frame, padding = "17 17 17 17")
+
+
         self.info_frame = tkinter.ttk.Frame(self.display_frame, borderwidth=2, relief=tkinter.SUNKEN, padding = "10 10 10 10")
         self.info_frame_title = tkinter.ttk.Label(self.info_frame, text="Information")
-        self.info_desired_vel = tkinter.ttk.Label(self.info_frame, text="Desired Velocity: \n\tLinear: 0.0 m/s\n\tAngular: 0.0 rad/s")
-        self.info_user_vel = tkinter.ttk.Label(self.info_frame, text="User Velocity:\n\tLinear: 0.0 m/s\n\tAngular: 0.0 rad/s")
-        self.info_user_termination_flag = tkinter.ttk.Label(self.info_frame, text="User Termination Flag: False")
-        self.info_agent_vel = tkinter.ttk.Label(self.info_frame, text="Agent Velocity: \n\tLinear: 0.0 m/s\n\tAngular: 0.0 rad/s")
-        self.info_agent_termination_flag = tkinter.ttk.Label(self.info_frame, text="Agent Termination Flag: False")
+
+        self.info_control_frame = tkinter.Frame(self.info_frame)
+        self.info_controller = tkinter.ttk.Label(self.info_control_frame, text="Controller: NONE")
+
+        self.info_user_frame = tkinter.Frame(self.info_control_frame)
+        self.info_agent_frame = tkinter.Frame(self.info_control_frame)
+
+        #self.info_desired_vel = tkinter.ttk.Label(self.info_frame, text="Desired Velocity: \n\tLinear: 0.0 m/s\n\tAngular: 0.0 rad/s")
+        self.info_user_vel = tkinter.ttk.Label(self.info_user_frame, text="User Velocity:\n    Linear: 0.0 m/s\n    Angular: 0.0 rad/s")
+        self.info_user_termination_flag = tkinter.ttk.Label(self.info_user_frame, text="User Termination Flag: False")
+
+        self.info_agent_vel = tkinter.ttk.Label(self.info_agent_frame, text="Agent Velocity:\n    Linear: 0.0 m/s\n    Angular: 0.0 rad/s")
+        self.info_agent_termination_flag = tkinter.ttk.Label(self.info_agent_frame, text="Agent Termination Flag: False")
+
         self.info_current_demo = tkinter.ttk.Label(self.info_frame, text="Selected Demonstration: None")
+
+
+
 
         self.current_action_fig = plt.figure(figsize=(3,3),frameon=False)
 
@@ -93,8 +108,8 @@ class SupervisorGUI():
         self.current_action_ax.spines['top'].set_color('none')
         self.current_action_ax.margins(x=0.01,y=0.01)
         self.current_action_ax.grid(True)
-        self.current_action_ax.set_ylim([-1,1])
-        self.current_action_ax.set_xlim([-1,1])
+        self.current_action_ax.set_ylim([-self.ros_node.max_linear_velocity*1.2,self.ros_node.max_linear_velocity*1.2])
+        self.current_action_ax.set_xlim([-self.ros_node.max_angular_velocity*1.2,self.ros_node.max_angular_velocity*1.2])
         self.current_action_ax.tick_params(labelsize=5)
 
         self.current_action_plot = FigureCanvasTkAgg(self.current_action_fig, self.display_frame)
@@ -106,7 +121,7 @@ class SupervisorGUI():
         self.action_plot_ax.spines['top'].set_color('none')
         self.action_plot_ax.spines['bottom'].set_position('center')
         self.action_plot_ax.spines['left'].set_color('none')
-        self.action_plot_ax.set_ylim([-1,1])
+        self.action_plot_ax.set_ylim([-max(self.ros_node.max_linear_velocity,self.ros_node.max_angular_velocity)*1.2,max(self.ros_node.max_linear_velocity,self.ros_node.max_angular_velocity)*1.2])
         self.action_plot_ax.margins(x=0)
         self.action_plot_ax.grid(True)
         self.action_plot_ax.tick_params(labelsize=5)
@@ -119,14 +134,18 @@ class SupervisorGUI():
         self.action_plot_plot.get_tk_widget().grid(column=0, row =0, sticky='ew')
         self.image_current_label.grid(column=0, row=4)
         self.image_slider.grid(column=0, row = 2, columnspan = 2, sticky='ew')
+
         self.info_frame.grid(column=1, row=3, rowspan=2,sticky='nsew')
         self.info_frame_title.grid(column=0, row=0)
-        self.info_desired_vel.grid(column = 0, row=1, sticky = 'w')
-        self.info_user_vel.grid(column = 0, row = 2, sticky = 'w')
-        self.info_user_termination_flag.grid(column = 0, row = 3, sticky='w')
-        self.info_agent_vel.grid(column = 0, row =4, sticky='w')
-        self.info_agent_termination_flag.grid(column = 0, row = 5, sticky='w')
-        self.info_current_demo.grid(column = 0, row = 6, sticky='w')
+        self.info_control_frame.grid(column = 0, row = 1, sticky='w')
+        self.info_current_demo.grid(column = 0, row = 2, sticky='w')
+        self.info_controller.grid(column = 0, row = 0, sticky='w')
+        self.info_user_frame.grid(column=0, row = 1, sticky='w')
+        self.info_agent_frame.grid(column=0, row = 2, sticky='w')
+        self.info_user_vel.grid(column = 0, row = 0, sticky = 'w')
+        self.info_user_termination_flag.grid(column = 0, row = 1, sticky='w')
+        self.info_agent_vel.grid(column = 0, row =0, sticky='w')
+        self.info_agent_termination_flag.grid(column = 0, row = 1, sticky='w')
 
         self.action_plot_dummy_frame.columnconfigure(0, weight=1)
 
@@ -238,8 +257,13 @@ class SupervisorGUI():
             else:
                 image = self.ros_node.image_raw
                 image = image.resize((480,360))
-                self.image_current = ImageTk.PhotoImage(image = image)
-                self.image_current_label.configure(image=self.image_current)
+                image_current = ImageTk.PhotoImage(image = image)
+                if(image_current == self.image_current):
+                    pass
+                else:
+                    self.image_current = image_current
+                    self.image_current_label.configure(image=self.image_current)
+            time.sleep(0.2)
     
     def update_current_action_plot_trigger(self):
         while True:
@@ -276,19 +300,19 @@ class SupervisorGUI():
                     pass
             time.sleep(1.0)
     
-    def update_info(self, desired_vel=None, user_vel=None, agent_vel=None, agent_termination=None, user_termination=None, selected_demo=None):
-        if type(desired_vel) == dict:
-            self.info_desired_vel.configure(text=f"Desired Velocity: \n\tLinear: {desired_vel['linear']:.2f} m/s\n\tAngular: {desired_vel['angular']:.2f} rad/s")
+    def update_info(self, user_vel=None, agent_vel=None, agent_termination=None, user_termination=None, selected_demo=None, controller=None):
         if type(user_vel) == dict:
-            self.info_user_vel.configure(text=f"User Velocity: \n\tLinear: {user_vel['linear']:.2f} m/s\n\tAngular: {user_vel['angular']:.2f} rad/s")
+            self.info_user_vel.configure(text=f"User Velocity: \n    Linear: {user_vel['linear']:.2f} m/s\n    Angular: {user_vel['angular']:.2f} rad/s")
         if type(agent_vel) == dict:
-            self.info_agent_vel.configure(text=f"Agent Velocity: \n\tLinear: {agent_vel['linear']:.2f} m/s\n\tAngular: {agent_vel['angular']:.2f} rad/s")
+            self.info_agent_vel.configure(text=f"Agent Velocity: \n    Linear: {agent_vel['linear']:.2f} m/s\n    Angular: {agent_vel['angular']:.2f} rad/s")
         if type(agent_termination) == bool:
             self.info_agent_termination_flag.configure(text=f"Agent Termination Flag: {agent_termination}")
         if type(user_termination) == bool:
-            self.info_agent_termination_flag.configure(text=f"User Termination Flag: {user_termination}")
+            self.info_user_termination_flag.configure(text=f"User Termination Flag: {user_termination}")
         if type(selected_demo) == str:
             self.info_current_demo.configure(text=f"Selected Demonstration: {selected_demo}")
+        if type(controller) != type(None):
+            self.info_controller.configure(text=f"Controller: {controller.name}")
 
     def update_action_plot_trigger(self):
         while True:
@@ -581,11 +605,14 @@ class SupervisorGUI():
         if(episode_index >= self.episode.get_episode_length()):
             return
 
-        image = self.episode.data[episode_index]['observation']['image'].resize((480,360))
-        self.image_episode = ImageTk.PhotoImage(image = image)
-        self.image_episode_label.configure(image=self.image_episode)
+        image_episode_temp = self.episode.data[episode_index]['observation']['image']
+        if(image_episode_temp != self.image_episode_temp):
+            self.image_episode_temp = image_episode_temp
+            image = self.image_episode_temp.resize((480,360))
+            self.image_episode = ImageTk.PhotoImage(image = image)
+            self.image_episode_label.configure(image=self.image_episode)
         self.episode_index = episode_index
-   
+
     def slider_trigger(self, val):
         self.slider_value = float(val)
 
