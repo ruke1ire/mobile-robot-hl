@@ -121,7 +121,7 @@ class SupervisorNode(Node):
         self.agent_output['velocity'] = {'linear':velocity.linear.x, 'angular': velocity.angular.z}
         self.agent_output['termination_flag'] = termination_flag
         self.received_agent_output = True
-        self.gui.update_info(agent_vel = self.agent_output['velocity'], agent_termination=self.agent_output['termination_flag'])
+        threading.Thread(target=self.gui.update_info(agent_vel = self.agent_output['velocity'], agent_termination=self.agent_output['termination_flag'])).start()
 
     def agent_input_callback(self, img):
         self.get_logger().info("Received agent_input")
@@ -363,6 +363,7 @@ class SupervisorNode(Node):
                 self.action_controller_publisher.publish(controller_msg)
 
             self.gui.update_info(user_vel=self.user_output['velocity'], user_termination=self.user_output['termination_flag'])
+            time.sleep(0.1)
 
     def joy_event_handler_thread(self):
         prev_joy_state = self.joy_handler.get_state()
@@ -384,7 +385,7 @@ class SupervisorNode(Node):
                     self.gui.demo_start_button_trigger()
 
             prev_joy_state = joy_state.copy()
-            time.sleep(0.05)
+            time.sleep(0.1)
 
 
 

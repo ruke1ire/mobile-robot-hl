@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import time
 from threading import Timer, Thread
-
 from .joy_handler import InterfaceType
 
 from .utils import *
@@ -293,7 +292,7 @@ class SupervisorGUI():
                     self.current_action_plot.draw_idle()
                 except:
                     pass
-            time.sleep(1.0)
+            time.sleep(2.0)
     
     def update_info(self, user_vel=None, agent_vel=None, agent_termination=None, user_termination=None, selected_demo=None, controller=None):
         # TODO: update this so that it just looks at the current episode frame
@@ -351,7 +350,7 @@ class SupervisorGUI():
                 self.action_plot_plot.draw_idle()
             except:
                 pass
-            time.sleep(1.0)
+            time.sleep(2.0)
     
     def agent_start_button_trigger(self):
         if self.selected_demo == None or self.selected_demo == "":
@@ -577,7 +576,7 @@ class SupervisorGUI():
             print("[INFO] Displaying selected task episode")
 
     def set_episode(self, episode):
-        self.episode = EpisodeData(episode.get_data())
+        self.episode = episode
         self.ros_node.episode = self.episode
         self.slider_trigger(self.slider_value)
 

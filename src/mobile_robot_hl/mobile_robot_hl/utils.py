@@ -207,7 +207,9 @@ class EpisodeData:
         if data == None:
             self.init_empty_structure()
         else:
+            # TODO: error if data is just an empty structure
             self.data = copy.deepcopy(data)
+            self.length = self.get_episode_length_()
             self.data_empty = False
 
     def init_empty_structure(self):
@@ -230,6 +232,7 @@ class EpisodeData:
                             ),
                             controller=[None]))
         self.data_empty = True
+        self.length = 0
     
     def append_episode_data(self, episode):
         if(episode.data_empty == True):
@@ -244,6 +247,8 @@ class EpisodeData:
             self.data['action']['user']['termination_flag'] += episode.data['action']['user']['termination_flag']
             self.data['action']['controller'] += episode.data['action']['controller']
             self.data_empty = False
+
+            self.length += episode.length
 
     def append_data(
         self, 
@@ -270,6 +275,8 @@ class EpisodeData:
             self.data['action']['user']['velocity']['angular'].append(user_angular_vel)
             self.data['action']['user']['termination_flag'].append(user_termination_flag)
             self.data['action']['controller'].append(controller)
+
+        self.length += 1
 
     def set_key_value(self, key, value, index = None):
         '''
@@ -309,11 +316,11 @@ class EpisodeData:
             user_linear_vel, user_angular_vel, user_termination_flag,
             controller)
 
+    def get_episode_length_(self):
+        return len(self.data['observation']['image'])
+
     def get_episode_length(self):
-        if(self.data_empty == True):
-            return 0
-        else:
-            return len(self.data['observation']['image'])
+        return self.length
     
     def get_data(self, index = None):
         if(type(index) is not int):
@@ -374,7 +381,8 @@ class EpisodeData:
             else:
                 exec(f"self.data{s} = self.data{s}[:{index}]")
         
-        if self.get_episode_length() == 0:
+        self.length = self.get_episode_length_()
+        if self.length == 0:
             self.data_empty = True
 
 class ModelHandler():
