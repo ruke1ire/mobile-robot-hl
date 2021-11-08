@@ -8,10 +8,9 @@ The todo list is written to this file.
     - The dense blocks should not use the constant padding because sometimes we do not want any padding (the const padding should only be used on the very first frame)
 - [ ] Implement supervisor_node
     - [ ] Can i do multiprocessing instead of multithreading?
-    - [ ] synchronize agent and supervisor because it sometimes isn't depending on when I click call the agent_start command
-    - [ ] Implement every service and topic
     - [ ] Use blit for matplotlib
 - [ ] Implement agent_node
+    - [ ] Add reentrant callback group to the services
     - [ ] Implement every service and topic
 - [ ] Implement trainer_node
     - [ ] Implement every service and topic
@@ -48,6 +47,8 @@ The todo list is written to this file.
     - [x] Make the information panel better make it update with the correct information
     - [x] Make so that the episdoe data structure is always dict(list)
     - [x] Removed select_demo service in favour of only have start service with demo variable
+    - [x] Implement every service and topic
+    - [x] synchronize agent and supervisor because it sometimes isn't depending on when I click call the agent_start command | solved by adding time.sleep in the agent's service so that all callback's are first processed before another button is pressed
 - [ ] Implement agent_node
     - [x] Setup base-line ros communication topics and services
     - [x] Create config file for setting the frequency

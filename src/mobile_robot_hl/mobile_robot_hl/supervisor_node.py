@@ -85,24 +85,25 @@ class SupervisorNode(Node):
         self.user_termination_flag_subscriber = self.create_subscription(Bool, 'user_input/termination_flag', self.user_termination_flag_callback, best_effort_qos, callback_group = ReentrantCallbackGroup())
         self.image_raw_subscriber = self.create_subscription(Image, image_raw_topic_name, self.image_raw_callback ,best_effort_qos, callback_group = ReentrantCallbackGroup())
 
-        supervisor_prefix = "supervisor/"
         agent_prefix = "agent/"
         trainer_prefix='trainer/'
 
+        self.agent_service_group = ReentrantCallbackGroup()
         self.services_ = dict()
-        self.services_[agent_prefix+'start'] = self.create_client(StringTrigger, agent_prefix+'start', callback_group=ReentrantCallbackGroup())
-        self.services_[agent_prefix+'pause'] = self.create_client(Trigger, agent_prefix+'pause', callback_group=ReentrantCallbackGroup())
-        self.services_[agent_prefix+'stop'] = self.create_client(Trigger, agent_prefix+'stop', callback_group=ReentrantCallbackGroup())
-        self.services_[agent_prefix+'select_model'] = self.create_client(StringTrigger, agent_prefix+'select_model', callback_group=ReentrantCallbackGroup())
-        self.services_[agent_prefix+'select_mode'] = self.create_client(StringTrigger, agent_prefix+'select_mode', callback_group=ReentrantCallbackGroup())
+        self.services_[agent_prefix+'start'] = self.create_client(StringTrigger, agent_prefix+'start', callback_group=self.agent_service_group)
+        self.services_[agent_prefix+'pause'] = self.create_client(Trigger, agent_prefix+'pause', callback_group=self.agent_service_group)
+        self.services_[agent_prefix+'stop'] = self.create_client(Trigger, agent_prefix+'stop', callback_group=self.agent_service_group)
+        self.services_[agent_prefix+'select_model'] = self.create_client(StringTrigger, agent_prefix+'select_model', callback_group=self.agent_service_group)
+        self.services_[agent_prefix+'select_mode'] = self.create_client(StringTrigger, agent_prefix+'select_mode', callback_group=self.agent_service_group)
 
-        self.services_[trainer_prefix+'select_model'] = self.create_client(StringTrigger, trainer_prefix+'select_model', callback_group=ReentrantCallbackGroup())
-        self.services_[trainer_prefix+'start'] = self.create_client(Trigger, trainer_prefix+'start', callback_group=ReentrantCallbackGroup())
-        self.services_[trainer_prefix+'pause'] = self.create_client(Trigger, trainer_prefix+'pause', callback_group=ReentrantCallbackGroup())
-        self.services_[trainer_prefix+'stop'] = self.create_client(Trigger, trainer_prefix+'stop', callback_group=ReentrantCallbackGroup())
-        self.services_[trainer_prefix+'save'] = self.create_client(Trigger, trainer_prefix+'save', callback_group=ReentrantCallbackGroup())
-        self.services_[trainer_prefix+'delete'] = self.create_client(Trigger, trainer_prefix+'delete', callback_group=ReentrantCallbackGroup())
-        self.services_[trainer_prefix+'pre_train'] = self.create_client(Trigger, trainer_prefix+'pre_train', callback_group=ReentrantCallbackGroup())
+        self.trainer_service_group = ReentrantCallbackGroup()
+        self.services_[trainer_prefix+'select_model'] = self.create_client(StringTrigger, trainer_prefix+'select_model', callback_group=self.trainer_service_group)
+        self.services_[trainer_prefix+'start'] = self.create_client(Trigger, trainer_prefix+'start', callback_group=self.trainer_service_group)
+        self.services_[trainer_prefix+'pause'] = self.create_client(Trigger, trainer_prefix+'pause', callback_group=self.trainer_service_group)
+        self.services_[trainer_prefix+'stop'] = self.create_client(Trigger, trainer_prefix+'stop', callback_group=self.trainer_service_group)
+        self.services_[trainer_prefix+'save'] = self.create_client(Trigger, trainer_prefix+'save', callback_group=self.trainer_service_group)
+        self.services_[trainer_prefix+'delete'] = self.create_client(Trigger, trainer_prefix+'delete', callback_group=self.trainer_service_group)
+        self.services_[trainer_prefix+'pre_train'] = self.create_client(Trigger, trainer_prefix+'pre_train', callback_group=self.trainer_service_group)
 
         self.gui = SupervisorGUI(ros_node=self)
         self.gui.update_available_demo_name(self.demo_handler.get_names())

@@ -85,11 +85,13 @@ class AgentNode(Node):
         self.termination_flag_subscriber = self.create_subscription(Bool, 'termination_flag', self.termination_flag_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
         self.action_controller_subscriber = self.create_subscription(String, 'action_controller', self.action_controller_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
 
-        self.start_service = self.create_service(StringTrigger, service_prefix+'start', self.start_service_callback)
-        self.pause_service = self.create_service(Trigger, service_prefix+'pause', self.pause_service_callback)
-        self.stop_service = self.create_service(Trigger, service_prefix+'stop', self.stop_service_callback)
-        self.select_model_service = self.create_service(StringTrigger, service_prefix+'select_model', self.select_model_service_callback)
-        self.select_mode_service = self.create_service(StringTrigger, service_prefix+'select_mode', self.select_mode_service_callback)
+        self.service_group = ReentrantCallbackGroup()
+
+        self.start_service = self.create_service(StringTrigger, service_prefix+'start', self.start_service_callback, callback_group = self.service_group)
+        self.pause_service = self.create_service(Trigger, service_prefix+'pause', self.pause_service_callback, callback_group = self.service_group)
+        self.stop_service = self.create_service(Trigger, service_prefix+'stop', self.stop_service_callback, callback_group = self.service_group)
+        self.select_model_service = self.create_service(StringTrigger, service_prefix+'select_model', self.select_model_service_callback, callback_group = self.service_group)
+        self.select_mode_service = self.create_service(StringTrigger, service_prefix+'select_mode', self.select_mode_service_callback, callback_group = self.service_group)
 
         self.control_loop = self.create_timer(1/self.frequency, self.control_callback, callback_group=ReentrantCallbackGroup())
 
@@ -136,6 +138,9 @@ class AgentNode(Node):
     def pause_service_callback(self, request, response):
         if(self.state == AgentState.RUNNING or self.state == AgentState.TAKE_OVER or self.state == AgentState.PAUSED):
             self.state = AgentState.PAUSED
+            self.wait = True
+            time.sleep(2.0)
+            self.wait = False
             response.success = True
         else:
             response.success = False
@@ -144,6 +149,9 @@ class AgentNode(Node):
     def stop_service_callback(self, request, response):
         self.state = AgentState.STANDBY
         self.episode = EpisodeData(data=None)
+        self.wait = True
+        time.sleep(2.0)
+        self.wait = False
         response.success = True
         return response
 
