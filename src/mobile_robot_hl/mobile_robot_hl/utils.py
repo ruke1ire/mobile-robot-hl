@@ -17,7 +17,6 @@ class InformationType(Enum):
     TASK_EPISODE = 2
 
 class DemoHandler():
-    DEMO_NAME_INFO_FILE = "info.yaml"
     DEMO_ID_INFO_FILE= "info.yaml"
     def __init__(self, path):
         self.path = path
@@ -102,7 +101,6 @@ class DemoHandler():
             yaml.dump(dict_data, outfile)
 
 class TaskHandler():
-    TASK_NAME_INFO_FILE = "info.yaml"
     TASK_ID_INFO_FILE= "info.yaml"
     def __init__(self, path, demo_handler):
         self.path = path

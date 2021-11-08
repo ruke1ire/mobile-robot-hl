@@ -198,6 +198,7 @@ Task episode files stores the actions an agent/supervisor took when performing a
 
 - Tensorboard will be used to visualize the training process
 - Each training run will have a unique directory
+- Inside the unique directory will be a yaml file containing information about the model such as the architecture, date-time of creation
 - Each type of model such as the *actor model*, *critic model* will be saved in a separate directory within the same training run directory
     - each type of model will have a specific user defined model namme/id
     - there will be a yaml file inside the model directory which provides information about the model and the training process

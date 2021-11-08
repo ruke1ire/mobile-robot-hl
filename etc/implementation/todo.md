@@ -4,8 +4,9 @@ The todo list is written to this file.
 
 ## In Progress
 
-- [ ] Implement neural network module
-    - The dense blocks should not use the constant padding because sometimes we do not want any padding (the const padding should only be used on the very first frame)
+- [ ] Implement SNAIL model
+    - [ ] should be able to be used for both inference modes
+    - [ ] architecture design should be able to be inserted set when initializing the model
 - [ ] Implement supervisor_node
     - [ ] Can i do multiprocessing instead of multithreading?
     - [ ] Use blit for matplotlib
@@ -59,3 +60,5 @@ The todo list is written to this file.
     - [x] Create node to input actions from an xbox controller | DO THIS NEXT!!
 - [ ] Create custom interfaces
     - [x] agent_output
+- [x] Implement neural network module
+    - The dense blocks should not use the constant padding because sometimes we do not want any padding (the const padding should only be used on the very first frame)
