@@ -4,11 +4,11 @@ The todo list is written to this file.
 
 ## In Progress
 
+- [ ] Find suitable NN for base layer CNN
 - [ ] Implement supervisor_node
     - [ ] Can i do multiprocessing instead of multithreading?
     - [ ] Use blit for matplotlib
 - [ ] Implement agent_node
-    - [ ] Add reentrant callback group to the services
     - [ ] Implement every service and topic
 - [ ] Implement trainer_node
     - [ ] Implement every service and topic
@@ -50,6 +50,7 @@ The todo list is written to this file.
 - [ ] Implement agent_node
     - [x] Setup base-line ros communication topics and services
     - [x] Create config file for setting the frequency
+    - [x] Add reentrant callback group to the services
 - [ ] Implement trainer_node
     - [x] Setup base-line ros communication topics and services
 - [ ] Other nodes
