@@ -20,6 +20,11 @@ This file discusses the various implementation details of the neural network mod
 > Batch x Channels x Time
 > Channels x Time
 
+### Input (Images across time)
+
+> Batch x Time x Channels x Width x Height
+> Time x Channels x Width x Height
+
 ### Output (Modules)
  
 In order to allow nn.Sequential to work for differing types of inference modes, the output of each module will be a tuple containing information of both the activation and the inference_mode

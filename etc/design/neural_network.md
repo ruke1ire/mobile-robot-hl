@@ -7,7 +7,7 @@ This file discusses the various design choices for the neural network models.
 The following points lists the computational componenets to be used
 
 - 1. Small pre-trained CNN model converts raw visual images into latent vectors
-	- resnet18
+	- efficientnet_b0
 - 2. A mix of caused convolution and attention mechanism across the time domain is used to compute a latent vector for each time frame
 - 3. A Fully-connected layer to finally compute the output of the network
 

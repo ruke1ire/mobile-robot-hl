@@ -4,15 +4,18 @@ The todo list is written to this file.
 
 ## In Progress
 
-- [ ] Find suitable NN for base layer CNN
 - [ ] Implement supervisor_node
     - [ ] Can i do multiprocessing instead of multithreading?
     - [ ] Use blit for matplotlib
 - [ ] Implement agent_node
     - [ ] Implement every service and topic
+    - [ ] Add model onto agent node
 - [ ] Implement trainer_node
     - [ ] Implement every service and topic
-    - [ ] Implement neural network model
+    - [ ] Create trainer class
+        - select neural network to train
+        - train actor
+        - train critic
 - [ ] Other nodes
     - [x] Add launch files for starting up all the other necessary nodes 
         - ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args --remap cmd_vel:=/diffbot_base_controller/cmd_vel_unstamped
@@ -63,3 +66,5 @@ The todo list is written to this file.
 - [x] Implement SNAIL model
     - [x] should be able to be used for both inference modes
     - [x] architecture design should be able to be inserted set when initializing the model
+- [x] Find suitable NN for base layer CNN
+- [x] Create full model

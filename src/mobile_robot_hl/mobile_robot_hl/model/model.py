@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torchvision.models as models
 import math
 
 from .module import *
@@ -51,7 +52,7 @@ class Snail(nn.Module):
         if(shape_len == 2):
             output = output.squeeze(0)
 
-        return output, inference_mode
+        return output
     
     def reset(self):
         '''
@@ -59,6 +60,59 @@ class Snail(nn.Module):
         '''
         for model in self.model:
             model.reset()
+    
+class MimeticSNAIL(nn.Module):
+    def __init__(self, base_net_name, latent_vector_size, snail_kwargs, out_net):
+        '''
+        MimeticSNAIL Neural Network Model
+
+        base_net_name: name of the pre-trained neural network found in https://pytorch.org/vision/stable/models.html
+        latent_vector_size: size of the latent vector computed by the base_net
+        snail_kwargs: keyword arguments to pass to the SNAIL model
+        out_net: output neural network which may differ depending on whether it is a actor or a critic
+        '''
+        super().__init__()
+        exec(f'self.base_net = models.{base_net_name}(pretrained=True)')
+        # reset weights of last linear layer
+        self.base_net.classifier = torch.nn.Sequential(
+            nn.Dropout(p=0.2, inplace=True), 
+            nn.Linear(in_features=1280, out_features=latent_vector_size, bias=True))
+
+        self.snail_net = Snail(**snail_kwargs)
+        self.out_net = out_net
+    
+    def forward(self, input, inference_mode):
+        shape_len = input.dim()
+
+        if(shape_len in [3,4]):
+            if(shape_len == 3):
+                input = input.unsqueeze(0)
+            latent_vec = self.base_net(input)
+            latent_vec = latent_vec.permute((1,0))
+            snail_out = self.snail_net(latent_vec, inference_mode)
+            if(shape_len == 3):
+                snail_out = snail_out.squeeze(1)
+            else:
+                snail_out = snail_out.permute((1,0))
+
+            output = self.out_net(snail_out)
+
+        elif(shape_len == 5):
+            output_list = []
+            for input_ in input:
+                latent_vec = self.base_net(input_)
+                latent_vec = latent_vec.permute((1,0))
+                snail_out = self.snail_net(latent_vec, inference_mode).permute((1,0))
+                output = self.out_net(snail_out)
+                output_list.append(output)
+            output = torch.stack(output_list)
+        else:
+            raise Exception("Invalid input shape")
+
+        return output
+
+    def reset(self):
+        self.snail_net.reset()
 
 if __name__ == "__main__":
     architecture = [
@@ -83,18 +137,37 @@ if __name__ == "__main__":
             ),
         ]
 
-    s = Snail(input_size = 100, seq_length= 100, architecture=architecture)
-    print(s)
-    batch_input = torch.ones(100,500)
-    print("Batch input size:", batch_input.shape)
-    print("Batch output size:", s(batch_input)[0].shape)
+    snail_kwargs = dict(input_size = 100, seq_length= 100, architecture=architecture)
 
-    single_input = torch.ones(100, 1)
-    print("Single input size:", single_input.shape)
-    print("Single output size:", s(single_input)[0].shape)
+    actor_output = nn.Sequential(
+        nn.Linear(536, 3)
+    )
 
+    msnail = MimeticSNAIL(
+        base_net_name='efficientnet_b0', 
+        latent_vector_size=100, 
+        snail_kwargs=snail_kwargs, 
+        out_net = actor_output)
 
+    print("Model:", msnail)
 
+    batch_of_images = torch.ones((2, 10, 3, 320, 460))
+    image_across_time = torch.ones((10, 3, 320, 460))
+    single_image = torch.ones((3, 320, 460))
 
+    print("Batch of images size:", batch_of_images.shape)
+    print("Batch output size:", msnail(batch_of_images, inference_mode = InferenceMode.WHOLE_BATCH).shape)
 
+    print("Image across time size:", image_across_time.shape)
+    print("Image across time output size:", msnail(image_across_time, inference_mode = InferenceMode.WHOLE_BATCH).shape)
 
+    print("Single image size:", single_image.shape)
+    print("Single image output size:", msnail(single_image, inference_mode = InferenceMode.WHOLE_BATCH).shape)
+
+    print("Single image size:", single_image.shape)
+    print("Single image output size:", msnail(single_image, inference_mode = InferenceMode.ONLY_LAST_FRAME).shape)
+    print(msnail.snail_net.model[0].model[2].input.shape)
+
+    print("Single image size:", single_image.shape)
+    print("Single image output size:", msnail(single_image, inference_mode = InferenceMode.ONLY_LAST_FRAME).shape)
+    print(msnail.snail_net.model[0].model[2].input.shape)
