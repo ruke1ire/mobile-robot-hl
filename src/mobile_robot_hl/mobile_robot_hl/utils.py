@@ -383,11 +383,6 @@ class EpisodeData:
         if self.length == 0:
             self.data_empty = True
 
-class ModelHandler():
-    def __init__(self):
-        pass
-
-
 def get_leaf_string(dict_, string = ""):
     try:
         for key in dict_.keys():

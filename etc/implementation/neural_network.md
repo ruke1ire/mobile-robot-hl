@@ -40,3 +40,7 @@ In order to allow nn.Sequential to work for differing types of inference modes, 
 **Critic**
 
 > tuple(Q-value of a certain state-action pair)
+
+## Saving/Loading
+
+In order to be able to save and load multiple different types of models, when saving, both the model architecture as well as the model parameters will be saved. The model architecture is a list(dict(module_type, module_kwargs)) where module_type can be TC or ATTENTION for the SNAIL model and it can be any nn.Module name for the output model (the model which produces the final output and inputs the SNAIL output latent vector).

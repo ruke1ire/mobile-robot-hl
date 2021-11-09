@@ -62,7 +62,7 @@ class Snail(nn.Module):
             model.reset()
     
 class MimeticSNAIL(nn.Module):
-    def __init__(self, base_net_name, latent_vector_size, snail_kwargs, out_net):
+    def __init__(self, base_net_name, latent_vector_size, snail_kwargs, out_net_architecture):
         '''
         MimeticSNAIL Neural Network Model
 
@@ -79,7 +79,14 @@ class MimeticSNAIL(nn.Module):
             nn.Linear(in_features=1280, out_features=latent_vector_size, bias=True))
 
         self.snail_net = Snail(**snail_kwargs)
-        self.out_net = out_net
+
+        out_net_modules = []
+
+        for module_information in out_net_architecture:
+            print(module_information)
+            exec(f"out_net_modules.append(nn.{module_information['module_type']}(**{module_information['module_kwargs']}))")
+        
+        self.out_net = nn.Sequential(*out_net_modules)
     
     def forward(self, input, inference_mode):
         shape_len = input.dim()
@@ -139,15 +146,21 @@ if __name__ == "__main__":
 
     snail_kwargs = dict(input_size = 100, seq_length= 100, architecture=architecture)
 
-    actor_output = nn.Sequential(
-        nn.Linear(536, 3)
-    )
+    actor_architecture = [
+        dict(
+            module_type = "Linear",
+            module_kwargs = dict(
+                in_features = 536,
+                out_features = 3
+            )
+        )
+    ]
 
     msnail = MimeticSNAIL(
         base_net_name='efficientnet_b0', 
         latent_vector_size=100, 
         snail_kwargs=snail_kwargs, 
-        out_net = actor_output)
+        out_net_architecture = actor_architecture)
 
     print("Model:", msnail)
 

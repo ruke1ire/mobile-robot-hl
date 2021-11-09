@@ -4,6 +4,7 @@ The todo list is written to this file.
 
 ## In Progress
 
+- [ ] Implement model handler
 - [ ] Implement supervisor_node
     - [ ] Can i do multiprocessing instead of multithreading?
     - [ ] Use blit for matplotlib
