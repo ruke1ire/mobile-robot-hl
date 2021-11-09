@@ -105,7 +105,8 @@ class AttentionBlock(nn.Module):
         self.key_size = key_size
         self.value_size = value_size
         self.output_size = self.input_size + value_size
-        self.input = None
+        self.keys = None
+        self.values = None
 
         self.key_layer = nn.Linear(input_size, key_size)
         self.query_layer = nn.Linear(input_size, key_size)
@@ -126,29 +127,37 @@ class AttentionBlock(nn.Module):
             self.reset()
             seq_length = input.shape[2]
             input_ = input.transpose(1, 2) # Batch x Time x Channels
+            values = self.value_layer(input_) # Batch x Time x ValueSize
+            keys = self.key_layer(input_)  # Batch x Time x KeySize
+            query = self.query_layer(input_)  # Batch x Time x QuerySize
         else:
             assert ((input.shape[0] == 1) and (input.shape[2] == 1)), "Input batch size should == 1 and input time length should == 1 for inference_mode == ONLY_LAST_FRAME "
 
-            if(self.input is not None):
-                self.input = torch.cat((self.input, input), dim=2)
+            input_ = input.transpose(1,2)
+            value = self.value_layer(input_) # 1 x 1 x ValueSize
+            key = self.key_layer(input_)  # 1 x 1 x KeySize
+            query = self.query_layer(input_)  # 1 x 1 x QuerySize
+
+            if(self.values is not None):
+                self.values = torch.cat((self.values, value), dim=1) # 1 x Time x ValueSize
+                self.keys = torch.cat((self.keys, key), dim = 1) # 1 x Time x KeySize
             else:
-                self.input = input
-            seq_length = self.input.shape[2]
+                self.values = value
+                self.keys = key
 
-            input_ = self.input.transpose(1,2)
+            seq_length = self.values.shape[1]
 
-        values = self.value_layer(input_) # Batch x Time x ValueSize
-        keys = self.key_layer(input_)  # Batch x Time x KeySize
-        query = self.query_layer(input_)  # Batch x Time x QuerySize
+            values = self.values
+            keys = self.keys
 
         dot_product = query@keys.transpose(1,2)
         scores = dot_product / math.sqrt(self.key_size)
 
         mask = subsequent_mask(seq_length)
-        scores = scores.masked_fill(mask == 0, -float('inf'))
+        scores = scores.masked_fill(mask[:,:scores.shape[1],:] == 0, -float('inf'))
 
         probs = self.softmax(scores)
-        activation = probs.matmul(values).transpose(1,2)[:,:,-input.shape[2]:] # Batch x Time x ValueSize
+        activation = probs.matmul(values).transpose(1,2) # Batch x ValueSize x Time
 
         output = torch.cat((input, activation), dim=1)
 
@@ -158,7 +167,8 @@ class AttentionBlock(nn.Module):
         return output, inference_mode
     
     def reset(self):
-        self.input = None
+        self.values = None
+        self.keys = None
 
 def subsequent_mask(size):
     "Mask out subsequent positions."
@@ -167,13 +177,20 @@ def subsequent_mask(size):
     return torch.from_numpy(subsequent_mask) == 0
     
 if __name__ == "__main__":
-    dense_block = TCBlock(10, 5, 30)
+    dense_block = AttentionBlock(5, 30, 30)
 
     batch_input = torch.ones(10, 5, 100)
     print("Batch input shape = ", batch_input.shape)
     print("Batch output shape = ",dense_block((batch_input, InferenceMode.WHOLE_BATCH))[0].shape)
     single_input = torch.ones(1, 5, 1)
     print("Single input shape = ", single_input.shape)
-    dense_block((single_input, InferenceMode.ONLY_LAST_FRAME))
-    print("Single output shape = ",dense_block((single_input, InferenceMode.ONLY_LAST_FRAME))[0].shape)
+    output, inference_mode = dense_block((single_input, InferenceMode.WHOLE_BATCH))
+    print("Single output shape = ", output.shape)
+    output, inference_mode = dense_block((single_input, InferenceMode.ONLY_LAST_FRAME))
+    print(dense_block.values.shape)
+    output, inference_mode = dense_block((single_input, InferenceMode.ONLY_LAST_FRAME))
+    print(dense_block.values.shape)
+    output, inference_mode = dense_block((single_input, InferenceMode.ONLY_LAST_FRAME))
+    print(dense_block.values.shape)
+    print("Single output shape = ",output.shape)
 
