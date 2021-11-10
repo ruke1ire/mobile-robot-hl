@@ -13,6 +13,7 @@ The todo list is written to this file.
     - [ ] Implement every service and topic
     - [ ] Let model do inference in agent_node
 - [ ] Implement trainer_node
+    - [ ] List out all the commands that the trainer node should be able to do
     - [ ] Implement every service and topic
     - [ ] Create trainer class
         - select neural network to train
