@@ -24,9 +24,9 @@ class Snail(nn.Module):
 
         size = input_size
         for module_information in architecture:
-            if module_information['module_type'] == ModuleType.TC:
+            if ModuleType[module_information['module_type']] == ModuleType.TC:
                 modules.append(TCBlock(seq_len=self.seq_length, input_size = size, **module_information['module_kwargs']))
-            elif module_information['module_type'] == ModuleType.ATTENTION:
+            elif ModuleType[module_information['module_type']] == ModuleType.ATTENTION:
                 modules.append(AttentionBlock(input_size = size, **module_information['module_kwargs']))
             size = modules[-1].output_size
         
@@ -124,20 +124,20 @@ class MimeticSNAIL(nn.Module):
 if __name__ == "__main__":
     architecture = [
             dict(
-                module_type = ModuleType.TC,
+                module_type = ModuleType.TC.name,
                 module_kwargs = dict(
                     filter_size = 30
                 )
             ),
             dict(
-                module_type = ModuleType.ATTENTION,
+                module_type = ModuleType.ATTENTION.name,
                 module_kwargs = dict(
                     key_size = 16,
                     value_size = 16
                 )
             ),
             dict(
-                module_type = ModuleType.TC,
+                module_type = ModuleType.TC.name,
                 module_kwargs = dict(
                     filter_size = 30
                 )

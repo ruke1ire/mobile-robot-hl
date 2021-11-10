@@ -1,6 +1,7 @@
 export MOBILE_ROBOT_HL_ROOT=$PWD/
 export MOBILE_ROBOT_HL_DEMO_PATH=$PWD/data/demo
 export MOBILE_ROBOT_HL_TASK_PATH=$PWD/data/task
+export MOBILE_ROBOT_HL_MODEL_PATH=$PWD/data/model
 
 export MOBILE_ROBOT_HL_DESIRED_VELOCITY_TOPIC=/diffbot_base_controller/cmd_vel_unstamped
 export MOBILE_ROBOT_HL_IMAGE_RAW_TOPIC=image_raw/uncompressed
