@@ -4,6 +4,8 @@ The todo list is written to this file.
 
 ## In Progress
 
+- [ ] Think about how and where new models should be created
+    - create them in trainer nodes?
 - [ ] Implement supervisor_node
     - [ ] Can i do multiprocessing instead of multithreading?
     - [ ] Use blit for matplotlib
