@@ -4,13 +4,12 @@ The todo list is written to this file.
 
 ## In Progress
 
-- [ ] Implement model handler
 - [ ] Implement supervisor_node
     - [ ] Can i do multiprocessing instead of multithreading?
     - [ ] Use blit for matplotlib
 - [ ] Implement agent_node
     - [ ] Implement every service and topic
-    - [ ] Add model onto agent node
+    - [ ] Let model do inference in agent_node
 - [ ] Implement trainer_node
     - [ ] Implement every service and topic
     - [ ] Create trainer class
@@ -55,6 +54,7 @@ The todo list is written to this file.
     - [x] Setup base-line ros communication topics and services
     - [x] Create config file for setting the frequency
     - [x] Add reentrant callback group to the services
+    - [x] Add model onto agent node
 - [ ] Implement trainer_node
     - [x] Setup base-line ros communication topics and services
 - [ ] Other nodes
@@ -69,3 +69,4 @@ The todo list is written to this file.
     - [x] architecture design should be able to be inserted set when initializing the model
 - [x] Find suitable NN for base layer CNN
 - [x] Create full model
+- [x] Implement model handler

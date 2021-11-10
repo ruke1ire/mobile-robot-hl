@@ -14,6 +14,7 @@ from geometry_msgs.msg import Vector3
 from .supervisor_gui import SupervisorGUI, SupervisorState
 from .joy_handler import JoyHandler, InterfaceType
 from .utils import *
+from .model.utils import *
 
 import ros2_numpy as rnp
 
@@ -33,6 +34,7 @@ class SupervisorNode(Node):
 
         demo_path = os.environ['MOBILE_ROBOT_HL_DEMO_PATH']
         task_path = os.environ['MOBILE_ROBOT_HL_TASK_PATH']
+        model_path = os.environ['MOBILE_ROBOT_HL_MODEL_PATH']
         try:
             desired_velocity_topic_name = os.environ['MOBILE_ROBOT_HL_DESIRED_VELOCITY_TOPIC']
         except:
@@ -44,6 +46,7 @@ class SupervisorNode(Node):
         
         self.demo_handler = DemoHandler(path=demo_path)
         self.task_handler = TaskHandler(path=task_path, demo_handler = self.demo_handler)
+        self.model_handler = ModelHandler(path = model_path)
 
         self.image_raw = None
         self.agent_input = None
@@ -329,6 +332,7 @@ class SupervisorNode(Node):
                 self.get_logger().info(f'service successful: {service_name}')
             else:
                 self.get_logger().info(f'{service_name} service error: {response.message}')
+            return response
     
     def update_state(self, state):
         self.state = state

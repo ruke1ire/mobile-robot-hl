@@ -9,9 +9,10 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import time
 from threading import Timer, Thread
-from .joy_handler import InterfaceType
 
+from .joy_handler import InterfaceType
 from .utils import *
+from .model.utils import *
 
 class SupervisorGUI():
     def __init__(self, ros_node = None):
@@ -24,8 +25,8 @@ class SupervisorGUI():
         self.window.columnconfigure(0, weight=1)
 
         self.state = SupervisorState.STANDBY
-        self.model_training_state = 'no'
         self.selected_demo = None
+        self.selected_model = dict(name = None, id = None)
         self.episode = EpisodeData(data=None)
         self.slider_value = 0
         self.selection = InformationType.NONE
@@ -40,15 +41,15 @@ class SupervisorGUI():
         self.setup_display_frame()
         self.setup_control_frame()
 
+        self.model_update_name_entry()
+
         self.action_plot_timer = Thread(target=self.update_action_plot_trigger)
         self.current_action_plot_timer = Thread(target=self.update_current_action_plot_trigger)
         self.update_image_current_timer = Thread(target=self.update_image_current)
-        #self.update_model_image_timer
 
         self.action_plot_timer.start()
         self.current_action_plot_timer.start()
         self.update_image_current_timer.start()
-
 
     def setup_extras(self):
         img = np.zeros([360,480,3],dtype=np.uint8)
@@ -95,8 +96,7 @@ class SupervisorGUI():
 
         self.info_current_demo = tkinter.ttk.Label(self.info_frame, text="Selected Demonstration: None")
 
-
-
+        self.info_model = tkinter.ttk.Label(self.info_frame, text="Selected Model: None")
 
         self.current_action_fig = plt.figure(figsize=(3,3),frameon=False)
 
@@ -138,6 +138,7 @@ class SupervisorGUI():
         self.info_frame_title.grid(column=0, row=0)
         self.info_control_frame.grid(column = 0, row = 1, sticky='w')
         self.info_current_demo.grid(column = 0, row = 2, sticky='w')
+        self.info_model.grid(column = 0, row = 3, sticky='w')
         self.info_controller.grid(column = 0, row = 0, sticky='w')
         self.info_user_frame.grid(column=0, row = 1, sticky='w')
         self.info_agent_frame.grid(column=0, row = 2, sticky='w')
@@ -178,11 +179,14 @@ class SupervisorGUI():
         self.demo_stop_button.state(['disabled'])
         self.demo_save_button = tkinter.ttk.Button(self.demo_control_button_frame, text="save", command = self.demo_save_button_trigger)
         self.demo_save_button.state(['disabled'])
-        self.demo_name = StringVar()
-        self.demo_name_entry = tkinter.ttk.Combobox(self.demo_control_frame, textvariable=self.demo_name)
+        self.demo_name_entry = tkinter.ttk.Combobox(self.demo_control_frame)
 
         self.model_control_button_frame = tkinter.ttk.Frame(self.model_control_frame)
-        self.model_start_button = tkinter.ttk.Button(self.model_control_button_frame, text="start", command = self.model_start_button_trigger)
+        self.model_select_button = tkinter.ttk.Button(self.model_control_button_frame, text="select", command = self.model_select_button_trigger)
+        self.model_name_entry = tkinter.ttk.Combobox(self.model_control_button_frame)
+        self.model_name_entry.bind('<<ComboboxSelected>>', self.select_model_trigger)
+        self.model_id_entry = tkinter.ttk.Combobox(self.model_control_button_frame)
+
         self.saved_task_episode_name_list = tkinter.Listbox(self.task_queue_frame)
         self.saved_demo_name_list = tkinter.Listbox(self.task_queue_frame)
         self.saved_demo_id_list = tkinter.Listbox(self.task_queue_frame)
@@ -223,7 +227,10 @@ class SupervisorGUI():
         self.model_control_frame.grid(column=1, row=1, sticky='nsew')
         self.model_control_button_frame.grid(column = 0, row = 1)
         self.model_label.grid(column = 0, row = 0)
-        self.model_start_button.grid(column=0, row=0)
+        self.model_name_entry.grid(column = 0, row = 0)
+        self.model_id_entry.grid(column = 1, row = 0)
+        self.model_select_button.grid(column=0, row=1, columnspan = 2)
+
         self.model_control_frame.rowconfigure(0, weight=1)
         self.model_control_frame.columnconfigure(0, weight=1)
 
@@ -294,7 +301,7 @@ class SupervisorGUI():
                     pass
             time.sleep(1.0)
     
-    def update_info(self, user_vel=None, agent_vel=None, agent_termination=None, user_termination=None, selected_demo=None, controller=None):
+    def update_info(self, user_vel=None, agent_vel=None, agent_termination=None, user_termination=None, selected_demo=None, controller=None, selected_model=None):
         # TODO: update this so that it just looks at the current episode frame
         if type(user_vel) == dict:
             self.info_user_vel.configure(text=f"User Velocity: \n    Linear: {user_vel['linear']:.2f} m/s\n    Angular: {user_vel['angular']:.2f} rad/s")
@@ -308,6 +315,8 @@ class SupervisorGUI():
             self.info_current_demo.configure(text=f"Selected Demonstration: {selected_demo}")
         if type(controller) != type(None):
             self.info_controller.configure(text=f"Controller: {controller.name}")
+        if type(selected_demo) == str:
+            self.info_model.configure(text=f"Selected Model: {selected_model}")
 
     def update_action_plot_trigger(self):
         while True:
@@ -364,7 +373,17 @@ class SupervisorGUI():
             self.automatic_save_button.state(['!disabled'])
             self.demo_start_button.state(['disabled'])
             self.demo_save_button.state(['disabled'])
-            self.ros_node.call_service('agent/start', self.selected_demo)
+            response = self.ros_node.call_service('agent/start', self.selected_demo)
+            if(response.success == False):
+                if(self.state == SupervisorState.STANDBY):
+                    self.state = SupervisorState.STANDBY
+                    self.automatic_start_button.configure(text="start")
+                    self.automatic_take_over_button.configure(text="take over")
+                    self.automatic_take_over_button.state(['disabled'])
+                    self.automatic_stop_button.state(['disabled'])
+                    self.automatic_save_button.state(['disabled'])
+                    self.demo_start_button.state(['!disabled'])
+                    return
             if(self.state == SupervisorState.STANDBY):
                 self.set_episode(self.ros_node.demo_handler.get(self.selected_demo.split('.')[0],self.selected_demo.split('.')[1]))
             self.state = SupervisorState.TASK_RUNNING
@@ -376,7 +395,7 @@ class SupervisorGUI():
             self.ros_node.call_service('agent/pause')
             print("[INFO] Automatic control paused")
 
-        status = self.ros_node.update_state(self.state)
+        self.ros_node.update_state(self.state)
     
     def agent_stop_button_trigger(self):
         self.state = SupervisorState.STANDBY
@@ -494,25 +513,33 @@ class SupervisorGUI():
         for name in name_array:
             self.saved_task_episode_name_list.insert(0, name)
     
-    def model_start_button_trigger(self):
-        if(self.model_training_state == 'no'):
-            try:
-                self.ros_node.call_service(service_name = 'trainer/start')
-            except:
-                pass
+    def model_update_name_entry(self):
+        name_array = self.ros_node.model_handler.get_names(ModelType.ACTOR)
+        self.model_name_entry['values'] = tuple(name_array)
 
-            self.model_training_state = 'yes'
-            self.model_start_button.configure(text="pause")
-            print("[INFO] Model training started")
-        elif(self.model_training_state == 'yes'):
-            try:
-                self.ros_node.call_service(service_name = 'trainer/pause')
-            except:
-                pass
+    def model_update_id_entry(self, name):
+        id_array = self.ros_node.model_handler.get_ids(ModelType.ACTOR, name)
+        self.model_id_entry['values'] = tuple(id_array)
+    
+    def select_model_trigger(self, val):
+        try:
+            selected_model_name = self.model_name_entry.get()
+            self.model_update_id_entry(selected_model_name)
+        except:
+            pass
 
-            self.model_training_state = 'no'
-            self.model_start_button.configure(text="start")
-            print("[INFO] Model training stopped")
+    def model_select_button_trigger(self):
+        model_name = self.model_name_entry.get()
+        if(model_name == ''):
+            return
+        model_id = self.model_id_entry.get()
+        if(model_id == ''):
+            return
+        model_string = f"{model_name}/{model_id}"
+        response = self.ros_node.call_service('agent/select_model', model_string)
+        if response.success == True:
+            self.selected_model = dict(name = model_name, id = model_id)
+            self.update_info(selected_model=model_string)
     
     def add_demo_trigger(self):
         if(self.selection == InformationType.DEMO):
