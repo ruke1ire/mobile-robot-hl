@@ -40,7 +40,6 @@ class DemoHandler():
         task_controller = [ControllerType[cont] for cont in info['action']['controller']]
         info['action']['controller'] = task_controller
 
-
         episode_data = EpisodeData(data=info)
         return episode_data
     

@@ -4,8 +4,9 @@ The todo list is written to this file.
 
 ## In Progress
 
-- [ ] Think about how and where new models should be created
-    - create them in trainer nodes?
+- [ ] Think about what data structure is ideal for training the actor and the critic using td3
+- [ ] Change the dataset class so that the data returned is in the ideal form
+    - if i use a tuple of numpy arrays, the original collate_fn in the dataloader can be used.
 - [ ] Implement supervisor_node
     - [ ] Can i do multiprocessing instead of multithreading?
     - [ ] Use blit for matplotlib
@@ -13,7 +14,6 @@ The todo list is written to this file.
     - [ ] Implement every service and topic
     - [ ] Let model do inference in agent_node
 - [ ] Implement trainer_node
-    - [ ] List out all the commands that the trainer node should be able to do
     - [ ] Implement every service and topic
     - [ ] Create trainer class
         - select neural network to train
@@ -60,6 +60,7 @@ The todo list is written to this file.
     - [x] Add model onto agent node
 - [ ] Implement trainer_node
     - [x] Setup base-line ros communication topics and services
+    - [x] List out all the commands that the trainer node should be able to do
 - [ ] Other nodes
     - [x] Install and buy necessary hardware for robot parts
     - [x] Create node to input actions from an xbox controller | DO THIS NEXT!!
@@ -73,3 +74,5 @@ The todo list is written to this file.
 - [x] Find suitable NN for base layer CNN
 - [x] Create full model
 - [x] Implement model handler
+- [x] Think about how and where new models should be created
+    - create them in trainer nodes?

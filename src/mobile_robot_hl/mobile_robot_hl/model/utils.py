@@ -44,6 +44,8 @@ class ModelHandler():
         model = m.MimeticSNAIL(**model_architecture)
         model.load_state_dict(torch.load(f"{self.path}/{model_type.name.lower()}/{name}/{id_}.pth"))
 
+        info_dict['name'] = name
+
         return model, info_dict
 
     def get_names(self, model_type):

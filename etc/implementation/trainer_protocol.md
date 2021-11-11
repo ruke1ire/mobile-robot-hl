@@ -37,7 +37,6 @@ dict(
 	command_kwargs = dict(
 		model_type = <model.utils.ModelType.name>,
 		model_name = <str(name)>,
-		model_id = <str(datetime)>,
 		model_architecture = <model.model.MimeticSNAIL kwargs>
 	)
 )
@@ -157,6 +156,20 @@ dict(
 	command_name = select_training_data,
 	command_kwargs = dict(
 		list_of_names = list(task/demo names)
+	)
+)
+```
+
+### Select device
+
+Selects the device to train the model on.
+
+```
+dict(
+	command_name = select_device,
+	command_kwargs = dict(
+		model_type = <model.utils.ModelType.name>,
+		device_name = <cpu, gpu:0, etc.>
 	)
 )
 ```
