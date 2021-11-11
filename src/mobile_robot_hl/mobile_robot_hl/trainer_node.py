@@ -6,6 +6,8 @@ from custom_interfaces.srv import StringTrigger
 import threading
 import os
 
+from .trainer import Trainer
+
 class TrainerNode(Node):
 
     def __init__(self):

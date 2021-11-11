@@ -119,25 +119,35 @@ The trainer node trains the neural networks.
 ***Functional Requirements***
 - [ ] Controls
     - [ ] Select model
-    - [ ] Start/Pause training of actor and critic neural network
+    - [ ] Create and select model
+    - [ ] Start/Pause training
+        - Type of model can be specified
+            - actor 
+            - critic
+        - Type of training can be specified
+            - imitation learning
+            - reinforcement learning
+        - Epochs to train can be specified
+        - Saving every X epochs can be specified
     - [ ] Restart neural network model
     - [ ] Save/Delete neural network
-    - [ ] Pre-train actor model with imitation learning
 
 ***Params***
-- CPU/GPU for neural network training
 - Demonstration file path
+    - For imitation pre-training
+- Task Episode file path
+    - For reinforcement learning
 - Path to neural networks
 - Saving interval
 
 ***Services***
-- select_model: Select model to be trained
-- start: Start training model
-- pause: Pause training the model
-- stop: Stop training the model and restart it with new random weights
-- save: Save the current model to a specific name/path
-- delete: Delete neural networks
-- pre-train: Pre-train the current actor model 
+- command: Receives a string command and does whatever that string tells it to
+
+***Other Information***
+- 2 models can be trained in parallel
+    - the actor and the critic model
+- the ros node is only used as a communication tool and all the functionalities are implemented in the Trainer class
+- Protocol for the string commands can be found [here](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/implementation/trainer_protocol.md).
 
 ## Episode Data Structure
 
