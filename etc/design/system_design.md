@@ -146,7 +146,7 @@ The trainer node trains the neural networks.
 ***Other Information***
 - 2 models can be trained in parallel
     - the actor and the critic model
-- the ros node is only used as a communication tool and all the functionalities are implemented in the Trainer class
+- The ros node is only used as a communication tool and all the functionalities are implemented in the Trainer class
 - Protocol for the string commands can be found [here](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/implementation/trainer_protocol.md).
 
 ## Episode Data Structure

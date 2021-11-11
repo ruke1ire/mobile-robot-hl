@@ -6,7 +6,7 @@ from custom_interfaces.srv import StringTrigger
 import threading
 import os
 
-from .trainer import Trainer
+from mobile_robot_hl.trainer.trainer import Trainer
 
 class TrainerNode(Node):
 

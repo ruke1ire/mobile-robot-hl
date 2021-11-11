@@ -8,6 +8,7 @@
 #### Data needed from dataset
 - Demonstration (s,a)
 - Task Episode (s,a)
+- Demonstration Flag (f)
 
 ### Training the critic
 - Equate the bellman equation => Q(s_t, a_t) = R + γ * Q(s_(t+1), P(s_(t+1)))
@@ -16,6 +17,7 @@
 - Demonstration (s,a)
 - Task Episode (s,a)
 - Task Rewards (R)
+- Demonstration Flag (f)
 
 ## PPO
 
@@ -26,3 +28,12 @@
 
 ### Training the critic
 - Equate the bellman equation => Q(s_t, a_t) = R + γ * Q(s_(t+1), A(s_(t+1)))
+
+## Behavior cloning
+
+- Equate P(s_t) = a_t
+
+#### Data needed from dataset
+
+- Demonstration (s,a)
+- Task Episode (s,a)
