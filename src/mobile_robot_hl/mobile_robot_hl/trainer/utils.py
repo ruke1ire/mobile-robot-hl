@@ -18,17 +18,39 @@ class TriggerCommand(Enum):
     SAVE = 2
 
 class DemoDataset(Dataset):
-    def __init__(self):
-        pass
+    def __init__(self, demo_handler):
+        self.demo_handler = demo_handler
+        self.demo_names = set()
+        self.demo_ids = {}
+        self.data = []
+        self.get_all_data()
+
+    def get_all_data(self):
+        demo_names = set(self.demo_handler.get_names())
+        new_names = demo_names - self.demo_names
+        if(len(new_names) > 0):
+            self.demo_names = demo_names
+            for name in new_names:
+                self.demo_ids[name] = set()
+
+        for name in self.demo_names:
+            ids = set(self.demo_handler.get_ids(name))
+            new_ids = ids - self.demo_ids[name]
+            if(len(new_ids) > 0):
+                self.demo_ids[name] = new_ids
+                for id_ in self.demo_ids[name]:
+                    data = self.demo_handler.get(name, id_)
+                    observations = np.stack([np.transpose(np.asarray(img), (2,0,1)) for img in data.data['observation']['image']], axis = 0)
+                    linear_vel = np.array(data.data['action']['user']['velocity']['linear'])
+                    angular_vel = np.array(data.data['action']['user']['velocity']['angular'])
+                    termination_flag = np.array(data.data['action']['user']['termination_flag']).astype(float)
+                    self.data.append((observations, linear_vel, angular_vel, termination_flag))
 
     def __len__(self):
-        pass
+        return len(self.data)
 
     def __getitem__(self, idx):
-        pass
-
-    def add_item(self, idx):
-        pass
+        return self.data[idx]
 
 class TaskDataset(Dataset):
     def __init__(self, task_handler, gamma):
