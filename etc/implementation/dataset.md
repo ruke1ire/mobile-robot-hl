@@ -39,3 +39,21 @@ The following are the tasks and behaviors that will be demonstrated to train the
 ## Number of demonstrations
 
 - 10 for each task/behavior/location
+
+## Demonstration Dataset
+
+- Numpy array Demonstration observations
+	- Shape = (Time, Channels, Width, Height)
+- Numpy array Demonstration actions
+	- Shape = (Time, ActionSize)
+
+## Task Episode Dataset
+
+- Numpy array of Task Episode observations
+	- Shape = (Time, Channels, Width, Height)
+- Numpy array of Task Episode actions
+	- Shape = (Time, ActionSize)
+- Numpy array of Demonstration Flags
+	- Shape = (Time, 1)
+- Numpy array of Values
+	- Shape = (Time, 1) 
