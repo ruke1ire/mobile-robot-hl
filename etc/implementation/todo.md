@@ -4,9 +4,6 @@ The todo list is written to this file.
 
 ## In Progress
 
-- [ ] Think about what data structure is ideal for training the actor and the critic using td3
-- [ ] Change the dataset class so that the data returned is in the ideal form
-    - if i use a tuple of numpy arrays, the original collate_fn in the dataloader can be used.
 - [ ] Implement supervisor_node
     - [ ] Can i do multiprocessing instead of multithreading?
     - [ ] Use blit for matplotlib
@@ -17,8 +14,8 @@ The todo list is written to this file.
     - [ ] Implement every service and topic
     - [ ] Create trainer class
         - select neural network to train
-        - train actor
-        - train critic
+        - train actor | DO THIS NEXT
+        - train critic | DO THIS NEXT
 - [ ] Other nodes
     - [x] Add launch files for starting up all the other necessary nodes 
         - ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args --remap cmd_vel:=/diffbot_base_controller/cmd_vel_unstamped
@@ -76,3 +73,5 @@ The todo list is written to this file.
 - [x] Implement model handler
 - [x] Think about how and where new models should be created
     - create them in trainer nodes?
+- [x] Change the dataset class so that the data returned is in the ideal form
+    - if i use a tuple of numpy arrays, the original collate_fn in the dataloader can be used.
