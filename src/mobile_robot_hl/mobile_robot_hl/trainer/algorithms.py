@@ -1,17 +1,43 @@
 import pickle
 import torch
 
-from mobile_robot_hl.model.model import *
-from mobile_robot_hl.model.utils import InferenceMode
+from mobile_robot_hl.model.utils import InferenceMode, ModelType
 from mobile_robot_hl.trainer.utils import *
 
-class TD3():
+import abc
+from abc import ABC, abstractmethod
+
+class ActorCriticAlgorithm(ABC):
+	@abstractmethod
+	def __init__(self):
+		'''
+		Initializes the components needed for the algorithm. 
+		Every component and variable should be set here and should not be changed later on.
+		If a certain variable/component is to be changed, the algorithm object should be re-initilized
+		'''
+		pass
+
+	@abstractmethod
+	def train_one_epoch(self, stop_flag):
+		'''
+		Train the algorithm for 1 epoch
+
+		:param stop_flag: A flag which indicates to stop the training if raised
+		'''
+		pass
+
+	@abstractmethod
+	def select_device(self, device_name):
+		pass
+
+class TD3(ActorCriticAlgorithm):
 	def __init__(self, 
 				actor_model,
 				critic_model,
 				actor_optimizer_dict, 
 				critic_optimizer_dict, 
 				dataloader, 
+				logger = None,
 				discount = 0.99,
 				tau = 0.005,
 				policy_noise = 0.2,
@@ -36,8 +62,9 @@ class TD3():
 		self.policy_noise = policy_noise
 		self.noise_clip = noise_clip
 		self.actor_update_period = actor_update_period
+		self.logger = None
 	
-	def train_one_epoch(self):
+	def train_one_epoch(self, stop_flag):
 		for i, (images, lin_vels, ang_vels, term_flags, demo_flags, rewards) in enumerate(self.dataloader):
 			actions = torch.stack((lin_vels, ang_vels, term_flags, demo_flags))
 			initial_action = torch.zeros_like(actions[:,0])
@@ -78,3 +105,6 @@ class TD3():
 
 				for param, target_param in zip(self.actor_model.parameters(), self.actor_model_target.parameters()):
 					target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)	
+	
+	def select_device(self, device_name):
+		raise NotImplementedError()

@@ -42,7 +42,25 @@ dict(
 )
 ```
 
-### Start training actor
+### Set Optimizer
+
+Set the optimizer to be used to train the model.
+
+```
+dict(
+	command_name = set_optimizer,
+	command_kwargs = dict(
+		model_type = <model.utils.ModelType.name>,
+		optimizer_dict = dict(
+			optimizer_name = <name of optimizers in torch.optim>,
+			optimizer_kwargs = <kwargs for optimizer>
+		)
+	)
+)
+```
+
+
+### Start training
 
 Start the training of the selected actor model.
 
@@ -51,72 +69,34 @@ Start the training of the selected actor model.
 
 ```
 dict(
-	command_name = start_training_actor,
+	command_name = start_training,
 	command_kwargs = dict(
 		training_type =  <IL | RL>,
 		save_every = <int>,
 		max_epochs = <int>
+		additional_algorithm_kwargs = dict(**kwargs)
 	)
 )
 ```
 
-### Start training critic
-
-Start the training of the selected critic model.
-
-- The model will be saved every <save_every>
-- When the model reached <max_epochs>, the model will be automatically saved and paused.
-
-```
-dict(
-	command_name = start_training_critic,
-	command_kwargs = dict(
-		save_every = <int>,
-		max_epochs = <int>
-	)
-)
-```
-
-### Pause training actor
+### Pause training
 
 Pause the training of the actor model.
 
 ``` 
 dict(
-	command_name = pause_training_actor,
+	command_name = pause_training,
 	command_kwargs = None
 )
 ```
 
-### Pause training critic
+### Stop training
 
-Pause the training of the critic model
-
-```
-dict(
-	command_name = pause_training_critic,
-	command_kwargs = None
-)
-```
-
-### Stop training actor
-
-Stop the training of the actor model. This command is different from pause in that the model will also be deselected.
+Stop the training of the model(s). This command is different from pause in that the model will also be deselected.
 
 ```
 dict(
-	command_name = stop_training_actor,
-	command_kwargs = None
-)
-```
-
-### Stop training critic
-
-Stop the training of the critic model. This command is different from pause in that the model will also be deselected.
-
-```
-dict(
-	command_name = stop_training_critic,
+	command_name = stop_training,
 	command_kwargs = None
 )
 ```
@@ -168,7 +148,6 @@ Selects the device to train the model on.
 dict(
 	command_name = select_device,
 	command_kwargs = dict(
-		model_type = <model.utils.ModelType.name>,
 		device_name = <cpu, gpu:0, etc.>
 	)
 )

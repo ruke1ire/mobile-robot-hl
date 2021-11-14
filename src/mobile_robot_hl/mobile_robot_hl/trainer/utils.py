@@ -12,10 +12,9 @@ class TrainerState(Enum):
     STANDBY = 1 # when model has been selected or when training has been paused
     RUNNING = 2 # when model is being trained
 
-class TriggerCommand(Enum):
-    PAUSE = 0
-    STOP = 1
-    SAVE = 2
+class TrainingComponents(Enum):
+    MODEL = 0
+    OPTIMIZER = 1
 
 class TrainingType(Enum):
     IL = 0
