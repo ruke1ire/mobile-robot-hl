@@ -4,6 +4,11 @@ The todo list is written to this file.
 
 ## In Progress
 
+- [ ] algorithms.py 
+    - implement the td3 algorithm
+- [ ] model.py
+    - implement the model so that the user can add input_latent and pre_output_latent vectors onto the model
+- [ ] Create a console program for the trainer class, which later might become part of the supervisor gui.
 - [ ] Implement supervisor_node
     - [ ] Can i do multiprocessing instead of multithreading?
     - [ ] Use blit for matplotlib
@@ -21,6 +26,11 @@ The todo list is written to this file.
         - ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args --remap cmd_vel:=/diffbot_base_controller/cmd_vel_unstamped
         - ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args --remap cmd_vel:=user_input/velocity
         - ros2 run rviz2 rviz2 -d ./src/control/ros2_control_demo_description/diffbot_description/config/diffbot.rviz
+- [ ] Create a different branch where I restructure the program in the following manners
+    - agent_output should have the timeframe number so that the gui can add images without thinking too much about the ordering
+    - agent_node should be doing the saving instead of the supervisor except for demosntrations
+    - GUI should put all those frames into a LIFO queue
+    - joy handler should have a node of its own
 
 ## Done
 

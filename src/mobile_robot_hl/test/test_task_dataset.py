@@ -26,3 +26,8 @@ dl = DataLoader(td, None, True)
 
 print(next(iter(dl))[5].shape)
 print(next(iter(dl))[5].shape)
+
+output_idx = [torch.tensor(vec) for vec in td[idx]]
+output_tuple = (output_idx[1], output_idx[2], output_idx[3], output_idx[4], output_idx[5])
+
+print(torch.stack(output_tuple).shape)

@@ -145,7 +145,7 @@ class AgentNode(Node):
         return response
 
     def pause_service_callback(self, request, response):
-        if(self.state == AgentState.RUNNING or self.state == AgentState.TAKE_OVER or self.state == AgentState.PAUSED):
+        if(self.state == AgentState.RUNNING or self.state == AgentState.PAUSED):
             self.state = AgentState.PAUSED
             self.wait = True
             time.sleep(2.0)

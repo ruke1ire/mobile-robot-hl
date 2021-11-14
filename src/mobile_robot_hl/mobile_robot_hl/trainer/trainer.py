@@ -6,6 +6,8 @@ from torch.utils.data import Dataset, DataLoader
 from mobile_robot_hl.model.utils import *
 import mobile_robot_hl.model as m
 from .utils import *
+from .dataset import *
+from .algorithms import *
 
 class Trainer():
     def __init__(self, model_handler, demo_handler, task_handler, logger = None):
@@ -25,8 +27,8 @@ class Trainer():
 
         self.task_dataset = TaskDataset(self.task_handler)
         self.demo_dataset = DemoDataset(self.demo_handler)
-        self.task_dataloader = DataLoader(self.task_dataset, batch_size = None, shuffle = True, num_workers = 4, collate_fn = collate)
-        self.demo_dataloader = None
+        self.task_dataloader = DataLoader(self.task_dataset, batch_size = None, shuffle = True, num_workers = 4)
+        self.demo_dataloader = DataLoader(self.demo_dataset, batch_size = None, shuffle = True, num_workers = 4)
 
         self.actor_command_queue = Queue()
         self.critic_command_queue = Queue()
@@ -148,12 +150,17 @@ class Trainer():
         self.actor_state = TrainerState.RUNNING
         if(max_epochs == None):
             max_epochs = -1
-        for i in count(0):
-            # TODO: Training code here
+        if(training_type == TrainingType.RL):
+            for i in count(0):
+                # TODO: Training code here
+                for (images, lin_vels, ang_vels, term_flags, demo_flags, values) in self.task_dataloader:
+                    pass
 
-            if i == max_epochs:
-                self.critic_state = TrainerState.STANDBY
-                return
+                if i == max_epochs:
+                    self.critic_state = TrainerState.STANDBY
+                    return
+        else:
+            pass
 
     def critic_training_loop(self, max_epochs = None, save_every = None):
         if(self.critic_state == TrainerState.SLEEPING):
