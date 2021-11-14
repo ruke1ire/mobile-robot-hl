@@ -96,7 +96,15 @@ class MimeticSNAIL(nn.Module):
                 input = input.unsqueeze(0)
             latent_vec = self.base_net(input)
             latent_vec = latent_vec.permute((1,0))
+            if(input_latent is not None):
+                if(input_latent.dim() == 1):
+                    input_latent = input_latent.unsqueeze(1)
+                latent_vec = torch.cat((latent_vec, input_latent), dim = 0)
             snail_out = self.snail_net(latent_vec, inference_mode)
+            if(pre_output_latent is not None):
+                if(pre_output_latent.dim() == 1):
+                    pre_output_latent = pre_output_latent.unsqueeze(1)
+                snail_out = torch.cat((snail_out, pre_output_latent), dim = 0)
             if(shape_len == 3):
                 snail_out = snail_out.squeeze(1)
             else:
@@ -109,7 +117,12 @@ class MimeticSNAIL(nn.Module):
             for input_ in input:
                 latent_vec = self.base_net(input_)
                 latent_vec = latent_vec.permute((1,0))
-                snail_out = self.snail_net(latent_vec, inference_mode).permute((1,0))
+                if(input_latent is not None):
+                    latent_vec = torch.cat((latent_vec, input_latent), dim = 0)
+                snail_out = self.snail_net(latent_vec, inference_mode)
+                if(pre_output_latent is not None):
+                    snail_out = torch.cat((snail_out, pre_output_latent), dim = 0)
+                snail_out = snail_out.permute((1,0))
                 output = self.out_net(snail_out)
                 output_list.append(output)
             output = torch.stack(output_list)
@@ -144,13 +157,13 @@ if __name__ == "__main__":
             ),
         ]
 
-    snail_kwargs = dict(input_size = 100, seq_length= 100, architecture=architecture)
+    snail_kwargs = dict(input_size = 105, seq_length= 100, architecture=architecture)
 
     actor_architecture = [
         dict(
             module_type = "Linear",
             module_kwargs = dict(
-                in_features = 536,
+                in_features = 546,
                 out_features = 3
             )
         )
@@ -165,22 +178,19 @@ if __name__ == "__main__":
     print("Model:", msnail)
 
     batch_of_images = torch.ones((2, 10, 3, 320, 460))
+    actions_across_time = torch.ones((5, 10))
+    actions_across_time2 = torch.ones((5, 10))
+
     image_across_time = torch.ones((10, 3, 320, 460))
     single_image = torch.ones((3, 320, 460))
-
-    print("Batch of images size:", batch_of_images.shape)
-    print("Batch output size:", msnail(batch_of_images, inference_mode = InferenceMode.WHOLE_BATCH).shape)
+    action_single = torch.ones(5)
+    action_single2 = torch.ones(5)
 
     print("Image across time size:", image_across_time.shape)
-    print("Image across time output size:", msnail(image_across_time, inference_mode = InferenceMode.WHOLE_BATCH).shape)
+    print("Image across time output size:", msnail(image_across_time, input_latent = actions_across_time, pre_output_latent = actions_across_time2, inference_mode = InferenceMode.WHOLE_BATCH).shape)
 
     print("Single image size:", single_image.shape)
-    print("Single image output size:", msnail(single_image, inference_mode = InferenceMode.WHOLE_BATCH).shape)
+    print("Single image output size:", msnail(single_image, input_latent = action_single, pre_output_latent = action_single2, inference_mode = InferenceMode.WHOLE_BATCH).shape)
 
     print("Single image size:", single_image.shape)
-    print("Single image output size:", msnail(single_image, inference_mode = InferenceMode.ONLY_LAST_FRAME).shape)
-    print(msnail.snail_net.model[0].model[2].input.shape)
-
-    print("Single image size:", single_image.shape)
-    print("Single image output size:", msnail(single_image, inference_mode = InferenceMode.ONLY_LAST_FRAME).shape)
-    print(msnail.snail_net.model[0].model[2].input.shape)
+    print("Single image output size:", msnail(single_image, input_latent = action_single, pre_output_latent = action_single2, inference_mode = InferenceMode.ONLY_LAST_FRAME).shape)
