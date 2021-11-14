@@ -6,8 +6,6 @@ The todo list is written to this file.
 
 - [ ] algorithms.py 
     - implement the td3 algorithm
-- [ ] model.py
-    - implement the model so that the user can add input_latent and pre_output_latent vectors onto the model
 - [ ] Create a console program for the trainer class, which later might become part of the supervisor gui.
 - [ ] Implement supervisor_node
     - [ ] Can i do multiprocessing instead of multithreading?
@@ -85,3 +83,5 @@ The todo list is written to this file.
     - create them in trainer nodes?
 - [x] Change the dataset class so that the data returned is in the ideal form
     - if i use a tuple of numpy arrays, the original collate_fn in the dataloader can be used.
+- [x] model.py
+    - implement the model so that the user can add input_latent and pre_output_latent vectors onto the model
