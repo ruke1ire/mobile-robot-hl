@@ -7,7 +7,7 @@ from mobile_robot_hl.trainer.utils import *
 import abc
 from abc import ABC, abstractmethod
 
-class ActorCriticAlgorithm(ABC):
+class Algorithm(ABC):
 	@abstractmethod
 	def __init__(self):
 		'''
@@ -30,7 +30,7 @@ class ActorCriticAlgorithm(ABC):
 	def select_device(self, device_name):
 		pass
 
-class TD3(ActorCriticAlgorithm):
+class TD3(Algorithm):
 	def __init__(self, 
 				actor_model,
 				critic_model,
