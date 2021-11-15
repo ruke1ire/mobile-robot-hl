@@ -17,6 +17,7 @@ class Trainer():
         self.task_handler = task_handler
 
         self.logger = logger
+        self.device = 'cpu'
 
         self.actor_state = TrainerState.SLEEPING
         self.critic_state = TrainerState.SLEEPING
@@ -107,6 +108,7 @@ class Trainer():
                     actor_optimizer_dict = self.actor_optimizer_dict, 
                     critic_optimizer_dict = self.critic_optimizer_dict,
                     dataloader = self.task_dataloader,
+                    device = self.device,
                     logger = self.logger
                     )
                 if(additional_algorithm_kwargs is not None):
@@ -146,6 +148,7 @@ class Trainer():
             self.critic_state = TrainerState.SLEEPING
         self.actor_model = None
         self.critic_model = None
+        self.algorithm = None
 
     def restart_model(self, model_type):
         if(model_type == ModelType.ACTOR):
@@ -176,15 +179,9 @@ class Trainer():
         raise NotImplementedError()
     
     def select_device(self, device_name):
-        if(self.actor_state == TrainerState.STANDBY):
+        if(self.actor_state == TrainerState.STANDBY or self.critic_state == TrainerState.STANDBY):
+            self.device = device_name
             self.algorithm.select_device(device_name)
-            self.actor_model.to(device_name)
-        else:
-            raise Exception(f"Unable to select device as agent_state = {self.agent_state.name}")
-        if(self.critic_state == TrainerState.STANDBY):
-            self.critic_model.to(device_name)
-        else:
-            raise Exception(f"Unable to select device as critic_state = {self.critic_state.name}")
     
     def training_loop(self, max_epochs = None, save_every = None):
         if(self.actor_state == TrainerState.SLEEPING):
@@ -194,7 +191,6 @@ class Trainer():
             max_epochs = -1
 
         for i in count(0):
-            # TODO: Training code here
             self.algorithm.train_one_epoch(self.stop)
 
             if i == max_epochs:
