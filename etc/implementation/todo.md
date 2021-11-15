@@ -4,21 +4,25 @@ The todo list is written to this file.
 
 ## In Progress
 
-- [ ] algorithms.py 
-    - implement the td3 algorithm
-- [ ] Create a console program for the trainer class, which later might become part of the supervisor gui.
+- [ ] model.py
+    - create another inference mode where it inputs multiple timeframes and also saves those time frames
+        - this is used for conditioning the model
+- [ ] Record demonstrations
+    - about 20 path following tasks
+- [ ] algorithms.py
+    - implement il algorithm
 - [ ] Implement supervisor_node
     - [ ] Can i do multiprocessing instead of multithreading?
     - [ ] Use blit for matplotlib
 - [ ] Implement agent_node
     - [ ] Implement every service and topic
-    - [ ] Let model do inference in agent_node
+    - [ ] Let model do inference in agent_node | DO THIS NEXT
 - [ ] Implement trainer_node
     - [ ] Implement every service and topic
     - [ ] Create trainer class
         - select neural network to train
-        - train actor | DO THIS NEXT
-        - train critic | DO THIS NEXT
+        - train actor
+        - train critic
 - [ ] Other nodes
     - [x] Add launch files for starting up all the other necessary nodes 
         - ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args --remap cmd_vel:=/diffbot_base_controller/cmd_vel_unstamped
@@ -85,3 +89,6 @@ The todo list is written to this file.
     - if i use a tuple of numpy arrays, the original collate_fn in the dataloader can be used.
 - [x] model.py
     - implement the model so that the user can add input_latent and pre_output_latent vectors onto the model
+- [x] algorithms.py 
+    - implement the td3 algorithm
+- [x] Create a console program for the trainer class, which later might become part of the supervisor gui.
