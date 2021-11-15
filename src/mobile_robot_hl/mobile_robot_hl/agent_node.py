@@ -19,8 +19,9 @@ import time
 import ros2_numpy as rnp
 
 from .utils import *
-from .model.model import *
+from .model.model import MimeticSNAIL
 from .model.utils import *
+from .model.model_handler import ModelHandler
 
 class AgentNode(Node):
 

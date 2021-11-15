@@ -40,11 +40,10 @@ class DemoDataset(Dataset):
         return self.data[idx]
 
 class TaskDataset(Dataset):
-    def __init__(self, task_handler, gamma):
+    def __init__(self, task_handler):
         self.task_handler = task_handler
         self.demo_names = set()
         self.task_ids = {}
-        self.gamma = gamma
         self.data = []
         self.get_all_data()
     

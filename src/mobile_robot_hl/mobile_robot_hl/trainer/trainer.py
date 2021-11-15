@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 
 from mobile_robot_hl.model.utils import *
-import mobile_robot_hl.model as m
+import mobile_robot_hl.model.model as m
 from .utils import *
 from .dataset import *
 from .algorithms import *
@@ -13,7 +13,7 @@ from .algorithms import *
 class Trainer():
     def __init__(self, model_handler, demo_handler, task_handler, logger = None):
         self.model_handler = model_handler
-        self.demo_hander = demo_handler
+        self.demo_handler = demo_handler
         self.task_handler = task_handler
 
         self.logger = logger
@@ -36,15 +36,16 @@ class Trainer():
         self.task_dataloader = DataLoader(self.task_dataset, batch_size = None, shuffle = True, num_workers = 4)
         self.demo_dataloader = DataLoader(self.demo_dataset, batch_size = None, shuffle = True, num_workers = 4)
 
-    def select_model(self, model_type, model_name, model_id):
-        if(model_type == ModelType.ACTOR):
+    def select_model(self, model_type, model_name, model_id = None):
+        if(model_type == ModelType.ACTOR.name):
             if(self.actor_state in [TrainerState.RUNNING, TrainerState.STANDBY]):
                 return
+            self.actor_model, self.actor_model_info = self.model_handler.get(ModelType.ACTOR, model_name, model_id)
             try:
-                self.actor_model, self.actor_model_info = self.model_handler.get(ModelType.ACTOR, model_name, model_id)
                 if(self.actor_optimizer_dict is not None):
                     self.actor_state = TrainerState.STANDBY
             except:
+                print("Unable to select model")
                 self.actor_model = None
                 self.actor_model_info = None
                 self.actor_state = TrainerState.SLEEPING
@@ -52,24 +53,26 @@ class Trainer():
             if(self.critic_state in [TrainerState.RUNNING, TrainerState.STANDBY]):
                 return
             try:
-                self.critic_model, self.critic_model_info = self.model_handler.get(ModelType.ACTOR, model_name, model_id)
+                self.critic_model, self.critic_model_info = self.model_handler.get(ModelType.CRITIC, model_name, model_id)
                 if(self.critic_optimizer_dict is not None):
                     self.critic_state = TrainerState.STANDBY
             except:
+                print("Unable to select model")
                 self.critic_model = None
                 self.critic_model_info = None
                 self.critic_state = TrainerState.SLEEPING
     
     def create_model(self, model_type, model_name, model_architecture):
-        if(model_type == ModelType.ACTOR):
+        if(model_type == ModelType.ACTOR.name):
             if(self.actor_state in [TrainerState.RUNNING, TrainerState.STANDBY]):
                 return
+            self.actor_model = m.MimeticSNAIL(**model_architecture)
+            self.actor_model_info = dict(architecture = model_architecture, name = model_name)
             try:
-                self.actor_model = m.MimeticSNAIL(**model_architecture)
-                self.actor_model_info = dict(architecture = model_architecture, name = model_name)
                 if(self.actor_optimizer_dict is not None):
                     self.actor_state = TrainerState.STANDBY
             except:
+                print("Failed creating model")
                 self.actor_model = None
                 self.actor_model_info = None
                 self.actor_state = TrainerState.SLEEPING
@@ -88,7 +91,7 @@ class Trainer():
                 self.critic_state = TrainerState.SLEEPING
 
     def set_optimizer(self, model_type, optimizer_dict):
-        if(model_type == ModelType.ACTOR):
+        if(model_type == ModelType.ACTOR.name):
             self.actor_optimizer_dict = optimizer_dict
             if(self.actor_model is not None):
                 self.actor_state = TrainerState.STANDBY
@@ -97,8 +100,8 @@ class Trainer():
             if(self.critic_model is not None):
                 self.critic_state = TrainerState.STANDBY
     
-    def start_training(self, training_type, save_every, max_epochs, additional_algorithm_kwargs = None):
-        if(training_type == TrainingType.RL):
+    def start_training(self, training_type, save_every = None, max_epochs = None, additional_algorithm_kwargs = None):
+        if(training_type == TrainingType.RL.name):
             if(self.actor_state == TrainerState.STANDBY and self.critic_state == TrainerState.STANDBY):
                 self.flag = True
 
@@ -118,7 +121,7 @@ class Trainer():
                 Thread(target = self.training_loop(save_every, max_epochs)).start()
                 self.actor_state = TrainerState.RUNNING
                 self.critic_state = TrainerState.RUNNING
-        elif(training_type == TrainingType.IL):
+        elif(training_type == TrainingType.IL.name):
             if(self.actor_state == TrainerState.STANDBY):
                 self.flag = True
 
@@ -151,7 +154,7 @@ class Trainer():
         self.algorithm = None
 
     def restart_model(self, model_type):
-        if(model_type == ModelType.ACTOR):
+        if(model_type == ModelType.ACTOR.name):
             if(self.actor_state == TrainerState.STANDBY):
                 self.actor_model = m.MimeticSNAIL(**self.actor_model_info['architecture'])
             else:
@@ -163,7 +166,7 @@ class Trainer():
                 return
     
     def save_model(self, model_type):
-        if model_type == ModelType.ACTOR:
+        if model_type == ModelType.ACTOR.name:
             model = self.actor_model
             architecture = self.actor_model_info['architecture']
             name = self.actor_model_info['name']
@@ -172,7 +175,7 @@ class Trainer():
             architecture = self.critic_model_info['architecture']
             name = self.critic_model_info['name']
 
-        self.model_handler.save(model, architecture, model_type, name)
+        self.model_handler.save(model, architecture, ModelType[model_type], name)
     
     def select_training_data(self, list_of_names):
         # TODO: self.dataloader = sth
@@ -180,8 +183,9 @@ class Trainer():
     
     def select_device(self, device_name):
         if(self.actor_state == TrainerState.STANDBY or self.critic_state == TrainerState.STANDBY):
-            self.device = device_name
-            self.algorithm.select_device(device_name)
+            if(self.algorithm is not None):
+                self.device = device_name
+                self.algorithm.select_device(device_name)
     
     def training_loop(self, max_epochs = None, save_every = None):
         if(self.actor_state == TrainerState.SLEEPING):
@@ -198,3 +202,6 @@ class Trainer():
                 return
         else:
             pass
+    
+    def execute(self, command_str):
+        exec(f"self.{command_str}")

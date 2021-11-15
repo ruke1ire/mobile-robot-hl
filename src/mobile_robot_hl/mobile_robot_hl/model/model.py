@@ -83,7 +83,6 @@ class MimeticSNAIL(nn.Module):
         out_net_modules = []
 
         for module_information in out_net_architecture:
-            print(module_information)
             exec(f"out_net_modules.append(nn.{module_information['module_type']}(**{module_information['module_kwargs']}))")
         
         self.out_net = nn.Sequential(*out_net_modules)
@@ -177,11 +176,11 @@ if __name__ == "__main__":
 
     print("Model:", msnail)
 
-    batch_of_images = torch.ones((2, 10, 3, 320, 460))
+    batch_of_images = torch.ones((2, 10, 3, 240, 320))
     actions_across_time = torch.ones((5, 10))
     actions_across_time2 = torch.ones((5, 10))
 
-    image_across_time = torch.ones((10, 3, 320, 460))
+    image_across_time = torch.ones((10, 3, 240, 320))
     single_image = torch.ones((3, 320, 460))
     action_single = torch.ones(5)
     action_single2 = torch.ones(5)

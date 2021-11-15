@@ -15,6 +15,7 @@ from .supervisor_gui import SupervisorGUI, SupervisorState
 from .joy_handler import JoyHandler, InterfaceType
 from .utils import *
 from .model.utils import *
+from .model.model_handler import ModelHandler
 
 import ros2_numpy as rnp
 

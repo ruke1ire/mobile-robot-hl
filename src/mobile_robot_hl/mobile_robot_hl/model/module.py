@@ -3,7 +3,7 @@ import torch.nn as nn
 import math
 import numpy as np
 
-from .utils import *
+from mobile_robot_hl.model.utils import *
 
 class DenseBlock(nn.Module):
     def __init__(self, dilation: int, input_size: int, filter_size: int):

@@ -12,3 +12,26 @@ This repo contains code that allows mobile robots to be trained for any navigati
 ## Requirements
 
 - [ROS2 Foxy](https://docs.ros.org/en/foxy/Installation.html)
+
+## Startup
+
+### Source files
+
+```
+source /opt/ros/foxy/setup.bash
+source install/setup.bash
+source src/init/init.sh
+```
+
+### Launch ROS nodes
+
+```
+ros2 launch mobile_robot_hl full_system_launch.py
+```
+
+### Start trainer.console
+
+```
+cd src/mobile_robot_hl
+python3 -m mobile_robot_hl.trainer.console
+```

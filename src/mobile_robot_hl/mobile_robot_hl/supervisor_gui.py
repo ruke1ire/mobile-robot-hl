@@ -313,9 +313,9 @@ class SupervisorGUI():
             self.info_user_termination_flag.configure(text=f"User Termination Flag: {user_termination}")
         if type(selected_demo) == str:
             self.info_current_demo.configure(text=f"Selected Demonstration: {selected_demo}")
-        if type(controller) != type(None):
+        if controller is not None:
             self.info_controller.configure(text=f"Controller: {controller.name}")
-        if type(selected_demo) == str:
+        if type(selected_model) == str:
             self.info_model.configure(text=f"Selected Model: {selected_model}")
 
     def update_action_plot_trigger(self):
