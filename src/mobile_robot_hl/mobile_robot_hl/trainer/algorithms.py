@@ -147,10 +147,10 @@ class TD3(Algorithm):
 				#10. Compute the actor's action using the real actor
 				actor_actions = self.actor_model(input = images, input_latent = prev_latent)
 				#11. Compute the negative critic values using the real critic
-				neg_critic_values = -self.critic_model_1(input = images, input_latent = prev_latent, pre_output_latent = actor_actions).mean()
+				actor_loss = -self.critic_model_1(input = images, input_latent = prev_latent, pre_output_latent = actor_actions).mean()
 				#12. Optimize actor
 				self.actor_optimizer.zero_grad()
-				neg_critic_values.backward()
+				actor_loss.backward()
 				self.actor_optimizer.step()
 
 				#13. Update target networks
