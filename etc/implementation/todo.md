@@ -4,6 +4,7 @@ The todo list is written to this file.
 
 ## In Progress
 
+- [ ] How to add information about the frame-no?
 - [ ] How should task termination flag work?
 - [ ] Should the model's output be limited to be within the range?
 - [ ] Record demonstrations
