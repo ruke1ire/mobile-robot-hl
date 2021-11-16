@@ -4,6 +4,8 @@ The todo list is written to this file.
 
 ## In Progress
 
+- [ ] How should task termination flag work?
+- [ ] Should the model's output be limited to be within the range?
 - [ ] Record demonstrations
     - about 20 path following tasks
 - [ ] algorithms.py
@@ -13,7 +15,6 @@ The todo list is written to this file.
     - [ ] Use blit for matplotlib
 - [ ] Implement agent_node
     - [ ] Implement every service and topic
-    - [ ] Let model do inference in agent_node | DO THIS NEXT
 - [ ] Implement trainer_node
     - [ ] Implement every service and topic
     - [ ] Create trainer class
@@ -64,6 +65,7 @@ The todo list is written to this file.
     - [x] Create config file for setting the frequency
     - [x] Add reentrant callback group to the services
     - [x] Add model onto agent node
+    - [x] Let model do inference in agent_node | DO THIS NEXT
 - [ ] Implement trainer_node
     - [x] Setup base-line ros communication topics and services
     - [x] List out all the commands that the trainer node should be able to do
