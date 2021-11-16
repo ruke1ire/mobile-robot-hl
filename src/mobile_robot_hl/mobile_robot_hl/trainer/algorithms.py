@@ -2,7 +2,6 @@ import pickle
 import torch
 import torch.nn.functional as F
 
-from mobile_robot_hl.model.utils import InferenceMode, ModelType
 from mobile_robot_hl.trainer.utils import *
 
 import abc

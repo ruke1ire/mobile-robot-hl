@@ -140,7 +140,7 @@ class AgentNode(Node):
                 observations, latent_vec = self.episode_to_model_input()
                 self.get_logger().info(str(observations.shape)+ str(latent_vec.shape))
                 # conditioning the model
-                self.model(input = observations, input_latent = latent_vec, inference_mode = InferenceMode.ONLY_LAST_FRAME)
+                self.model(input = observations, input_latent = latent_vec, inference_mode = InferenceMode.STORE)
                 self.received_desired_vel = True
                 self.received_termination_flag = True
                 self.received_action_controller = True
@@ -242,7 +242,7 @@ class AgentNode(Node):
             self.get_logger().info("Computing agent_output")
             self.get_logger().info("Publishing agent_output")
 
-            actions = self.model(input = observation, input_latent = latent_input, inference_mode = InferenceMode.ONLY_LAST_FRAME)
+            actions = self.model(input = observation, input_latent = latent_input, inference_mode = InferenceMode.STORE)
             agent_linear_vel = actions[0]
             agent_angular_vel = actions[1]
             agent_termination_flag = actions[2]
