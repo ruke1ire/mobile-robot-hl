@@ -154,7 +154,7 @@ class AttentionBlock(nn.Module):
         scores = dot_product / math.sqrt(self.key_size)
 
         mask = subsequent_mask(seq_length)
-        scores = scores.masked_fill(mask[:,:scores.shape[1],:] == 0, -float('inf'))
+        scores = scores.masked_fill(mask[:,-scores.shape[1]:,:] == 0, -float('inf'))
 
         probs = self.softmax(scores)
         activation = probs.matmul(values).transpose(1,2) # Batch x ValueSize x Time

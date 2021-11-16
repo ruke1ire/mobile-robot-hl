@@ -1,3 +1,4 @@
+from numpy.core.fromnumeric import trace
 from torch.autograd.grad_mode import inference_mode
 import rclpy
 from rclpy.node import Node
@@ -16,6 +17,7 @@ import os
 from enum import Enum
 import numpy as np
 import time
+import traceback
 
 import ros2_numpy as rnp
 
@@ -49,10 +51,10 @@ class AgentNode(Node):
         self.received_termination_flag = False
         self.received_action_controller = False
 
-        self.image_raw = None
         self.fill_int = 255
         img_tmp = np.zeros([240,320,3],dtype=np.uint8)
         img_tmp.fill(self.fill_int)
+        self.image_raw = img_tmp
         self.image_raw_msg = rnp.msgify(Image,img_tmp, encoding='rgb8')
         self.desired_vel = dict(linear = 0.0, angular = 0.0)
         self.termination_flag = False
@@ -132,15 +134,16 @@ class AgentNode(Node):
             response.message = "Model not selected"
         else:
             if(self.state == AgentState.STANDBY):
+                self.get_logger().info("Seting up to start task")
                 self.wait = True
                 demo_split = request.command.split('.')
                 demo_name = demo_split[0]
                 demo_id = demo_split[1]
                 self.episode = self.demo_handler.get(demo_name, demo_id)
+                self.get_logger().info("Retrieved episode")
                 observations, latent_vec = self.episode_to_model_input()
-                self.get_logger().info(str(observations.shape)+ str(latent_vec.shape))
-                # conditioning the model
                 self.model(input = observations, input_latent = latent_vec, inference_mode = InferenceMode.STORE)
+
                 self.received_desired_vel = True
                 self.received_termination_flag = True
                 self.received_action_controller = True
@@ -233,39 +236,44 @@ class AgentNode(Node):
             while(self.received_desired_vel == False or self.received_termination_flag == False or self.received_action_controller == False):
                 pass
 
-            action_controller = self.action_controller
-            observation, latent_input = self.convert_to_model_input(image_raw, self.desired_vel, self.termination_flag, self.action_controller)
+            try:
+                action_controller = self.action_controller
+                observation, latent_input = self.convert_to_model_input(image_raw, self.desired_vel, self.termination_flag, self.action_controller)
 
-            self.received_desired_vel = False
-            self.received_termination_flag = False
-            self.received_action_controller = False
-            self.get_logger().info("Computing agent_output")
-            self.get_logger().info("Publishing agent_output")
+                self.received_desired_vel = False
+                self.received_termination_flag = False
+                self.received_action_controller = False
+                self.get_logger().info("Computing agent_output")
+                self.get_logger().info("Publishing agent_output")
 
-            actions = self.model(input = observation, input_latent = latent_input, inference_mode = InferenceMode.STORE)
-            agent_linear_vel = actions[0]
-            agent_angular_vel = actions[1]
-            agent_termination_flag = actions[2]
-            if(agent_termination_flag >= 0.5):
-                agent_termination_flag = True
-            else: 
-                agent_termination_flag = False
+                actions = self.model(input = observation, input_latent = latent_input, inference_mode = InferenceMode.STORE)
+                agent_linear_vel = actions[0].item()
+                agent_angular_vel = actions[1].item()
+                agent_termination_flag = actions[2].item()
+                if(agent_termination_flag >= 0.5):
+                    agent_termination_flag = True
+                else: 
+                    agent_termination_flag = False
+                
 
-            agent_out = AgentOutput(velocity = Twist(linear=Vector3(x=agent_linear_vel,y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=agent_angular_vel)), termination_flag = agent_termination_flag)
+                agent_out = AgentOutput(velocity = Twist(linear=Vector3(x=agent_linear_vel,y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=agent_angular_vel)), termination_flag = agent_termination_flag)
 
-            self.agent_output_publisher.publish(agent_out)
-            self.get_logger().info("Published agent_output")
+                self.agent_output_publisher.publish(agent_out)
+                self.get_logger().info("Published agent_output")
 
-            self.episode.append_data(
-                image=PImage.fromarray(rnp.numpify(image_raw)),
-                agent_linear_vel=agent_linear_vel,
-                agent_angular_vel=agent_angular_vel,
-                agent_termination_flag=agent_termination_flag,
-                user_linear_vel=None,
-                user_angular_vel=None,
-                user_termination_flag=None,
-                controller=action_controller
-            )
+                self.episode.append_data(
+                    image=PImage.fromarray(image_raw),
+                    agent_linear_vel=agent_linear_vel,
+                    agent_angular_vel=agent_angular_vel,
+                    agent_termination_flag=agent_termination_flag,
+                    user_linear_vel=0.0,
+                    user_angular_vel=0.0,
+                    user_termination_flag=False,
+                    controller=action_controller
+                )
+
+            except:
+                self.get_logger().info(str(traceback.format_exc()))
 
         elif(self.state == AgentState.PAUSED):
             self.get_logger().info("Computing agent_output")
@@ -284,7 +292,7 @@ class AgentNode(Node):
         self.get_logger().info(f"Current Episode Length: {self.episode.get_episode_length()}")
 
     def select_model(self, name, id_):
-        self.model = self.model_handler.get(ModelType.ACTOR, name, id_)
+        self.model, model_info = self.model_handler.get(ModelType.ACTOR, name, id_)
     
     def convert_to_model_input(self, image_raw, desired_vel, termination_flag, action_controller):
         linear_vel = desired_vel['linear']
@@ -299,12 +307,14 @@ class AgentNode(Node):
             demo_flag = 0.0
 
         latent_vec = torch.tensor([linear_vel, angular_vel, termination_flag, demo_flag])
-        observation = torch.tensor(image_raw).permute((2,0,1))
+        observation = torch.tensor(image_raw, dtype = torch.float32).permute((2,0,1))/255-0.5
+
+
         return observation, latent_vec
     
     def episode_to_model_input(self):
         episode = self.episode.get_data()
-        observations = torch.tensor(np.stack(episode['observation']['image'])).permute((2,0,1))
+        observations = torch.tensor(np.stack(episode['observation']['image']), dtype = torch.float32).permute((0,3,1,2))/255
         controller = episode['action']['controller']
         agent_linear_vel = episode['action']['agent']['velocity']['linear']
         agent_angular_vel = episode['action']['agent']['velocity']['angular']
@@ -321,8 +331,6 @@ class AgentNode(Node):
         latent_vec = torch.stack([desired_linear_vel, desired_angular_vel, desired_termination_flag, demonstration_flag])
 
         return observations, latent_vec
-
-
 
 class AgentState(Enum):
     STANDBY = 0

@@ -22,7 +22,7 @@ th = TaskHandler(task_path, dh)
 mh = ModelHandler(model_path)
 
 dummy_observations = torch.zeros((100, 3, 240, 320))
-dummy_input_latent = torch.zeros((5, 100))
+dummy_input_latent = torch.zeros((4, 100))
 dummy_actions = torch.zeros((3, 100))
 
 trainer = Trainer(mh, dh, th, None)

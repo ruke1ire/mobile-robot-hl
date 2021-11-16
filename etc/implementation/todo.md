@@ -4,9 +4,6 @@ The todo list is written to this file.
 
 ## In Progress
 
-- [ ] model.py
-    - create another inference mode where it inputs multiple timeframes and also saves those time frames
-        - this is used for conditioning the model
 - [ ] Record demonstrations
     - about 20 path following tasks
 - [ ] algorithms.py
@@ -92,3 +89,6 @@ The todo list is written to this file.
 - [x] algorithms.py 
     - implement the td3 algorithm
 - [x] Create a console program for the trainer class, which later might become part of the supervisor gui.
+- [x] model.py
+    - create another inference mode where it inputs multiple timeframes and also saves those time frames
+        - this is used for conditioning the model
