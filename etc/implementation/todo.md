@@ -4,8 +4,11 @@ The todo list is written to this file.
 
 ## In Progress
 
+- [ ] Convert all information to be in 16 bit
 - [ ] How to add information about the frame-no?
 - [ ] How should task termination flag work?
+    - set the state to pause
+    - if user then presses the termination flag, then stop the task
 - [ ] Should the model's output be limited to be within the range?
 - [ ] Record demonstrations
     - about 20 path following tasks

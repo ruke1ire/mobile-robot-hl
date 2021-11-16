@@ -38,8 +38,13 @@ def compute_rewards(demonstration_flag):
     return reward
             
 def compute_values(gamma, rewards):
-    size = rewards.size
+    if(type(rewards) == torch.Tensor):
+        size = rewards.size()[0]
+    elif(type(rewards) == np.ndarray):
+        size = rewards.size
     discounted_mat = create_discounted_matrix(gamma, size)
+    if(type(rewards) == torch.Tensor):
+        discounted_mat = torch.tensor(discounted_mat, dtype = torch.float32).to(rewards.device.type)
     values = discounted_mat@rewards
     return values
 
@@ -53,5 +58,6 @@ def create_discounted_matrix(gamma, size):
 def create_optimizer_from_dict(optimizer_dict, parameters):
     optimizer_name = optimizer_dict['optimizer_name']
     optimizer_kwargs = optimizer_dict['optimizer_kwargs']
-    optimizer = exec(f"torch.optim.{optimizer_name}({parameters}, **optimizer_kwargs)")
-    return optimizer
+    optimizer = dict(parameters= parameters, optimizer_kwargs = optimizer_kwargs,out=None)
+    exec(f"out = torch.optim.{optimizer_name}(parameters, **optimizer_kwargs)", None, optimizer)
+    return optimizer['out']

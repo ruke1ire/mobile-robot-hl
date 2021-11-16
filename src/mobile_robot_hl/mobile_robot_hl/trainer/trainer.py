@@ -6,6 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 
 from mobile_robot_hl.model.utils import *
 import mobile_robot_hl.model.model as m
+from mobile_robot_hl.logger import *
 from .utils import *
 from .dataset import *
 from .algorithms import *
@@ -26,15 +27,15 @@ class Trainer():
         self.actor_model = None
         self.actor_model_info = None
         self.actor_optimizer_dict = None
-        self.critic_model_dict = None
+        self.critic_model = None
         self.critic_model_info = None
         self.critic_optimizer_dict = None
         self.algorithm = None
 
         self.task_dataset = TaskDataset(self.task_handler)
         self.demo_dataset = DemoDataset(self.demo_handler)
-        self.task_dataloader = DataLoader(self.task_dataset, batch_size = None, shuffle = True, num_workers = 4)
-        self.demo_dataloader = DataLoader(self.demo_dataset, batch_size = None, shuffle = True, num_workers = 4)
+        self.task_dataloader = DataLoader(self.task_dataset, batch_size = None, shuffle = True)
+        self.demo_dataloader = DataLoader(self.demo_dataset, batch_size = None, shuffle = True)
 
     def select_model(self, model_type, model_name, model_id = None):
         if(model_type == ModelType.ACTOR.name):
@@ -103,7 +104,7 @@ class Trainer():
     def start_training(self, training_type, save_every = None, max_epochs = None, additional_algorithm_kwargs = None):
         if(training_type == TrainingType.RL.name):
             if(self.actor_state == TrainerState.STANDBY and self.critic_state == TrainerState.STANDBY):
-                self.flag = True
+                self.stop = False
 
                 algorithm_kwargs = dict(
                     actor_model = self.actor_model,
@@ -118,12 +119,13 @@ class Trainer():
                     algorithm_kwargs = {**algorithm_kwargs, **additional_algorithm_kwargs}
                 self.algorithm = TD3(**algorithm_kwargs)
 
-                Thread(target = self.training_loop(save_every, max_epochs)).start()
+                #Thread(target = self.training_loop, args = (max_epochs, save_every,)).start()
+                self.training_loop(max_epochs, save_every)
                 self.actor_state = TrainerState.RUNNING
                 self.critic_state = TrainerState.RUNNING
         elif(training_type == TrainingType.IL.name):
             if(self.actor_state == TrainerState.STANDBY):
-                self.flag = True
+                self.stop = False
 
                 algorithm_kwargs = dict(
                     actor_model = self.actor_model,
@@ -135,7 +137,7 @@ class Trainer():
                     algorithm_kwargs = {**algorithm_kwargs, **additional_algorithm_kwargs}
 
                 # TODO: self.algorithm = IL(**algorithm_kwargs)
-                Thread(target = self.training_loop(save_every, max_epochs)).start()
+                Thread(target = self.training_loop, args = (max_epochs, save_every,)).start()
                 self.actor_state = TrainerState.RUNNING
 
     def pause_training(self):
@@ -195,11 +197,12 @@ class Trainer():
             max_epochs = -1
 
         for i in count(0):
-            self.algorithm.train_one_epoch(self.stop)
-
             if i == max_epochs:
+                self.actor_state = TrainerState.STANDBY
                 self.critic_state = TrainerState.STANDBY
                 return
+            self.algorithm.train_one_epoch(self.stop)
+
         else:
             pass
     

@@ -12,11 +12,6 @@ task_path = os.environ['MOBILE_ROBOT_HL_TASK_PATH']
 model_path = os.environ['MOBILE_ROBOT_HL_MODEL_PATH']
 run_setup_path = os.environ['MOBILE_ROBOT_HL_RUN_SETUP_PATH']
 
-def load_runs(run_name):
-	with open(f'{run_setup_path}/{run_name}.yaml', 'r') as stream:
-		f = yaml.safe_load(stream)
-	return f
-
 dh = DemoHandler(demo_path)
 th = TaskHandler(task_path, dh)
 mh = ModelHandler(model_path)
@@ -26,6 +21,15 @@ dummy_input_latent = torch.zeros((4, 100))
 dummy_actions = torch.zeros((3, 100))
 
 trainer = Trainer(mh, dh, th, None)
+
+def load_runs(run_name):
+	with open(f'{run_setup_path}/{run_name}.yaml', 'r') as stream:
+		f = yaml.safe_load(stream)
+	for key, value in f.items():
+		key_split = key.split('__')
+		command = key_split[0]
+		exec(f"trainer.{command}(**value)")
+	return f
 
 while True:
 	user_input = input("Trainer> ")
