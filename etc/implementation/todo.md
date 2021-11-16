@@ -4,11 +4,15 @@ The todo list is written to this file.
 
 ## In Progress
 
-- [ ] Convert all information to be in 16 bit
+- Make neural network lighter
+    - [ ] Convert all information to be in 16 bit
+        - https://medium.com/@dwightfoster03/fp16-in-pytorch-a042e9967f7e
+    - [ ] https://pytorch.org/docs/master/amp.html Autocast
 - [ ] How to add information about the frame-no?
 - [ ] How should task termination flag work?
     - set the state to pause
-    - if user then presses the termination flag, then stop the task
+    - the user can then press the task_termination_flag to show that it was used correctly
+    - if agent doesn't raise teh task_termination_flag, pressing the task_termination_flag will pause the episode
 - [ ] Should the model's output be limited to be within the range?
 - [ ] Record demonstrations
     - about 20 path following tasks
