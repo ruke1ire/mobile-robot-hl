@@ -10,8 +10,8 @@ class ModuleType(Enum):
     ATTENTION = 1
 
 class InferenceMode(Enum):
-    ONLY_LAST_FRAME = 0
-    WHOLE_BATCH = 1
+    NONE = 0
+    STORE = 1
 
 class ModelType(Enum):
     ACTOR = 0

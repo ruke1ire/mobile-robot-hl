@@ -32,7 +32,7 @@ class Snail(nn.Module):
         
         self.model = nn.Sequential(*modules)
 
-    def forward(self, input, inference_mode = InferenceMode.WHOLE_BATCH):
+    def forward(self, input, inference_mode = InferenceMode.NONE):
         '''
         Forward propagation of the neural network. It also temporarily stores the computed values as self.output
 
@@ -44,8 +44,8 @@ class Snail(nn.Module):
         if(shape_len == 2):
             input = input.unsqueeze(0)
 
-        if(inference_mode == InferenceMode.ONLY_LAST_FRAME):
-            assert ((input.shape[0] == 1) and (input.shape[2] == 1)), "Input batch size should == 1 and input time length should == 1 for inference_mode == ONLY_LAST_FRAME"
+        if(inference_mode == InferenceMode.STORE):
+            assert (input.shape[0] == 1), "Input batch size should == 1"
 
         output, inference_mode = self.model((input, inference_mode))
 
@@ -87,7 +87,7 @@ class MimeticSNAIL(nn.Module):
         
         self.out_net = nn.Sequential(*out_net_modules)
     
-    def forward(self, input, input_latent=None, pre_output_latent=None, inference_mode = InferenceMode.WHOLE_BATCH):
+    def forward(self, input, input_latent=None, pre_output_latent=None, inference_mode = InferenceMode.NONE):
         shape_len = input.dim()
 
         if(shape_len in [3,4]):
@@ -176,20 +176,27 @@ if __name__ == "__main__":
 
     print("Model:", msnail)
 
-    batch_of_images = torch.ones((2, 10, 3, 240, 320))
     actions_across_time = torch.ones((5, 10))
     actions_across_time2 = torch.ones((5, 10))
-
     image_across_time = torch.ones((10, 3, 240, 320))
+
     single_image = torch.ones((3, 320, 460))
     action_single = torch.ones(5)
     action_single2 = torch.ones(5)
 
     print("Image across time size:", image_across_time.shape)
-    print("Image across time output size:", msnail(image_across_time, input_latent = actions_across_time, pre_output_latent = actions_across_time2, inference_mode = InferenceMode.WHOLE_BATCH).shape)
+    print("Image across time output size:", msnail(image_across_time, input_latent = actions_across_time, pre_output_latent = actions_across_time2, inference_mode = InferenceMode.NONE).shape)
+
+    print("Image across time input size:", image_across_time.shape)
+    print("Image across time output size:", msnail(image_across_time, input_latent = actions_across_time, pre_output_latent = actions_across_time2, inference_mode = InferenceMode.STORE).shape)
+    print(msnail.snail_net.model[0].model[0].input.shape)
+
+    print("Image across time input size:", image_across_time.shape)
+    print("Image across time output size:", msnail(image_across_time, input_latent = actions_across_time, pre_output_latent = actions_across_time2, inference_mode = InferenceMode.STORE).shape)
+    print(msnail.snail_net.model[0].model[0].input.shape)
 
     print("Single image size:", single_image.shape)
-    print("Single image output size:", msnail(single_image, input_latent = action_single, pre_output_latent = action_single2, inference_mode = InferenceMode.WHOLE_BATCH).shape)
+    print("Single image output size:", msnail(single_image, input_latent = action_single, pre_output_latent = action_single2, inference_mode = InferenceMode.NONE).shape)
 
     print("Single image size:", single_image.shape)
-    print("Single image output size:", msnail(single_image, input_latent = action_single, pre_output_latent = action_single2, inference_mode = InferenceMode.ONLY_LAST_FRAME).shape)
+    print("Single image output size:", msnail(single_image, input_latent = action_single, pre_output_latent = action_single2, inference_mode = InferenceMode.STORE).shape)

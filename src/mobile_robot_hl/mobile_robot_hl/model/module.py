@@ -23,7 +23,7 @@ class DenseBlock(nn.Module):
         self.tanh = nn.Tanh()
         self.sigmoid = nn.Sigmoid()
 
-    def forward(self, input_tuple = (None, InferenceMode.WHOLE_BATCH)):
+    def forward(self, input_tuple = (None, InferenceMode.NONE)):
         input = input_tuple[0]
         inference_mode = input_tuple[1]
         assert input is not None, "Input is None"
@@ -32,18 +32,18 @@ class DenseBlock(nn.Module):
         assert (shape_len in [2,3]), "Invalid number of dimensions, should be in [2,3]"
         if(shape_len == 2):
             input = input.unsqueeze(0)
-
-        if(inference_mode == InferenceMode.WHOLE_BATCH):
+        
+        if(inference_mode == InferenceMode.NONE):
             self.reset()
             input_ = self.initial_padding(input)
         else:
-            assert ((input.shape[0] == 1) and (input.shape[2] == 1)), "Input batch size should == 1 and input time length should == 1 for inference_mode == ONLY_LAST_FRAME "
+            assert (input.shape[0] == 1), "Input batch size should == 1"
 
             if(self.input is not None):
                 self.input = torch.cat((self.input, input), dim=2)
             else:
                 self.input = self.initial_padding(input)
-            input_ = self.input[:,:,-(self.dilation+1):]
+            input_ = self.input[:,:,-(self.dilation+input.shape[2]):]
 
         xf, xg = self.causal_conv1(input_), self.causal_conv2(input_)
         activations = self.tanh(xf) * self.sigmoid(xg)
@@ -70,7 +70,7 @@ class TCBlock(nn.Module):
         self.model = nn.Sequential(*modules)
         self.output_size = input_size + filter_size*self.no_layer
 
-    def forward(self, input_tuple = (None, InferenceMode.WHOLE_BATCH)):
+    def forward(self, input_tuple = (None, InferenceMode.NONE)):
         input = input_tuple[0]
         inference_mode = input_tuple[1]
         assert input is not None, "Input is None"
@@ -80,10 +80,10 @@ class TCBlock(nn.Module):
         if(shape_len == 2):
             input = input.unsqueeze(0)
 
-        if(inference_mode == InferenceMode.WHOLE_BATCH):
+        if(inference_mode == InferenceMode.NONE):
             self.reset()
         else:
-            assert ((input.shape[0] == 1) and (input.shape[2] == 1)), "Input batch size should == 1 and input time length should == 1 for inference_mode == ONLY_LAST_FRAME"
+            assert (input.shape[0] == 1), "Input batch size should == 1"
 
         input_ = input
 
@@ -113,7 +113,7 @@ class AttentionBlock(nn.Module):
         self.value_layer = nn.Linear(input_size, value_size)
         self.softmax = nn.Softmax(dim=1)
 
-    def forward(self, input_tuple = (None, InferenceMode.WHOLE_BATCH)):
+    def forward(self, input_tuple = (None, InferenceMode.NONE)):
         input = input_tuple[0]
         inference_mode = input_tuple[1]
         assert input is not None, "Input is None"
@@ -123,7 +123,7 @@ class AttentionBlock(nn.Module):
         if(shape_len == 2):
             input = input.unsqueeze(0)
 
-        if(inference_mode == InferenceMode.WHOLE_BATCH):
+        if(inference_mode == InferenceMode.NONE):
             self.reset()
             seq_length = input.shape[2]
             input_ = input.transpose(1, 2) # Batch x Time x Channels
@@ -131,12 +131,12 @@ class AttentionBlock(nn.Module):
             keys = self.key_layer(input_)  # Batch x Time x KeySize
             query = self.query_layer(input_)  # Batch x Time x QuerySize
         else:
-            assert ((input.shape[0] == 1) and (input.shape[2] == 1)), "Input batch size should == 1 and input time length should == 1 for inference_mode == ONLY_LAST_FRAME "
+            assert (input.shape[0] == 1), "Input batch size should == 1"
 
             input_ = input.transpose(1,2)
-            value = self.value_layer(input_) # 1 x 1 x ValueSize
-            key = self.key_layer(input_)  # 1 x 1 x KeySize
-            query = self.query_layer(input_)  # 1 x 1 x QuerySize
+            value = self.value_layer(input_) # 1 x Time x ValueSize
+            key = self.key_layer(input_)  # 1 x Time x KeySize
+            query = self.query_layer(input_)  # 1 x Time x QuerySize
 
             if(self.values is not None):
                 self.values = torch.cat((self.values, value), dim=1) # 1 x Time x ValueSize
@@ -181,16 +181,22 @@ if __name__ == "__main__":
 
     batch_input = torch.ones(10, 5, 100)
     print("Batch input shape = ", batch_input.shape)
-    print("Batch output shape = ",dense_block((batch_input, InferenceMode.WHOLE_BATCH))[0].shape)
+    print("Batch output shape = ",dense_block((batch_input, InferenceMode.NONE))[0].shape)
     single_input = torch.ones(1, 5, 1)
     print("Single input shape = ", single_input.shape)
-    output, inference_mode = dense_block((single_input, InferenceMode.WHOLE_BATCH))
+    output, inference_mode = dense_block((single_input, InferenceMode.NONE))
     print("Single output shape = ", output.shape)
-    output, inference_mode = dense_block((single_input, InferenceMode.ONLY_LAST_FRAME))
-    print(dense_block.values.shape)
-    output, inference_mode = dense_block((single_input, InferenceMode.ONLY_LAST_FRAME))
-    print(dense_block.values.shape)
-    output, inference_mode = dense_block((single_input, InferenceMode.ONLY_LAST_FRAME))
+    output, inference_mode = dense_block((single_input, InferenceMode.STORE))
     print(dense_block.values.shape)
     print("Single output shape = ",output.shape)
+    output, inference_mode = dense_block((single_input, InferenceMode.STORE))
+    print(dense_block.values.shape)
+    print("Single output shape = ",output.shape)
+    output, inference_mode = dense_block((single_input, InferenceMode.STORE))
+    print(dense_block.values.shape)
+    print("Single output shape = ",output.shape)
+    multi_input = torch.ones(1, 5, 10)
+    output, inference_mode = dense_block((multi_input, InferenceMode.STORE))
+    print(dense_block.values.shape)
+    print("Multi output shape = ",output.shape)
 
