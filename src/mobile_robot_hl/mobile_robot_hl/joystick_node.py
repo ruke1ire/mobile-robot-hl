@@ -79,7 +79,7 @@ class JoystickNode(Node):
                 # TODO: need some logic here to determine if it should be start or pause
                 self.call_service(supervisor_prefix+'start', command = 'task')
             elif(prev_joy_state[InterfaceType.TAKE_OVER_TASK.name] == False and joy_state[InterfaceType.TAKE_OVER_TASK.name] == True):
-                self.call_service(supervisor_prefix+'take_over')
+                self.call_service(supervisor_prefix+'select_controller', command='user')
             elif(prev_joy_state[InterfaceType.START_PAUSE_DEMO.name] == False and joy_state[InterfaceType.START_PAUSE_DEMO.name] == True):
                 # TODO: need some logic here to determine if it should be start or pause
                 self.call_service(supervisor_prefix+'start', command = 'demo')
@@ -90,7 +90,7 @@ class JoystickNode(Node):
             time.sleep(0.1)
     
     def call_service(self, service_name, command=None):
-        self.get_logger().info(f'Calling service {service_name}.')
+        self.get_logger().info(f'Calling service "{service_name}"')
         if self.services_[service_name].wait_for_service(timeout_sec=0.1) == False:
             self.get_logger().warn(f'{service_name} service not available')
         else:
@@ -102,9 +102,9 @@ class JoystickNode(Node):
             response = self.services_[service_name].call(request)
 
             if(response.success == True):
-                self.get_logger().info(f'Service successful: {service_name}')
+                self.get_logger().info(f'Service successful: "{service_name}"')
             else:
-                self.get_logger().warn(f'{service_name} service error: {response.message}')
+                self.get_logger().warn(f'"{service_name}" service error: {response.message}')
             return response
 
 def main():

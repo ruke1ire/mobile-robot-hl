@@ -23,6 +23,7 @@ find_package(geometry_msgs REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/AgentOutput.msg"
   "srv/StringTrigger.srv"
+  "srv/FloatTrigger.srv"
   DEPENDENCIES geometry_msgs
  )
 

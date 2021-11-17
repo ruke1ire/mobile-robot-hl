@@ -86,7 +86,7 @@ The agent node outputs the automatic control signals using a neural network.
 - Publishes to agent_output (QOS: Reliable)
     - predicted_velocity
     - predicted_termination_flag
-- Subscribes to task_image (QOS: Best effort)
+- Subscribes to task_image (QOS: Reliable)
 - Subscribes to desired_velocity (QOS: Reliable)
 - Subscribes to termination_flag (QOS: Reliable)
 - Subscribes to action_controller (QOS: Reliable)

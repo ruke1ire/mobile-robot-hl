@@ -633,10 +633,3 @@ class SupervisorGUI():
             self.episode_index = current_selection
             Thread(target=lambda: self.update_episode_image(current_selection)).start()
     
-class SupervisorState(Enum):
-    STANDBY = 0
-    TASK_RUNNING = 101
-    TASK_PAUSED = 102
-    TASK_TAKE_OVER = 103
-    DEMO_RECORDING = 201
-    DEMO_PAUSED = 202

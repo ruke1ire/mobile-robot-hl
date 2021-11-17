@@ -1,4 +1,6 @@
 from mobile_robot_hl.utils import ControllerType
+import torch
+import numpy as np
 
 import copy
 
@@ -184,6 +186,31 @@ class EpisodeData:
         self.length = self.get_episode_length_()
         if self.length == 0:
             self.data_empty = True
+
+    def get_tensor(self):
+        episode = self.data
+        images = [np.array(img) for img in episode['observation']['image']]
+
+        observations = torch.tensor(np.stack(images), dtype = torch.float32).permute((0,3,1,2))/255.0
+
+        controller = episode['action']['controller']
+        agent_linear_vel = episode['action']['agent']['velocity']['linear']
+        agent_angular_vel = episode['action']['agent']['velocity']['angular']
+        agent_termination_flag = episode['action']['agent']['termination_flag']
+        user_linear_vel = episode['action']['user']['velocity']['linear']
+        user_angular_vel = episode['action']['user']['velocity']['angular']
+        user_termination_flag = episode['action']['user']['termination_flag']
+
+        desired_linear_vel = torch.tensor([user if cont == ControllerType.USER else agent for (user, agent, cont) in zip(user_linear_vel, agent_linear_vel, controller)])
+        desired_angular_vel = torch.tensor([user if cont == ControllerType.USER else agent for (user, agent, cont) in zip(user_angular_vel, agent_angular_vel, controller)])
+        desired_termination_flag = torch.tensor([user if cont == ControllerType.USER else agent for (user, agent, cont) in zip(user_termination_flag, agent_termination_flag, controller)], dtype = torch.float32)
+        demonstration_flag = torch.tensor([True if cont == ControllerType.USER else False for cont in controller], dtype = torch.float32)
+
+        latent_vec = torch.stack([desired_linear_vel, desired_angular_vel, desired_termination_flag, demonstration_flag])
+
+        return observations, latent_vec
+
+
 
 def get_leaf_string(dict_, string = ""):
     try:
