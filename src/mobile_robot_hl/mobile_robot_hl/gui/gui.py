@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import time
-from threading import Timer, Thread
+from threading import Thread
 
 from .episode_data import *
 from .utils import *

@@ -4,7 +4,7 @@ from glob import glob
 
 package_name = 'mobile_robot_hl'
 
-submodule_names = ['model', 'episode_data', 'joystick', 'logger']
+submodule_names = ['model', 'episode_data', 'joystick', 'logger', 'gui']
 submodule_paths = [f"{package_name}/{name}" for name in submodule_names]
 
 
@@ -31,6 +31,7 @@ setup(
             'supervisor_node = mobile_robot_hl.supervisor_node:main',
             'agent_node = mobile_robot_hl.agent_node:main',
             'trainer_node = mobile_robot_hl.trainer_node:main',
+            'gui_node = mobile_robot_hl.gui_node:main',
         ],
     },
 )

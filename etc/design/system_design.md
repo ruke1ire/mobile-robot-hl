@@ -26,45 +26,43 @@ The system design ideas of this package is discussed in this file. Note that the
 
 ### Supervisor Node
 
-The supervisor node handles all output/input to/from the supervisor (user).
+The supervisor node handles all output/input to/from the supervisor (user), the agent (neural network), and the vehicle.
 
 ***Functional Requirements***
-
-- [ ] Display
-    - [ ] Information that the agent is conditioned on
-    - [ ] Current and previous outputs of the agent and supervisor
-    - [ ] Live video stream
-- [ ] Controls
-    - [ ] Start/Pause/Stop automatic control
-    - [ ] Start/Pause/Stop creating user demonstration
-    - [ ] Save episode or user demonstration
-    - [ ] Select/Queue user demonstration for agent (can random too)
-    - [ ] Start/Stop training of the model
+- [ ] Select the controller of the vehicle
+- [ ] Publish actions to the vehicle according to the selected controller
+- [ ] React to task-termination flags
+- [ ] Publish supervisor_node state
 
 ***Params***
-- Demonstration file path
+- Control frequency
+- Data File paths
 
 ***Topics***
 - Publishes to desired_velocity (QOS: Reliable)
 - Publishes to termination_flag (QOS: Reliable)
+- Publishes to action_controller (QOS: Reliable)
+- Publishes to frame_no (QOS: Reliable)
+- Publishes to task_image (QOS: Reliable)
+- Publishes to supervisor_state (QOS: Reliable)
 - Subscribes to agent_output (QOS: Reliable)
-- Subscribes to agent_input (QOS: Reliable)
-- Subscribes to user_velocity (QOS: Best Effort, Twist)
-- Subscribes to user_termination_flag (QOS: Best Effort, Bool)
 - Subscribes to image_raw (QOS: Best Effort)
+- Subscribes to user_velocity (QOS: Best Effort, Twist)
+
+***Services***
+- start (task/demo): Start automatic control or continue automatic control after supervisor take-over
+- select_data ((task/demo).(task/demo name)): Select the data to be used to condition the model
+- pause: Stop moving vehicle
+- stop: Stop moving vehicle and deselect the demo/task episode
+- termination_flag: Stop moving vehicle; Raise the termination_flag
+- select_controller (agent, user): Select the controller of the vehicle
+- configure_disturbance (magnitude): Configure the disturbance to add to the output
+- save: Save the episode
 
 ***Other information***
-- Input for supervisor control will come from other external nodes such as teleop_twist_keyboard
-- When creating user demonstrations or supervisor take-overs, the frequency of the control output from the supervisor will be limited to the control frequency of the agent node therefore this requires the agent node to be present.
-- Supervisor take-over is similar to a user-demonstration therefore the start/pause buttons of the user demonstration can be used to start/pause the supervisor take-over. To restart the automatic control press the start button in the automatic control section.
-- Defaults to manual control mode where there isn't any frequency limitation for controlling the mobile robot. This mode changes if the start buttons are pressed for automatic control or creating user demonstrations.
-- Information panel should contain the following informations:
-    - Selected demonstration
-    - User action
-    - Agent action
-    - Controller
-- GUI design can be found in [etc/design/supervisor_GUI_design.md](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/design/supervisor_GUI_design.md)
-- Below is the state-flow-diagram 
+- Defaults to manual control mode where there isn't any frequency limitation for controlling the mobile robot. This mode changes if the start service is called.
+- Directly subscribing to compressed visual images can be done through the image_transport_plugins but it is only available in c++. Therefore I will use the "image_transport republish" node to first convert the compressed image from the mobile-robot-base to raw images.
+- Below is a rough state-flow-diagram 
 
 ![etc/design/supervisor_GUI_state_diagram.png](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/design/supervisor_GUI_state_diagram.png)
 
@@ -75,40 +73,70 @@ The supervisor node handles all output/input to/from the supervisor (user).
 The agent node outputs the automatic control signals using a neural network. 
 
 ***Functional Requirements***
-- [ ] Controls
-    - [ ] Select User demonstration
-    - [ ] Start/Pause/Take-over/Stop automatic control
-    - [ ] Select neural network model for agent (defaults to latest model)
+- [ ] Select model
+- [ ] Reset model
+- [ ] Select data to be used to condition the model
+- [ ] Compute output action from task_image and previous actions
 
 ***Params***
 - CPU/GPU for neural network inference
-- Demonstration file path
-- Control frequency
-- Path to neural networks
+- Data file paths
 
 ***Topics***
 - Publishes to agent_output (QOS: Reliable)
     - predicted_velocity
     - predicted_termination_flag
-- Publishes to agent_input (QOS: Reliable)
-- Subscribes to image_raw (QOS: Best effort)
+- Subscribes to task_image (QOS: Best effort)
 - Subscribes to desired_velocity (QOS: Reliable)
 - Subscribes to termination_flag (QOS: Reliable)
+- Subscribes to action_controller (QOS: Reliable)
+- Subscribes to frame_no (QOS: Reliable)
 
 ***Services***
-- start: Start automatic control or continue automatic control after supervisor take-over
-- pause: Pause automatic control
-- stop: Stop automatic control and clear current episode data
-- take-over: Pause automatic control but continue to condition the model with supervisor input
-- select_demonstration: Select a user demonstration to condition the model
+- select_data: Select a data to condition the model on
 - select_model: Select the neural network model for the agent
-- select_mode: Select between inference or exploration mode
+- reset_model: Reset the model
 
 ***Other information***
-- This node will always output the agent_in at the specified control frequency
 - The agent_output will only output when automatic control is started
-- When take-over occurs, the desired_velocity and termination_flag will be used to condition the model.
-- Directly subscribing to compressed visual images can be done through the image_transport_plugins but it is only available in c++. Therefore I will use the "image_transport republish" node to first convert the compressed image from the mobile-robot-base to raw images.
+
+---
+
+### GUI Node
+
+***Functional Requirements***
+- [ ] Display
+    - [ ] Image raw
+    - [ ] Current episode
+- [ ] Control
+    - [ ] Start/Pause/Take-over/Stop/Save tasks
+    - [ ] Start/Pause/Stop/Save demonstrations
+    - [ ] Select model
+    - [ ] Select/Queue Tasks
+    - [ ] Set Disturbance
+
+***Topics***
+- Subscribes to image_raw (QOS: Best effort)
+- Subscribes to agent_output (QOS: Reliable)
+- Subscribes to user_velocity (QOS: Reliable)
+- Subscribes to supervisor_state (QOS: Best effort)
+
+***Other information***
+- GUI design can be found in [etc/design/supervisor_GUI_design.md](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/design/supervisor_GUI_design.md)
+
+---
+
+### Joystick Node
+
+***Functional Requirements***
+- [ ] Publish joystick states as user_velocity
+- [ ] Call appropriate supervisor services
+
+***Topics***
+- Publishes to user_velocity (QOS: Best effort)
+
+***Other information***
+- GUI design can be found in [etc/design/supervisor_GUI_design.md](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/design/supervisor_GUI_design.md)
 
 ---
 
