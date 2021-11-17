@@ -10,7 +10,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import time
 from threading import Timer, Thread
 
-from .joy_handler import InterfaceType
+from .episode_data import *
 from .utils import *
 from .model.utils import *
 

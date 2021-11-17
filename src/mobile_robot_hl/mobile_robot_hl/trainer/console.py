@@ -1,6 +1,6 @@
 from .trainer import *
-from mobile_robot_hl.utils import *
-from mobile_robot_hl.model.model_handler import ModelHandler
+from mobile_robot_hl.model import *
+from mobile_robot_hl.episode_data import *
 
 import traceback
 import os

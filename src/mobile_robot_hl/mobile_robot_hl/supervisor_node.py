@@ -12,10 +12,11 @@ from std_srvs.srv import Trigger
 from geometry_msgs.msg import Vector3
 
 from .supervisor_gui import SupervisorGUI, SupervisorState
-from .joy_handler import JoyHandler, InterfaceType
+from mobile_robot_hl.joystick import *
 from .utils import *
 from .model.utils import *
 from .model.model_handler import ModelHandler
+from mobile_robot_hl.episode_data import *
 
 import ros2_numpy as rnp
 

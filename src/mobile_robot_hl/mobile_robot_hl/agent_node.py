@@ -18,13 +18,14 @@ from enum import Enum
 import numpy as np
 import time
 import traceback
+from PIL import Image as PImage
 
 import ros2_numpy as rnp
 
 from .utils import *
-from .model.model import MimeticSNAIL
-from .model.utils import *
 from .model.model_handler import ModelHandler
+from .episode_data import *
+from .model.utils import *
 
 class AgentNode(Node):
 

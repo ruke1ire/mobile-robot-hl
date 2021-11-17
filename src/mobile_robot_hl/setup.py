@@ -3,12 +3,15 @@ import os
 from glob import glob
 
 package_name = 'mobile_robot_hl'
-model_submodule_name = 'model'
+
+submodule_names = ['model', 'episode_data', 'joystick', 'logger']
+submodule_paths = [f"{package_name}/{name}" for name in submodule_names]
+
 
 setup(
     name=package_name,
     version='0.0.0',
-    packages=[package_name, f"{package_name}/{model_submodule_name}"],
+    packages=[package_name] + submodule_paths,
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
