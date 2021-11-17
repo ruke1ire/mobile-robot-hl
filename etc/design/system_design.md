@@ -129,8 +129,8 @@ The agent node outputs the automatic control signals using a neural network.
 ### Joystick Node
 
 ***Functional Requirements***
-- [ ] Publish joystick states as user_velocity
-- [ ] Call appropriate supervisor services
+- [x] Publish joystick states as user_velocity
+- [x] Call appropriate supervisor services
 
 ***Topics***
 - Publishes to user_velocity (QOS: Best effort)
