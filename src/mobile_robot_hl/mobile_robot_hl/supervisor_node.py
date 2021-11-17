@@ -78,7 +78,7 @@ class SupervisorNode(Node):
         self.action_controller_publisher = self.create_publisher(String, 'action_controller', reliable_qos, callback_group = ReentrantCallbackGroup())
         self.task_image_publisher = self.create_publisher(Image, 'task_image', reliable_qos, callback_group = ReentrantCallbackGroup())
         self.frame_no_publisher = self.create_publisher(Int32, 'frame_no', reliable_qos, callback_group = ReentrantCallbackGroup())
-        # TODO: self.supervisor_state_publisher = self.create_publisher()
+        self.supervisor_state_publisher = self.create_publisher(String, 'supervisor_state', best_effort_qos, callback_group = ReentrantCallbackGroup())
 
         self.image_raw_subscriber = self.create_subscription(Image, image_raw_topic_name, self.image_raw_callback ,best_effort_qos, callback_group = ReentrantCallbackGroup())
         self.agent_output_subscriber = self.create_subscription(AgentOutput, 'agent_output', self.agent_output_callback ,best_effort_qos, callback_group = ReentrantCallbackGroup())
@@ -224,8 +224,8 @@ class SupervisorNode(Node):
         pass
 
     def publish_state(self):
-        # TODO: Publish the state
-        pass
+        msg = String(data=self.state.name)
+        self.supervisor_state_publisher.publish(msg)
 
     ### UTILS
     def call_service(self, service_name, command=None):

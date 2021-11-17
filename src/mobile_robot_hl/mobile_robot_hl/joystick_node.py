@@ -7,11 +7,13 @@ from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Vector3
 from custom_interfaces.srv import StringTrigger
 from std_srvs.srv import Trigger
+from std_msgs.msg import String
 
 from threading import Thread
 import time
 
 from .joystick import *
+from mobile_robot_hl.utils import *
 
 supervisor_prefix = 'supervisor/'
 
@@ -23,11 +25,7 @@ class JoystickNode(Node):
                                         depth=1, 
                                         reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
 
-        self.termination_flag_state = False
-        self.start_pause_task_state = False
-        self.take_over_state = False
-        self.start_pause_demo_state = False
-        self.stop_state = False
+        self.supervisor_state = SupervisorState.STANDBY
 
         self.get_logger().info("Initializing Node")
 
@@ -47,9 +45,8 @@ class JoystickNode(Node):
         self.get_logger().info(f"Parameter <max_linear_velocity> = {self.max_linear_velocity}")
         self.get_logger().info(f"Parameter <max_angular_velocity> = {self.max_angular_velocity}")
 
-        self.user_velocity_group = ReentrantCallbackGroup()
-        self.user_velocity_publisher = self.create_publisher(Twist, 'user_velocity', best_effort_qos, callback_group=self.user_velocity_group)
-        # TODO: self.supervisor_state_subscriber = self.create_subscription()
+        self.user_velocity_publisher = self.create_publisher(Twist, 'user_velocity', best_effort_qos, callback_group=ReentrantCallbackGroup())
+        self.supervisor_state_subscriber = self.create_subscription(String, 'supervisor_state', self.supervisor_state_callback, callback_group=ReentrantCallbackGroup())
 
         self.services_ = {}
 
@@ -60,6 +57,9 @@ class JoystickNode(Node):
         self.services_[supervisor_prefix+'stop'] = self.create_client(StringTrigger, supervisor_prefix+'start')
 
         self.get_logger().info("Initialized Node")
+
+    def supervisor_state_callback(self, msg):
+        self.supervisor_state = SupervisorState[msg.data]
 
     def velocity_loop(self):
         self.get_logger().info("Publishing user_velocity")
@@ -75,14 +75,22 @@ class JoystickNode(Node):
             joy_state = self.joy_handler.get_state()
             if(prev_joy_state[InterfaceType.STOP.name] == False and joy_state[InterfaceType.STOP.name] == True):
                 self.call_service(supervisor_prefix+'stop')
+
             elif(prev_joy_state[InterfaceType.START_PAUSE_TASK.name] == False and joy_state[InterfaceType.START_PAUSE_TASK.name] == True):
-                # TODO: need some logic here to determine if it should be start or pause
-                self.call_service(supervisor_prefix+'start', command = 'task')
+                if(self.supervisor_state in [SupervisorState.STANDBY, SupervisorState.TASK_PAUSED]):
+                    self.call_service(supervisor_prefix+'start', command = 'task')
+                elif(self.supervisor_state == SupervisorState.TASK_RUNNING):
+                    self.call_service(supervisor_prefix+'pause')
+
             elif(prev_joy_state[InterfaceType.TAKE_OVER_TASK.name] == False and joy_state[InterfaceType.TAKE_OVER_TASK.name] == True):
                 self.call_service(supervisor_prefix+'select_controller', command='user')
+
             elif(prev_joy_state[InterfaceType.START_PAUSE_DEMO.name] == False and joy_state[InterfaceType.START_PAUSE_DEMO.name] == True):
-                # TODO: need some logic here to determine if it should be start or pause
-                self.call_service(supervisor_prefix+'start', command = 'demo')
+                if(self.supervisor_state in [SupervisorState.STANDBY, SupervisorState.DEMO_PAUSED]):
+                    self.call_service(supervisor_prefix+'start', command = 'demo')
+                elif(self.supervisor_state == SupervisorState.DEMO_RECORDING):
+                    self.call_service(supervisor_prefix+'pause')
+
             elif(prev_joy_state[InterfaceType.TERMINATION_FLAG.name] == False and joy_state[InterfaceType.TERMINATION_FLAG.name] == True):
                 self.call_service(supervisor_prefix+'termination_flag')
 

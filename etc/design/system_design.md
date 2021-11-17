@@ -123,6 +123,7 @@ The agent node outputs the automatic control signals using a neural network.
 
 ***Other information***
 - GUI design can be found in [etc/design/supervisor_GUI_design.md](https://github.com/ruke1ire/mobile-robot-hl/blob/main/etc/design/supervisor_GUI_design.md)
+- GUI implementation details can be found in [etc/imlpementation/GUI.md](https://github.com/ruke1ire/mobile-robot-hl/blob/test_branch/etc/implementation/GUI.md)
 
 ---
 

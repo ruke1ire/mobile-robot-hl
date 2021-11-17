@@ -4,6 +4,7 @@ The todo list is written to this file.
 
 ## In Progress
 
+- [ ] Make GUI look nicer
 - Make neural network lighter
     - [ ] Convert all information to be in 16 bit
         - https://medium.com/@dwightfoster03/fp16-in-pytorch-a042e9967f7e
@@ -23,12 +24,6 @@ The todo list is written to this file.
     - [ ] Use blit for matplotlib
 - [ ] Implement agent_node
     - [ ] Implement every service and topic
-- [ ] Implement trainer_node
-    - [ ] Implement every service and topic
-    - [ ] Create trainer class
-        - select neural network to train
-        - train actor
-        - train critic
 - [ ] Other nodes
     - [x] Add launch files for starting up all the other necessary nodes 
         - ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args --remap cmd_vel:=/diffbot_base_controller/cmd_vel_unstamped
