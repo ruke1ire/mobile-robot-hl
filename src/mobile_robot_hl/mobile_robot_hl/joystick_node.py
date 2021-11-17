@@ -19,8 +19,6 @@ class JoystickNode(Node):
     def __init__(self):
         super().__init__('joystick')
 
-        self.joy_handler = JoyHandler()
-
         best_effort_qos = QoSProfile(history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST, 
                                         depth=1, 
                                         reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
@@ -32,6 +30,22 @@ class JoystickNode(Node):
         self.stop_state = False
 
         self.get_logger().info("Initializing Node")
+
+        self.declare_parameters(
+            namespace='',
+            parameters=[
+                ('max_linear_velocity', None),
+                ('max_angular_velocity', None),
+            ])
+
+        self.max_linear_velocity = self.get_parameter('max_linear_velocity').get_parameter_value().double_value
+        self.max_angular_velocity = self.get_parameter('max_angular_velocity').get_parameter_value().double_value
+
+        self.joy_handler = JoyHandler(max_linear_vel=self.max_linear_velocity, max_angular_vel=self.max_angular_velocity)
+
+        self.get_logger().info(f"Parameter <frequency> = {self.frequency}")
+        self.get_logger().info(f"Parameter <max_linear_velocity> = {self.max_linear_velocity}")
+        self.get_logger().info(f"Parameter <max_angular_velocity> = {self.max_angular_velocity}")
 
         self.user_velocity_group = ReentrantCallbackGroup()
         self.user_velocity_publisher = self.create_publisher(Twist, 'user_velocity', best_effort_qos, callback_group=self.user_velocity_group)

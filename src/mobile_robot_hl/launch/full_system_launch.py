@@ -20,12 +20,18 @@ def generate_launch_description():
     return launch.LaunchDescription([
         launch_ros.actions.Node(
             package= 'mobile_robot_hl',
-            executable= 'supervisor_node'
+            executable= 'supervisor_node',
+            parameters= [config]
         ),
         launch_ros.actions.Node(
             package= 'mobile_robot_hl',
             executable= 'agent_node',
             parameters= [config]
+        ),
+        launch_ros.actions.Node(
+            package = 'mobile_robot_hl',
+            executable = 'joystick_node',
+            parameters=[config]
         ),
         launch_ros.actions.Node(
             package= 'image_transport',

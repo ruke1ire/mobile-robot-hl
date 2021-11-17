@@ -68,22 +68,6 @@ class AgentNode(Node):
 
         self.get_logger().info("Initializing Node")
 
-        self.declare_parameters(
-            namespace='',
-            parameters=[
-                ('frequency', 0.6),
-                ('max_linear_velocity', 0.05),
-                ('max_angular_velocity', 0.125),
-            ])
-
-        self.frequency = self.get_parameter('frequency').get_parameter_value().double_value
-        self.max_linear_velocity = self.get_parameter('max_linear_velocity').get_parameter_value().double_value
-        self.max_angular_velocity = self.get_parameter('max_angular_velocity').get_parameter_value().double_value
-
-        self.get_logger().info(f"Parameter <frequency> = {self.frequency}")
-        self.get_logger().info(f"Parameter <max_linear_velocity> = {self.max_linear_velocity}")
-        self.get_logger().info(f"Parameter <max_angular_velocity> = {self.max_angular_velocity}")
-
         service_prefix = 'agent/'
 
         reliable_qos = QoSProfile(history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST, 
