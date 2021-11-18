@@ -12,6 +12,7 @@ class GUI():
 
         self.window = tkinter.Tk()
         self.window.title("GUI")
+        self.window.attributes('-fullscreen', True)
         self.window.rowconfigure(0, weight=1)
         self.window.columnconfigure(0, weight=1)
 
@@ -29,3 +30,5 @@ class GUI():
 
         sns.set('notebook')
         sns.set_style("white")
+
+        self.window.mainloop()
