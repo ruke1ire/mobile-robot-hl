@@ -72,10 +72,7 @@ class AgentNode(Node):
             ])
 
         self.device = self.get_parameter('device').get_parameter_value().string_value
-
-        self.get_logger().info(f"Parameter <frequency> = {self.frequency}")
-        self.get_logger().info(f"Parameter <max_linear_velocity> = {self.max_linear_velocity}")
-        self.get_logger().info(f"Parameter <max_angular_velocity> = {self.max_angular_velocity}")
+        self.get_logger().info(f"Parameter <device> = {self.device}")
 
         reliable_qos = QoSProfile(history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST, 
                                         depth=10, 

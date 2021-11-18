@@ -18,9 +18,9 @@ class GUI():
 
         self.mainframe = tkinter.ttk.Frame(self.window, padding = "3 3 3 3")
         self.display_frame = tkinter.ttk.Frame(self.mainframe,  padding = "10 10 10 10")
-        self.display = Display(parent = self.display_frame)
+        self.display = Display(parent = self.display_frame, ros_node = self.ros_node)
         self.control_frame = tkinter.ttk.Frame(self.mainframe, borderwidth =2,relief=tkinter.RIDGE, padding = "10 10 10 10")
-        self.control = Control(parent = self.control_frame)
+        self.control = Control(parent = self.control_frame, ros_node = self.ros_node)
 
         self.mainframe.grid(sticky='nsew')
         self.mainframe.rowconfigure(0, weight=1)

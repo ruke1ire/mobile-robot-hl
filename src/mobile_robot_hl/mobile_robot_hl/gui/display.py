@@ -12,21 +12,21 @@ from mobile_robot_hl.gui.utils import *
 
 #==============================================================
 
-class Display(ROSWidget):
-    def __init__(self, parent = None, episode_kwargs = dict()):
+class Display():
+    def __init__(self, parent = None, ros_node = None):
 
         if parent == None:
             self.parent = tkinter.Tk()
         else:
             self.parent = parent
         
-        super().__init__(self.parent)
+        self.ros_node = ros_node
 
         self.episode_frame = tkinter.ttk.Frame(self.parent)
-        self.episode = Episode(parent = self.episode_frame, **episode_kwargs)
+        self.episode = Episode(parent = self.episode_frame, ros_node = self.ros_node)
 
         self.current_frame = tkinter.ttk.Frame(self.parent)
-        self.current = Current(parent = self.current_frame)
+        self.current = Current(parent = self.current_frame, ros_node = self.ros_node)
 
         self.episode_frame.grid(column = 0, row = 0, sticky = 'nsew')
         self.current_frame.grid(column = 0, row = 1, sticky = 'nsew')
@@ -37,17 +37,20 @@ class Display(ROSWidget):
 
 #==============================================================
 
-class Episode(ROSWidget):
-    def __init__(self, parent = None, max_linear_vel = 1.0, max_angular_vel = 1.0):
+class Episode():
+    def __init__(self, parent = None, ros_node = None):
+
         if parent == None:
             self.parent = tkinter.Tk()
         else:
             self.parent = parent
 
-        super().__init__(self.parent)
+        self.ros_node = ros_node
 
-        self.max_linear_vel = max_linear_vel
-        self.max_angular_vel = max_angular_vel
+        self.max_linear_vel = self.ros_node.max_linear_vel
+        self.max_angular_vel = self.ros_node.max_angular_vel
+
+        self.slider_value = 0.0
 
         img = np.zeros([360,480,3],dtype=np.uint8)
         img.fill(100)
@@ -101,20 +104,20 @@ class Episode(ROSWidget):
         self.plot_full_frame.columnconfigure(0, weight=1)
         self.plot_full_frame.rowconfigure(0, weight=1)
     
-    def slider_trigger(self, val):
-        self.slider_value = float(val)
-
-        if(self.ros_node.episode.length() > 0):
-            no_of_divs = self.ros_noce.episode.length()
+    def set_episode_index(self):
+        if(self.ros_node.variables.episode.length() > 0):
+            no_of_divs = self.ros_node.variables.episode.length()
             current_selection = int((self.slider_value/(1/no_of_divs)))
             if(current_selection == no_of_divs):
                 current_selection -= 1
-            self.ros_node.episode_index = current_selection
-            Thread(target=lambda: self.update_image()).start()
-            Thread(target=lambda: self.update_plot_sel()).start()
-    
+            self.ros_node.variables.episode_index = current_selection
+
+    def slider_trigger(self, val):
+        self.slider_value = float(val)
+        self.set_episode_index()
+
     def update_image(self):
-        episode_frame = EpisodeData(**self.ros_node.episode.get(self.ros_node.episode_index))
+        episode_frame = EpisodeData(**self.ros_node.variables.episode.get(self.ros_node.variables.episode_index))
         image = episode_frame.observation.image.get(0)
         image = image.resize((480,360))
         image_current = ImageTk.PhotoImage(image = image)
@@ -125,7 +128,7 @@ class Episode(ROSWidget):
             self.image.configure(image=self.image_current)
 
     def update_plot_sel(self):
-        episode_frame = EpisodeData(**self.ros_node.episode.get(self.ros_node.episode_index))
+        episode_frame = EpisodeData(**self.ros_node.variables.episode.get(self.ros_node.variables.episode_index))
         if(episode_frame.action.controller.get(0) == ControllerType.USER):
             desired_vel = episode_frame.action.user.velocity.get(0)
         else:
@@ -145,7 +148,7 @@ class Episode(ROSWidget):
         self.plot_sel_plot.draw_idle()
 
     def update_plot_full(self):
-        episode = self.ros_node.episode
+        episode = self.ros_node.variables.episode
         try:
             self.action_plot_desired_vel_line_linear.pop(0).remove()
             self.action_plot_desired_vel_line_angular.pop(0).remove()
@@ -177,14 +180,14 @@ class Episode(ROSWidget):
 
         self.plot_full_plot.draw_idle()
 
-class Current(ROSWidget):
-    def __init__(self, parent = None):
+class Current():
+    def __init__(self, parent = None, ros_node = None):
         if parent == None:
             self.parent = tkinter.Tk()
         else:
             self.parent = parent
 
-        super().__init__(self.parent)
+        self.ros_node = ros_node
 
         img = np.zeros([360,480,3],dtype=np.uint8)
         img.fill(100)
@@ -204,7 +207,7 @@ class Current(ROSWidget):
         self.parent.rowconfigure(0, weight=1)
     
     def update_image(self):
-        image = self.ros_node.image_raw
+        image = self.ros_node.variables.image_raw
         image = image.resize((480,360))
         image_current = ImageTk.PhotoImage(image = image)
         if(image_current == self.image_current):
@@ -215,14 +218,14 @@ class Current(ROSWidget):
 
 #==============================================================
 
-class Info(ROSWidget):
-    def __init__(self, parent = None):
+class Info():
+    def __init__(self, parent = None, ros_node = None):
         if parent == None:
             self.parent = tkinter.Tk()
         else:
             self.parent = parent
-
-        super().__init__(self.parent)
+        
+        self.ros_node = ros_node
 
         self.title = tkinter.ttk.Label(self.parent, text="Information")
 
@@ -269,12 +272,12 @@ class Info(ROSWidget):
         self.parent.rowconfigure(5, weight=1)
     
     def update_info(self):
-        episode_frame = EpisodeData(**self.ros_node.episode.get(self.ros_node.episode_index))
-        episode_type = self.ros_node.episode_type.name
-        episode_name = self.ros_node.episode_name
-        episode_id = self.ros_node.episode_id
-        model_name = self.ros_node.model_name
-        model_id = self.ros_node.model_id
+        episode_frame = EpisodeData(**self.ros_node.variables.episode.get(self.ros_node.variables.episode_index))
+        episode_type = self.ros_node.variables.episode_type.name
+        episode_name = self.ros_node.variables.episode_name
+        episode_id = self.ros_node.variables.episode_id
+        model_name = self.ros_node.variables.model_name
+        model_id = self.ros_node.variables.model_id
 
         user_linear_vel = episode_frame.action.user.velocity.linear.get(0)
         user_angular_vel = episode_frame.action.user.velocity.angular.get(0)

@@ -81,9 +81,14 @@ class JoystickNode(Node):
                     self.call_service(supervisor_prefix+'start', command = 'task')
                 elif(self.supervisor_state == SupervisorState.TASK_RUNNING):
                     self.call_service(supervisor_prefix+'pause')
+                elif(self.supervisor_state == SupervisorState.TASK_TAKE_OVER):
+                    self.call_service(supervisor_prefix+'select_controller', command='agent')
 
             elif(prev_joy_state[InterfaceType.TAKE_OVER_TASK.name] == False and joy_state[InterfaceType.TAKE_OVER_TASK.name] == True):
-                self.call_service(supervisor_prefix+'select_controller', command='user')
+                if(self.supervisor_state in [SupervisorState.TASK_PAUSED]):
+                    self.call_service(supervisor_prefix+'select_controller', command='user')
+                elif(self.supervisor_state == SupervisorState.TASK_TAKE_OVER):
+                    self.call_service(supervisor_prefix+'pause')
 
             elif(prev_joy_state[InterfaceType.START_PAUSE_DEMO.name] == False and joy_state[InterfaceType.START_PAUSE_DEMO.name] == True):
                 if(self.supervisor_state in [SupervisorState.STANDBY, SupervisorState.DEMO_PAUSED]):
