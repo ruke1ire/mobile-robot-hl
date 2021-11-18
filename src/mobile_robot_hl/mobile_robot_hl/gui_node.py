@@ -10,10 +10,11 @@ from std_msgs.msg import Bool, String, Int32
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist, Vector3
 
-import threading
+from threading import Thread
 import numpy as np
 import os
 from PIL import Image as PImage
+import copy
 
 from mobile_robot_hl.episode_data import *
 from mobile_robot_hl.gui import *
@@ -45,6 +46,58 @@ class GUINode(Node):
 
         self.variables = GUIVariable()
         self.constants = GUIConstant()
+
+        self.gui = GUI(ros_node = self)
+
+        self.variable_trigger = dict(
+            episode = [
+                self.gui.display.episode.update_image, 
+                self.gui.display.episode.update_plot_full, 
+                self.gui.display.episode.update_plot_sel,
+                self.gui.display.current.info.update_info
+                ],
+            episode_type = [
+                self.gui.display.current.info.update_info
+                ],
+            episode_name = [
+                self.gui.display.current.info.update_info
+                ],
+            episode_id = [
+                self.gui.display.current.info.update_info
+                ],
+            model_name = [
+                self.gui.display.current.info.update_info
+                ],
+            model_id = [
+                self.gui.display.current.info.update_info
+                ],
+            image_raw = [
+                self.gui.display.current.update_image
+                ],
+            supervisor_state = [
+                self.gui.display.current.info.update_info,
+                ],
+            demo_names = [
+                self.gui.control.demo.update_entry
+                ],
+            task_names = [
+                ],
+            ids = [
+                self.gui.control.selection.update_id
+                ],
+            model_names = [
+                self.gui.control.model.update_entries_name
+            ],
+            model_ids = [
+                self.gui.control.model.update_entries_id
+            ],
+            task_queue = [
+            ],
+            episode_index = [
+                self.gui.display.episode.update_image,
+                self.gui.display.episode.update_plot_sel
+            ],
+        )
 
         self.get_logger().info("Initializing Node")
 
@@ -114,6 +167,14 @@ class GUINode(Node):
             self.variables.episode = self.demo_handler.get(name, id)
         elif type == InformationType.TASK_EPISODE:
             self.variables.episode = self.task_handler.get(name, id)
+    
+    def update_state_loop(self):
+        self.prev_variables = copy.deepcopy(self.variables)
+        while True:
+            for var_type in GUIVariables:
+                if(self.variables[var_type.name] != self.prev_variables[var_type.name]):
+                    for trigger in self.variable_trigger[var_type.name]:
+                        Thread(target=lambda: trigger()).start()
 
 def spin_thread_(node):
     while True:
@@ -124,9 +185,9 @@ def main():
 
     node = GUINode()
 
-    spin_thread = threading.Thread(target=spin_thread_, args=(node,))
+    spin_thread = Thread(target=spin_thread_, args=(node,))
     spin_thread.start()
-    spin_thread.join()
+    node.update_state_loop()
 
 if __name__ == '__main__':
     main()

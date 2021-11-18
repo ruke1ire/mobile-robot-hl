@@ -86,6 +86,8 @@ class Task():
         if(self.supervisor_state in [SupervisorState.TASK_PAUSED, SupervisorState.TASK_RUNNING, SupervisorState.TASK_TAKE_OVER]):
             self.ros_node.call_service('supervisor/save')
             self.ros_node.variables.task_names = self.ros_node.task_handler.get_names()
+    
+    #TODO update_buttons() based on supervisorstate
 
 class Demo():
     def __init__(self, parent = None, ros_node = None):
@@ -143,6 +145,8 @@ class Demo():
             self.entry.insert(0, name)
         self.entry['values'] = tuple(name_array)
 
+    #TODO update_buttons() based on supervisorstate
+
 class Model():
     def __init__(self, parent = None, ros_node = None):
         if parent == None:
@@ -177,17 +181,17 @@ class Model():
     def entries_name_trigger(self, val):
         try:
             model_name = self.entries_name.get()
+            self.ros_node.variables.model_names = self.ros_node.model_handler.get_ids(ModelType.ACTOR, model_name)
             self.update_entries_id(model_name)
         except:
             pass
     
     def update_entries_name(self):
-        name_array = self.ros_node.model_handler.get_names(ModelType.ACTOR)
-        self.entries_name['values'] = tuple(name_array)
+        #name_array = self.ros_node.model_handler.get_names(ModelType.ACTOR)
+        self.entries_name['values'] = tuple(self.ros_node.variables.model_names)
 
-    def update_entries_id(self, model_name):
-        id_array = self.ros_node.model_handler.get_ids(ModelType.ACTOR, model_name)
-        self.entries_id['values'] = tuple(id_array)
+    def update_entries_id(self):
+        self.entries_id['values'] = tuple(self.ros_node.variables.model_ids)
 
     def select_trigger(self):
         model_name = self.entries_name.get()
@@ -203,6 +207,8 @@ class Model():
         if response.success == True:
             self.ros_node.variables.episode_name = model_name
             self.ros_node.variables.episode_id = model_id
+
+    #TODO update_buttons() based on supervisorstate
 
 class Selection():
     def __init__(self, parent = None, ros_node = None):
@@ -297,3 +303,5 @@ class Selection():
         self.id_box.delete(0,tkinter.END)
         for id_ in self.ros_node.variables.ids:
             self.id_box.insert(tkinter.END, id_)
+
+    #TODO update_names
