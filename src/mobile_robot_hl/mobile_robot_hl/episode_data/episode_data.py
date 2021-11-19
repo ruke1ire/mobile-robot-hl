@@ -15,10 +15,18 @@ class Node():
         return tmp
     
     def set(self, data, index = None):
+        if(type(data) == dict):
+            pass
+        else:
+            data = data.get()
         for name, obj in self.childrens.items():
             obj.set(data[name], index)
     
     def append(self, data):
+        if(type(data) == dict):
+            pass
+        else:
+            data = data.get()
         for name, obj in self.childrens.items():
             obj.append(data[name])
     
@@ -139,7 +147,7 @@ class EpisodeVelocity(Node):
         super().__init__(childrens)
 
 class EpisodeActor(Node):
-    def __init__(self, velocity = {}, termination_flag = None, controller = None):
+    def __init__(self, velocity = {}, termination_flag = None):
         self.velocity = EpisodeVelocity(**velocity)
         self.termination_flag = EpisodeBool(termination_flag)
         childrens = dict(velocity = self.velocity, termination_flag = self.termination_flag)

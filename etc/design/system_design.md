@@ -45,7 +45,7 @@ The supervisor node handles all output/input to/from the supervisor (user), the 
 - Publishes to frame_no (QOS: Reliable)
 - Publishes to task_image (QOS: Reliable)
 - Publishes to supervisor_state (QOS: Reliable)
-- Subscribes to agent_output (QOS: Reliable)
+- Subscribes to agent_velocity (QOS: Reliable)
 - Subscribes to image_raw (QOS: Best Effort)
 - Subscribes to user_velocity (QOS: Best Effort, Twist)
 

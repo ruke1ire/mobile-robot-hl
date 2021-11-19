@@ -21,6 +21,7 @@ class GUIVariables(Enum):
     model_ids = list
     task_queue = list
     episode_index = int
+    user_velocity = dict
 
 class GUIVariable():
     def __init__(self):
@@ -42,6 +43,7 @@ class GUIVariable():
         self.model_ids = []
         self.task_queue = []
         self.episode_index = 0
+        self.user_velocity = dict(linear= 0.0, angular= 0.0)
 
 class GUIConstant():
     def __init__(self):

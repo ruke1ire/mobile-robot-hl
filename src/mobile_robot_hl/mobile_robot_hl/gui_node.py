@@ -1,3 +1,4 @@
+from numpy.core.numeric import Inf
 import rclpy
 from rclpy.qos import *
 from rclpy.node import Node
@@ -10,6 +11,7 @@ from std_msgs.msg import Bool, String, Int32
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist, Vector3
 
+from queue import Queue
 from threading import Thread
 import numpy as np
 import os
@@ -47,6 +49,11 @@ class GUINode(Node):
         self.variables = GUIVariable()
         self.constants = GUIConstant()
 
+        self.episode_event_queue = Queue()
+
+        self.user_output = dict(velocity = dict(linear = 0.0, angular = 0.0), termination_flag = False)
+        self.agent_output = dict(velocity = dict(linear = 0.0, angular = 0.0), termination_flag = False)
+
         self.gui = GUI(ros_node = self)
 
         self.variable_trigger = dict(
@@ -76,6 +83,7 @@ class GUINode(Node):
                 ],
             supervisor_state = [
                 self.gui.display.current.info.update_info,
+                self.update_episode_event
                 ],
             demo_names = [
                 self.gui.control.demo.update_entry
@@ -96,6 +104,8 @@ class GUINode(Node):
             episode_index = [
                 self.gui.display.episode.update_image,
                 self.gui.display.episode.update_plot_sel
+            ],
+            user_velocity = [
             ],
         )
 
@@ -122,8 +132,8 @@ class GUINode(Node):
                                         reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
 
         self.task_image_subscriber = self.create_subscription(Image, 'task_image', self.task_image_callback, best_effort_qos, callback_group=ReentrantCallbackGroup())
-        self.desired_velocity_subscriber = self.create_subscription(Twist, desired_velocity_topic_name, self.desired_velocity_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
-        self.termination_flag_subscriber = self.create_subscription(Bool, 'termination_flag', self.termination_flag_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
+        #self.desired_velocity_subscriber = self.create_subscription(Twist, desired_velocity_topic_name, self.desired_velocity_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
+        #self.termination_flag_subscriber = self.create_subscription(Bool, 'termination_flag', self.termination_flag_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
         self.action_controller_subscriber = self.create_subscription(String, 'action_controller', self.action_controller_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
         self.frame_no_subscriber = self.create_subscription(Int32, 'action_controller', self.frame_no_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
         self.agent_output_subscriber = self.create_subscription(AgentOutput, 'agent_output', self.agent_output_callback ,best_effort_qos, callback_group = ReentrantCallbackGroup())
@@ -134,6 +144,49 @@ class GUINode(Node):
 
         self.get_logger().info("Initialized Node")
     
+    # Callbacks that can udpate self.episode
+    def task_image_callback(self, img):
+        self.task_image  = PImage.fromarray(rnp.numpify(img))
+        self.got_task_image = True
+
+        if(self.variables.episode_type != InformationType.TASK_EPISODE or self.variables.episode_name != self.variables.task_queue[0]['name'] or self.variables.episode_id != self.variables.task_queue[0]['id']):
+            episode_event = dict(function = self.update_episode, kwargs = dict(type = InformationType.TASK_EPISODE, name = self.variables.task_queue[0]['name'], id = self.variables.task_queue[0]['id']))
+            self.episode_event_queue.put(episode_event)
+    
+#    def desired_velocity_callback(self, msg):
+#        self.desired_vel = dict(linear = msg.linear.x, angular = msg.angular.z)
+#        self.got_desired_vel = True
+#
+#        episode_event = dict(function = self.variables.episode.action.)
+    
+#    def termination_flag_callback(self, msg):
+#        self.termination_flag = msg.data
+#        episode_event = dict(function = self.variables.)
+    
+    def action_controller_callback(self, msg):
+        self.action_controller = ControllerType[msg.data]
+        episode_event = dict(function = self.variables.episode.action.controller.append, kwargs = dict(data = self.action_controller))
+        self.episode_event_queue.put(episode_event)
+        episode_event = dict(function = self.variables.episode.action.user.append, kwargs = self.user_output)
+        self.episode_event_queue.put(episode_event)
+    
+    def frame_no_callback(self, msg):
+        self.frame_no = msg.data
+        episode_event = dict(function = self.variables.episode.frame_no.append, kwargs = dict(data = self.frame_no))
+        self.episode_event_queue.put(episode_event)
+
+    def agent_output_callback(self, msg):
+        velocity = msg.velocity
+        termination_flag = msg.termination_flag
+        self.agent_output['velocity'] = {'linear':velocity.linear.x, 'angular': velocity.angular.z}
+        self.agent_output['termination_flag'] = termination_flag
+        episode_event = dict(function = self.variables.episode.action.agent.append, kwargs = self.agent_output)
+        self.episode_event_queue.put(episode_event)
+
+    def user_velocity_callback(self, vel):
+        self.user_output['velocity'] = {'linear':vel.linear.x, 'angular': vel.angular.z}
+    
+    # Callbacks that doesn't have to be appended onto the episode
     def image_raw_callback(self, img):
         self.variables.image_raw = PImage.fromarray(rnp.numpify(img))
     
@@ -168,13 +221,27 @@ class GUINode(Node):
         elif type == InformationType.TASK_EPISODE:
             self.variables.episode = self.task_handler.get(name, id)
     
+    def update_episode_event(self):
+        if(self.variables.supervisor_state == SupervisorState.STANDBY):
+            self.variables.episode.reset()
+    
     def update_state_loop(self):
         self.prev_variables = copy.deepcopy(self.variables)
         while True:
             for var_type in GUIVariables:
                 if(self.variables[var_type.name] != self.prev_variables[var_type.name]):
                     for trigger in self.variable_trigger[var_type.name]:
-                        Thread(target=lambda: trigger()).start()
+                        Thread(target=trigger).start()
+                    self.prev_variables[var_type.name] = copy.deepcopy(self.variables[var_type.name])
+    
+    def run_episode_event_queue(self):
+        self.get_logger().info("Starting execution of episode events")
+        while True:
+            try:
+                episode_event = self.episode_event_queue.get()
+                episode_event['function'](**episode_event['kwargs'])
+            except Exception as e:
+                self.get_logger().warn(str(e))
 
 def spin_thread_(node):
     while True:
@@ -187,7 +254,8 @@ def main():
 
     spin_thread = Thread(target=spin_thread_, args=(node,))
     spin_thread.start()
-    node.update_state_loop()
+    Thread(target = node.update_state_loop).start()
+    node.run_episode_event_queue()
 
 if __name__ == '__main__':
     main()
