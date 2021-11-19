@@ -12,11 +12,8 @@ from rclpy.executors import MultiThreadedExecutor
 
 import threading
 import os
-from enum import Enum
 import numpy as np
-import time
 import traceback
-from PIL import Image as PImage
 import json
 
 import ros2_numpy as rnp
@@ -43,19 +40,7 @@ class AgentNode(Node):
         self.task_handler = TaskHandler(path=task_path, demo_handler = self.demo_handler)
         self.model_handler = ModelHandler(path=model_path)
 
-        self.received_desired_vel = False
-        self.received_termination_flag = False
-        self.received_action_controller = False
-        self.received_frame_no = False
-
-        self.fill_int = 255
-        img_tmp = np.zeros([240,320,3],dtype=np.uint8)
-        img_tmp.fill(self.fill_int)
-        self.image_raw = img_tmp
-        self.image_raw_msg = rnp.msgify(Image,img_tmp, encoding='rgb8')
-        self.frame_no = 0
-        self.desired_vel = dict(linear = 0.0, angular = 0.0)
-        self.desired_termination_flag = False
+        self.reset_variables()
 
         self.model = None
         self.model_name = None
@@ -86,7 +71,7 @@ class AgentNode(Node):
         self.desired_velocity_subscriber = self.create_subscription(Twist, desired_velocity_topic_name, self.desired_velocity_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
         self.termination_flag_subscriber = self.create_subscription(Bool, 'termination_flag', self.termination_flag_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
         self.action_controller_subscriber = self.create_subscription(String, 'action_controller', self.action_controller_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
-        self.frame_no_subscriber = self.create_subscription(Int32, 'action_controller', self.frame_no_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
+        self.frame_no_subscriber = self.create_subscription(Int32, 'frame_no', self.frame_no_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
         self.supervisor_state_subscriber = self.create_subscription(String, 'supervisor_state', self.supervisor_state_callback, best_effort_qos, callback_group=ReentrantCallbackGroup())
 
         self.agent_velocity_publisher = self.create_publisher(Twist, 'agent_velocity', reliable_qos, callback_group=ReentrantCallbackGroup())
@@ -105,7 +90,6 @@ class AgentNode(Node):
     # SUBSCRIBER CALLBACKS
 
     def task_image_callback(self, img):
-        self.fill_int = None
         self.task_image = rnp.numpify(img)
         # check whether "demo" and model has been selected otherwise fail
         if(self.model == None and self.selected_data == None):
@@ -177,8 +161,9 @@ class AgentNode(Node):
             response.message = "Data selection failed as model is not yet selected"
             return response
         try:
-            # reset model
+            # reset model and prev_actions
             self.model.reset()
+            self.reset_variables()
             # get data from demo handler or task handler
             selected_data = json.loads(request.data)
             selected_data['type'] = InformationType[selected_data['type']]
@@ -219,6 +204,7 @@ class AgentNode(Node):
                 response.success = False
                 response.message = str(traceback.format_exc())
                 return response
+            self.reset_variables()
         else:
             response.message = "Model selection failed, agent is currently RUNNING"
             response.success = False
@@ -233,9 +219,19 @@ class AgentNode(Node):
             response.message = "Unable to reset model as model is not yet selected"
             response.success = False
         else:
-            self.select_model(self.model_name, self.model_id)
+            self.model.reset()
+            self.reset_variables()
 
     # UTILS
+    def reset_variables(self):
+        self.desired_vel = dict(linear = 0.0, angular = 0.0)
+        self.desired_termination_flag = False
+        self.action_controller = ControllerType.USER
+        self.frame_no = 0
+        self.received_desired_vel = True
+        self.received_termination_flag = True
+        self.received_action_controller = True
+        self.received_frame_no = False
 
     def select_model(self, name, id_):
         self.model, model_info = self.model_handler.get(ModelType.ACTOR, name, id_)

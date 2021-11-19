@@ -4,9 +4,7 @@ The todo list is written to this file.
 
 ## In Progress
 
-- [ ] HOW TO UPDATE GUI
-    - Update it when it can and needs to be updated
-    - If a functionality needs to be called from 2 different places, create a function for it
+- Create GUI variables class
 - Make neural network lighter
     - [ ] Convert all information to be in 16 bit
         - https://medium.com/@dwightfoster03/fp16-in-pytorch-a042e9967f7e

@@ -136,7 +136,7 @@ class SupervisorNode(Node):
             # state == standby
             if(self.state == SupervisorState.STANDBY):
                 # check if episode has been selected
-                if(self.selected_data['name'] == None or self.selected_data['id']):
+                if(self.selected_data['name'] == None or self.selected_data['id'] == None):
                     response.success = False
                     response.message = "Episode not yet selected"
                     return response
@@ -353,11 +353,13 @@ class SupervisorNode(Node):
                 self.received_agent_velocity = True
                 return
             else:
-                # publish desired velocity and desired termination flag 
+                # publish desired velocity, desired termination flag, and action controller
                 desired_velocity_msg = Twist(linear=Vector3(x=desired_output['velocity']['linear'],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=desired_output['velocity']['angular']))
                 self.desired_velocity_publisher.publish(desired_velocity_msg)
                 termination_flag_msg = Bool(data=desired_output['termination_flag'])
                 self.termination_flag_publisher.publish(termination_flag_msg)
+                action_controller_msg = String(data=controller.name)
+                self.action_controller_publisher.publish(action_controller_msg)
                 # append frame to self.episode
                 episode_frame = EpisodeData(
                     observation = dict(image=image), 
@@ -402,7 +404,7 @@ class SupervisorNode(Node):
                 self.get_logger().info(f'service successful: {service_name}')
             else:
                 self.get_logger().info(f'{service_name} service error: {response.message}')
-            return response
+            return response.success
     
 def main():
     rclpy.init()
