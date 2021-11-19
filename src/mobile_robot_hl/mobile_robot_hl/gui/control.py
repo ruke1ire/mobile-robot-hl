@@ -121,20 +121,20 @@ class Demo():
             pass
     
     def buttons_start_trigger(self):
-        if(self.ros_node.variables.state == SupervisorState.STANDBY or self.ros_node.variables.state == SupervisorState.DEMO_PAUSED):
-            if(self.ros_node.variables.state == SupervisorState.STANDBY):
+        if(self.ros_node.variables.supervisor_state == SupervisorState.STANDBY or self.ros_node.variables.supervisor_state == SupervisorState.DEMO_PAUSED):
+            if(self.ros_node.variables.supervisor_state == SupervisorState.STANDBY):
                 self.ros_node.call_service('supervisor/start', 'demo')
                 self.ros_node.variables.episode.reset()
         elif(self.state == SupervisorState.DEMO_RECORDING):
             self.ros_node.call_service('supervisor/pause')
 
     def buttons_stop_trigger(self):
-        if(self.ros_node.variables.state in [SupervisorState.DEMO_RECORDING, SupervisorState.DEMO_PAUSED]):
+        if(self.ros_node.variables.supervisor_state in [SupervisorState.DEMO_RECORDING, SupervisorState.DEMO_PAUSED]):
             self.ros_node.call_service('supervisor/stop')
             self.ros_node.variables.episode.reset()
 
     def buttons_save_trigger(self):
-        if(self.ros_node.variables.state in [SupervisorState.DEMO_RECORDING, SupervisorState.DEMO_PAUSED]):
+        if(self.ros_node.variables.supervisor_state in [SupervisorState.DEMO_RECORDING, SupervisorState.DEMO_PAUSED]):
             self.ros_node.call_service('supervisor/save')
             self.ros_node.variables.demo_names = self.ros_node.demo_handler.get_names()
 
@@ -294,7 +294,7 @@ class Selection():
 
     def remove_trigger(self):
         selected_index = self.queue_box.curselection()
-        if(0 in selected_index and self.ros_node.variables.state not in [SupervisorState.STANDBY, SupervisorState.DEMO_PAUSED, SupervisorState.DEMO_RECORDING]):
+        if(0 in selected_index and self.ros_node.variables.supervisor_state not in [SupervisorState.STANDBY, SupervisorState.DEMO_PAUSED, SupervisorState.DEMO_RECORDING]):
             return
         self.queue_box.delete(tkinter.ANCHOR)
         self.ros_node.variables.task_queue.pop(selected_index)

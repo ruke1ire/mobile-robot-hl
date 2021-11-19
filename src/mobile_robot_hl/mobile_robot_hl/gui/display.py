@@ -47,8 +47,8 @@ class Episode():
 
         self.ros_node = ros_node
 
-        self.max_linear_vel = self.ros_node.max_linear_vel
-        self.max_angular_vel = self.ros_node.max_angular_vel
+        self.max_linear_vel = self.ros_node.constants.max_linear_vel
+        self.max_angular_vel = self.ros_node.constants.max_angular_vel
 
         self.slider_value = 0.0
 
@@ -69,8 +69,12 @@ class Episode():
         self.plot_sel_ax.spines['top'].set_color('none')
         self.plot_sel_ax.margins(x=0.01,y=0.01)
         self.plot_sel_ax.grid(True)
-        self.plot_sel_ax.set_ylim([-self.max_linear_vel*1.2,self.max_linear_vel*1.2])
-        self.plot_sel_ax.set_xlim([-self.max_angular_vel*1.2,self.max_angular_vel*1.2])
+
+        if(self.max_linear_vel is not None):
+            self.plot_sel_ax.set_ylim([-self.max_linear_vel*1.2,self.max_linear_vel*1.2])
+        if(self.max_angular_vel is not None):
+            self.plot_sel_ax.set_xlim([-self.max_angular_vel*1.2,self.max_angular_vel*1.2])
+
         self.plot_sel_ax.tick_params(labelsize=5)
         self.plot_sel_plot = FigureCanvasTkAgg(self.plot_sel_fig, self.parent)
         self.plot_sel = self.plot_sel_plot.get_tk_widget()
@@ -83,7 +87,8 @@ class Episode():
         self.plot_full_ax.spines['top'].set_color('none')
         self.plot_full_ax.spines['bottom'].set_position('center')
         self.plot_full_ax.spines['left'].set_color('none')
-        self.plot_full_ax.set_ylim([-max(self.max_linear_vel,self.max_angular_vel)*1.2,max(self.max_linear_vel,self.max_angular_vel)*1.2])
+        if(self.max_angular_vel is not None and self.max_linear_vel is not None):
+            self.plot_full_ax.set_ylim([-max(self.max_linear_vel,self.max_angular_vel)*1.2,max(self.max_linear_vel,self.max_angular_vel)*1.2])
         self.plot_full_ax.margins(x=0)
         self.plot_full_ax.grid(True)
         self.plot_full_ax.tick_params(labelsize=5)

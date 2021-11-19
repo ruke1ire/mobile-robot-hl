@@ -2,8 +2,8 @@ import tkinter
 from tkinter import StringVar, ttk
 import seaborn as sns
 
-from control import Control
-from display import Display
+from .control import Control
+from .display import Display
 
 class GUI():
     def __init__(self, ros_node = None):

@@ -34,7 +34,9 @@ class GUIVariable():
         self.episode_id = None
         self.model_name = None
         self.model_id = None
-        self.image_raw = PImage.fromarray(np.zeros([360, 480, 3], dtype = np.uint8).fill(100))
+        blank_img = np.zeros([360, 480, 3], dtype = np.uint8)
+        blank_img.fill(100)
+        self.image_raw = PImage.fromarray(blank_img)
         self.supervisor_state = SupervisorState.STANDBY
         self.demo_names = []
         self.task_names = []

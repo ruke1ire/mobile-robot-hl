@@ -42,7 +42,7 @@ class SupervisorNode(Node):
         self.image_raw_msg = Image()
         self.agent_output = {'velocity':{'linear':0.0, 'angular': 0.0}, 'termination_flag':False}
         self.user_output =  {'velocity':{'linear':0.0, 'angular': 0.0}, 'termination_flag':False}
-        self.episode = EpisodeData(data=None)
+        self.episode = EpisodeData()
         self.selected_data = dict(type = InformationType.NONE, name = "", id = "")
         self.frame_no = 0
         self.received_agent_velocity = False
