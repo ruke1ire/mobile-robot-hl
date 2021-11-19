@@ -1,11 +1,9 @@
-from numpy.core.numeric import Inf
 import rclpy
 from rclpy.qos import *
 from rclpy.node import Node
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from custom_interfaces.srv import StringTrigger, FloatTrigger
-from custom_interfaces.msg import AgentOutput
 from std_srvs.srv import Trigger
 from std_msgs.msg import Bool, String, Int32
 from sensor_msgs.msg import Image
@@ -132,15 +130,26 @@ class GUINode(Node):
                                         reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
 
         self.task_image_subscriber = self.create_subscription(Image, 'task_image', self.task_image_callback, best_effort_qos, callback_group=ReentrantCallbackGroup())
+        self.frame_no_subscriber = self.create_subscription(Int32, 'frame_no', self.frame_no_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
         #self.desired_velocity_subscriber = self.create_subscription(Twist, desired_velocity_topic_name, self.desired_velocity_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
         #self.termination_flag_subscriber = self.create_subscription(Bool, 'termination_flag', self.termination_flag_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
         self.action_controller_subscriber = self.create_subscription(String, 'action_controller', self.action_controller_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
-        self.frame_no_subscriber = self.create_subscription(Int32, 'action_controller', self.frame_no_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
-        self.agent_output_subscriber = self.create_subscription(AgentOutput, 'agent_output', self.agent_output_callback ,best_effort_qos, callback_group = ReentrantCallbackGroup())
+        self.agent_output_subscriber = self.create_subscription(Twist, 'agent_velocity', self.agent_output_callback ,best_effort_qos, callback_group = ReentrantCallbackGroup())
         self.user_velocity_subscriber = self.create_subscription(Twist, 'user_velocity', self.user_velocity_callback, best_effort_qos, callback_group = ReentrantCallbackGroup())
 
         self.image_raw_subscriber = self.create_subscription(Image, image_raw_topic_name, self.image_raw_callback ,best_effort_qos, callback_group = ReentrantCallbackGroup())
         self.supervisor_state_subscriber = self.create_subscription(String, 'supervisor_state', self.supervisor_state_callback, callback_group=ReentrantCallbackGroup())
+
+        self.client_callback_group = ReentrantCallbackGroup()
+        self.services_ = dict()
+        self.services_['supervisor/start'] = self.create_client(StringTrigger, 'supervisor/start', callback_group=self.client_callback_group)
+        self.services_['supervisor/pause'] = self.create_client(Trigger, 'supervisor/pause', callback_group=self.client_callback_group)
+        self.services_['supervisor/stop'] = self.create_client(Trigger, 'supervisor/stop', callback_group=self.client_callback_group)
+        self.services_['supervisor/select_data'] = self.create_client(StringTrigger, 'supervisor/select_data', callback_group=self.client_callback_group)
+        self.services_['supervisor/termination_flag'] = self.create_client(StringTrigger, 'supervisor/termination_flag', callback_group=self.client_callback_group)
+        self.services_['supervisor/select_controller'] = self.create_client(StringTrigger, 'supervisor/select_controller', callback_group=self.client_callback_grouptring)
+        self.services_['supervisor/configure_disturbance'] = self.create_client(FloatTrigger, 'supervisor/configure_disturbance', callback_group=self.client_callback_grouptring)
+        self.services_['supervisor/save'] = self.create_client(Trigger, 'supervisor/save', callback_group=self.client_callback_grouptring)
 
         self.get_logger().info("Initialized Node")
     
@@ -175,12 +184,9 @@ class GUINode(Node):
         episode_event = dict(function = self.variables.episode.frame_no.append, kwargs = dict(data = self.frame_no))
         self.episode_event_queue.put(episode_event)
 
-    def agent_output_callback(self, msg):
-        velocity = msg.velocity
-        termination_flag = msg.termination_flag
+    def agent_velocity_callback(self, velocity):
         self.agent_output['velocity'] = {'linear':velocity.linear.x, 'angular': velocity.angular.z}
-        self.agent_output['termination_flag'] = termination_flag
-        episode_event = dict(function = self.variables.episode.action.agent.append, kwargs = self.agent_output)
+        episode_event = dict(function = self.variables.episode.action.agent.velocity.append, kwargs = self.agent_output)
         self.episode_event_queue.put(episode_event)
 
     def user_velocity_callback(self, vel):
