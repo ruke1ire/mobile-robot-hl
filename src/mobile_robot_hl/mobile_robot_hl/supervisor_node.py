@@ -141,7 +141,9 @@ class SupervisorNode(Node):
                     response.message = "Episode not yet selected"
                     return response
                 # call agent service to select demo
-                select_data_response = self.call_service('agent/select_data', f"{self.selected_data['name']}.{self.selected_data['id']}")
+                selected_data = copy.deepcopy(self.selected_data)
+                selected_data['type'] = selected_data['type'].name
+                select_data_response = self.call_service('agent/select_data', json.dumps(selected_data))
                 if(select_data_response == False):
                     response.success = False
                     response.message = "agent/select_data service not successful"
@@ -308,20 +310,25 @@ class SupervisorNode(Node):
         if(state in [SupervisorState.DEMO_RECORDING, SupervisorState.TASK_RUNNING]):
             # 1. send image_raw_msg to agent 
             frame_no = self.frame_no + 1
-            self.task_image_publisher.publish(self.image_raw_msg)
-            self.frame_no_publisher.publish(Int32(data=frame_no))
-
             desired_output = dict(velocity = dict(linear = None, angular = None), termination_flag = None)
 
-            # convert image to PImage to be appended to the episode
-            image = PImage.fromarray(rnp.numpify(self.image_raw_msg))
+            # publish image and wait for agent output
+            if(self.received_agent_velocity == False):
+                self.task_image_msg = self.image_raw_msg
+                self.task_image_publisher.publish(self.task_image_msg)
+                self.frame_no_publisher.publish(Int32(data=frame_no))
 
-            # get user and agent output
-            user_output = self.user_output
-            while(self.received_agent_velocity == False):
-                pass
+                while(self.received_agent_velocity == False):
+                    pass
+
             agent_output = self.agent_output
             self.received_agent_velocity = False
+
+            # convert image to PImage to be appended to the episode
+            image = PImage.fromarray(rnp.numpify(self.task_image_msg))
+
+            # get user output
+            user_output = self.user_output
             
             # set desired_output based on self.state and termination flags
             if(self.state == SupervisorState.DEMO_RECORDING):
@@ -343,6 +350,7 @@ class SupervisorNode(Node):
             
             # if the state changed during this process, then cancel this frame
             if(self.state != state):
+                self.received_agent_velocity = True
                 return
             else:
                 # publish desired velocity and desired termination flag 
