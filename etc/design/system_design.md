@@ -54,7 +54,7 @@ The supervisor node handles all output/input to/from the supervisor (user), the 
 - select_data ((task/demo).(task/demo name)): Select the data to be used to condition the model
 - pause: Stop moving vehicle
 - stop: Stop moving vehicle and deselect the demo/task episode
-- termination_flag: Stop moving vehicle; Raise the termination_flag
+- termination_flag (agent/user): Stop moving vehicle; Raise the termination_flag
 - select_controller (agent, user): Select the controller of the vehicle
 - configure_disturbance (magnitude): Configure the disturbance to add to the output
 - save: Save the episode
@@ -83,9 +83,7 @@ The agent node outputs the automatic control signals using a neural network.
 - Data file paths
 
 ***Topics***
-- Publishes to agent_output (QOS: Reliable)
-    - predicted_velocity
-    - predicted_termination_flag
+- Publishes to agent_velocity (QOS: Reliable)
 - Subscribes to task_image (QOS: Reliable)
 - Subscribes to desired_velocity (QOS: Reliable)
 - Subscribes to termination_flag (QOS: Reliable)
