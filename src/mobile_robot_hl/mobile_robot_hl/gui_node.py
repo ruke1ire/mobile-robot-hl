@@ -16,6 +16,7 @@ import os
 from PIL import Image as PImage
 import copy
 import json
+import seaborn as sns
 
 from mobile_robot_hl.episode_data import *
 from mobile_robot_hl.gui import *
@@ -148,11 +149,11 @@ class GUINode(Node):
         #self.desired_velocity_subscriber = self.create_subscription(Twist, desired_velocity_topic_name, self.desired_velocity_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
         #self.termination_flag_subscriber = self.create_subscription(Bool, 'termination_flag', self.termination_flag_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
         self.action_controller_subscriber = self.create_subscription(String, 'action_controller', self.action_controller_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
-        self.agent_output_subscriber = self.create_subscription(Twist, 'agent_velocity', self.agent_output_callback ,best_effort_qos, callback_group = ReentrantCallbackGroup())
+        self.agent_velocity_subscriber = self.create_subscription(Twist, 'agent_velocity', self.agent_velocity_callback ,best_effort_qos, callback_group = ReentrantCallbackGroup())
         self.user_velocity_subscriber = self.create_subscription(Twist, 'user_velocity', self.user_velocity_callback, best_effort_qos, callback_group = ReentrantCallbackGroup())
 
         self.image_raw_subscriber = self.create_subscription(Image, image_raw_topic_name, self.image_raw_callback ,best_effort_qos, callback_group = ReentrantCallbackGroup())
-        self.supervisor_state_subscriber = self.create_subscription(String, 'supervisor_state', self.supervisor_state_callback, callback_group=ReentrantCallbackGroup())
+        self.supervisor_state_subscriber = self.create_subscription(String, 'supervisor_state', self.supervisor_state_callback, best_effort_qos, callback_group=ReentrantCallbackGroup())
 
         self.client_callback_group = ReentrantCallbackGroup()
         self.services_ = dict()
@@ -161,9 +162,9 @@ class GUINode(Node):
         self.services_['supervisor/stop'] = self.create_client(Trigger, 'supervisor/stop', callback_group=self.client_callback_group)
         self.services_['supervisor/select_data'] = self.create_client(StringTrigger, 'supervisor/select_data', callback_group=self.client_callback_group)
         self.services_['supervisor/termination_flag'] = self.create_client(StringTrigger, 'supervisor/termination_flag', callback_group=self.client_callback_group)
-        self.services_['supervisor/select_controller'] = self.create_client(StringTrigger, 'supervisor/select_controller', callback_group=self.client_callback_grouptring)
-        self.services_['supervisor/configure_disturbance'] = self.create_client(FloatTrigger, 'supervisor/configure_disturbance', callback_group=self.client_callback_grouptring)
-        self.services_['supervisor/save'] = self.create_client(Trigger, 'supervisor/save', callback_group=self.client_callback_grouptring)
+        self.services_['supervisor/select_controller'] = self.create_client(StringTrigger, 'supervisor/select_controller', callback_group=self.client_callback_group)
+        self.services_['supervisor/configure_disturbance'] = self.create_client(FloatTrigger, 'supervisor/configure_disturbance', callback_group=self.client_callback_group)
+        self.services_['supervisor/save'] = self.create_client(Trigger, 'supervisor/save', callback_group=self.client_callback_group)
 
         self.get_logger().info("Initialized Node")
     
@@ -265,10 +266,12 @@ class GUINode(Node):
     def update_state_loop(self):
         while True:
             for var_type in self.variables.__dict__.keys():
-                if(self.variables[var_type.name] != self.prev_variables[var_type.name]):
-                    for trigger in self.variable_trigger[var_type.name]:
+                if(self.variables.__dict__[var_type] != self.prev_variables.__dict__[var_type]):
+                    #print(self.variables.__dict__)
+                    for trigger in self.variable_trigger[var_type]:
+                        #print(trigger)
                         Thread(target=trigger).start()
-                    self.prev_variables[var_type.name] = copy.deepcopy(self.variables[var_type.name])
+                    exec(f"self.prev_variables.{var_type} = self.variables.{var_type}")
     
     def run_episode_event_queue(self):
         self.get_logger().info("Starting execution of episode events")
@@ -290,12 +293,14 @@ def spin_thread_(node):
 def main():
     rclpy.init()
 
+    sns.set('notebook')
+    sns.set_style("white")
     node = GUINode()
 
     Thread(target = node.update_state_loop).start()
-    spin_thread = Thread(target=spin_thread_, args=(node,))
-    spin_thread.start()
-    node.run_episode_event_queue()
+    Thread(target =node.run_episode_event_queue).start()
+    Thread(target= spin_thread_, args=(node,)).start()
+    node.gui.window.mainloop()
 
 if __name__ == '__main__':
     main()

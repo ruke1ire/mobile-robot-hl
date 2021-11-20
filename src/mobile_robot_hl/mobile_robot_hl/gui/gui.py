@@ -1,6 +1,5 @@
 import tkinter
 from tkinter import StringVar, ttk
-import seaborn as sns
 
 from .control import Control
 from .display import Display
@@ -27,8 +26,3 @@ class GUI():
         self.mainframe.columnconfigure(0, weight=1)
         self.display_frame.grid(column=0, row=0, sticky='nsew')
         self.control_frame.grid(column=1, row=0, sticky='nsew')
-
-        sns.set('notebook')
-        sns.set_style("white")
-
-        self.window.mainloop()

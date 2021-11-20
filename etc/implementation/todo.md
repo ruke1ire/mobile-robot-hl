@@ -4,7 +4,7 @@ The todo list is written to this file.
 
 ## In Progress
 
-- Create GUI variables class
+- Create a mock up node to publish image_raw
 - Make neural network lighter
     - [ ] Convert all information to be in 16 bit
         - https://medium.com/@dwightfoster03/fp16-in-pytorch-a042e9967f7e

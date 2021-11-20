@@ -178,23 +178,23 @@ class Demo():
     def update_buttons(self):
         if(self.ros_node.variables.supervisor_state == SupervisorState.STANDBY):
             self.buttons_stop['state'] = tkinter.DISABLED
-            self.buttons_start_pause['state'] = tkinter.NORMAL
-            self.buttons_start_pause['text'] = "start"
+            self.buttons_start['state'] = tkinter.NORMAL
+            self.buttons_start['text'] = "start"
             self.buttons_save['state'] = tkinter.DISABLED
         elif(self.ros_node.variables.supervisor_state == SupervisorState.DEMO_RECORDING):
             self.buttons_stop['state'] = tkinter.NORMAL
-            self.buttons_start_pause['state'] = tkinter.NORMAL
-            self.buttons_start_pause['text'] = "pause"
+            self.buttons_start['state'] = tkinter.NORMAL
+            self.buttons_start['text'] = "pause"
             self.buttons_save['state'] = tkinter.NORMAL
         elif(self.ros_node.variables.supervisor_state == SupervisorState.DEMO_PAUSED):
             self.buttons_stop['state'] = tkinter.NORMAL
-            self.buttons_start_pause['state'] = tkinter.NORMAL
-            self.buttons_start_pause['text'] = "start"
+            self.buttons_start['state'] = tkinter.NORMAL
+            self.buttons_start['text'] = "start"
             self.buttons_save['state'] = tkinter.NORMAL
         elif(self.ros_node.variables.supervisor_state in [SupervisorState.TASK_RUNNING, SupervisorState.TASK_PAUSED]):
             self.buttons_stop['state'] = tkinter.DISABLED
-            self.buttons_start_pause['state'] = tkinter.DISABLED
-            self.buttons_start_pause['text'] = "start"
+            self.buttons_start['state'] = tkinter.DISABLED
+            self.buttons_start['text'] = "start"
             self.buttons_save['state'] = tkinter.DISABLED
 
 class Model():
@@ -328,7 +328,7 @@ class Selection():
                 self.ros_node.episode_event_queue.put(episode_event)
 
         elif(self.selected_type == InformationType.TASK_EPISODE):
-            demo_name = self.saved_task_episode_name_list.get(tkinter.ANCHOR)
+            demo_name = self.task_box.get(tkinter.ANCHOR)
             task_id = self.id_box.get(tkinter.ANCHOR)
             if(task_id == '' or task_id == None):
                 return
@@ -364,11 +364,11 @@ class Selection():
             self.demo_box.insert(tkinter.END, id_)
 
     def update_task(self):
-        self.task_box.delete(0,tkinter.end)
+        self.task_box.delete(0,tkinter.END)
         for id_ in self.ros_node.variables.task_names:
-            self.task_box.insert(tkinter.end, id_)
+            self.task_box.insert(tkinter.END, id_)
     
     def update_queue(self):
-        self.queue_box.delete(0,tkinter.end)
+        self.queue_box.delete(0,tkinter.END)
         for id_ in self.ros_node.variables.task_queue:
-            self.queue_box.insert(tkinter.end, id_)
+            self.queue_box.insert(tkinter.END, id_)

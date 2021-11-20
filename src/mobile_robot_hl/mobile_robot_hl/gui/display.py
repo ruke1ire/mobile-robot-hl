@@ -51,6 +51,7 @@ class Episode():
         self.max_angular_vel = self.ros_node.constants.max_angular_vel
 
         self.slider_value = 0.0
+        self.image_current = None
 
         img = np.zeros([360,480,3],dtype=np.uint8)
         img.fill(100)
@@ -124,6 +125,8 @@ class Episode():
     def update_image(self):
         episode_frame = EpisodeData(**self.ros_node.variables.episode.get(self.ros_node.variables.episode_index))
         image = episode_frame.observation.image.get(0)
+        if(image == None):
+            return
         image = image.resize((480,360))
         image_current = ImageTk.PhotoImage(image = image)
         if(image_current == self.image_current):
@@ -148,7 +151,7 @@ class Episode():
 
         self.current_action_desired_vel = self.plot_sel_ax.scatter(desired_vel['angular'], desired_vel['linear'],s = 100, c = 'tab:blue', label="desired velocity", alpha=1.0, marker='x')
         self.current_action_user_vel = self.plot_sel_ax.scatter(episode_frame.action.user.velocity.angular.get(0), episode_frame.action.user.velocity.linear.get(0), s = 50, c = 'tab:orange', label="user velocity", alpha=1.0, marker='o')
-        self.current_action_agent_vel = self.plot_sel_ax.scatter(episode_frame.action.agent.velocity.angular.get(0), episode_frame.action.agent.velocity.linear, s = 20, c = 'tab:green', label="agent velocity", alpha = 1.0, marker='^')
+        self.current_action_agent_vel = self.plot_sel_ax.scatter(episode_frame.action.agent.velocity.angular.get(0), episode_frame.action.agent.velocity.linear.get(0), s = 20, c = 'tab:green', label="agent velocity", alpha = 1.0, marker='^')
         self.plot_sel_ax.legend(loc='upper right', prop={'size': 8})
         self.plot_sel_plot.draw_idle()
 
@@ -165,7 +168,7 @@ class Episode():
             pass
 
         if(episode.length() == 0):
-            list_range = list(range(1,2))
+            list_range = list()
         else:
             list_range = list(range(1,episode.length()+1))
 
@@ -173,12 +176,12 @@ class Episode():
         desired_vel_angular = [user_vel if(controller == ControllerType.USER) else agent_vel for (user_vel, agent_vel, controller) in zip(episode.action.user.velocity.angular.get(), episode.action.agent.velocity.angular.get(), episode.action.controller.get())]
         desired_vel = {'linear':desired_vel_linear, 'angular': desired_vel_angular}
 
-        self.action_plot_desired_vel_line_linear = self.plot_full_ax.plot(list_range,desired_vel['linear'], c = 'tab:blue', label="desired linear velocity", alpha=1.0, marker='x', linewidth=8, markersize=10)
-        self.action_plot_desired_vel_line_angular = self.plot_full_ax.plot(list_range,desired_vel['angular'], c = 'tab:cyan', label="desired angular velocity", alpha=1.0, marker = 'x', linewidth=8, markersize=10)
-        self.action_plot_user_vel_line_linear =  self.plot_full_ax.plot(list_range, self.episode.data['action']['user']['velocity']['linear'],c = 'tab:orange', label="user linear velocity", alpha=1.0, marker='o', linewidth = 3, markersize = 7)
-        self.action_plot_user_vel_line_angular =  self.plot_full_ax.plot(list_range, self.episode.data['action']['user']['velocity']['angular'],c = 'tab:brown', label="user angular velocity", alpha=1.0, marker='o', linewidth = 3, markersize = 7)
-        self.action_plot_agent_vel_line_linear = self.plot_full_ax.plot(list_range, self.episode.data['action']['agent']['velocity']['linear'],c = 'tab:green', label="agent linear velocity", alpha = 1.0, marker='^', linewidth = 1, markersize = 4)
-        self.action_plot_agent_vel_line_angular = self.plot_full_ax.plot(list_range, self.episode.data['action']['agent']['velocity']['angular'],c = 'olive', label="agent angular velocity", alpha = 1.0, marker='^', linewidth = 1, markersize = 4)
+        self.action_plot_desired_vel_line_linear = self.plot_full_ax.plot(list_range, desired_vel['linear'], c = 'tab:blue', label="desired linear velocity", alpha=1.0, marker='x', linewidth=8, markersize=10)
+        self.action_plot_desired_vel_line_angular = self.plot_full_ax.plot(list_range, desired_vel['angular'], c = 'tab:cyan', label="desired angular velocity", alpha=1.0, marker = 'x', linewidth=8, markersize=10)
+        self.action_plot_user_vel_line_linear =  self.plot_full_ax.plot(list_range, episode.action.user.velocity.linear.get(),c = 'tab:orange', label="user linear velocity", alpha=1.0, marker='o', linewidth = 3, markersize = 7)
+        self.action_plot_user_vel_line_angular =  self.plot_full_ax.plot(list_range,episode.action.user.velocity.angular.get(),c = 'tab:brown', label="user angular velocity", alpha=1.0, marker='o', linewidth = 3, markersize = 7)
+        self.action_plot_agent_vel_line_linear = self.plot_full_ax.plot(list_range, episode.action.agent.velocity.linear.get(),c = 'tab:green', label="agent linear velocity", alpha = 1.0, marker='^', linewidth = 1, markersize = 4)
+        self.action_plot_agent_vel_line_angular = self.plot_full_ax.plot(list_range,episode.action.agent.velocity.angular.get(),c = 'olive', label="agent angular velocity", alpha = 1.0, marker='^', linewidth = 1, markersize = 4)
 
         self.plot_full_ax.set_xlim([0.5,max(episode.length(),1)+0.5])
         self.plot_full_ax.legend(loc='lower left', prop={'size': 8})
@@ -202,7 +205,7 @@ class Current():
         self.image = tkinter.Label(self.parent,image=self.image_)
 
         self.info_frame = tkinter.ttk.Frame(self.parent, borderwidth=2, relief=tkinter.SUNKEN, padding = "10 10 10 10")
-        self.info = Info(self.info_frame)
+        self.info = Info(self.info_frame, ros_node=self.ros_node)
 
         self.image.grid(column = 0, row = 0, sticky = 'nsew')
         self.info_frame.grid(column = 1, row = 0, sticky = 'nsew')
