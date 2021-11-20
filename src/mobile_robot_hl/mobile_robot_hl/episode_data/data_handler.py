@@ -5,7 +5,7 @@ import shutil
 from PIL import Image as PImage
 
 from mobile_robot_hl.utils import ControllerType
-from .episode_data import EpisodeData
+from mobile_robot_hl.episode_data.episode_data import EpisodeData
 
 class DemoHandler():
     DEMO_ID_INFO_FILE= "info.yaml"
@@ -31,7 +31,7 @@ class DemoHandler():
         task_controller = [ControllerType[cont] for cont in info['action']['controller']]
         info['action']['controller'] = task_controller
 
-        episode_data = EpisodeData(data=info)
+        episode_data = EpisodeData(**info)
         return episode_data
     
     def get_names(self):
@@ -55,10 +55,7 @@ class DemoHandler():
         id_: id of demonstration
         '''
 
-        demo_copy = EpisodeData(data=demo.data)
-
-        if(demo_copy.get_data(index = -1)['action']['controller'] in [None, ControllerType.NONE]):
-            demo_copy.remove_data(index=-1, leftwards=False)
+        demo_copy = EpisodeData(**demo.get())
 
         if not os.path.exists(f"{self.path}/{name}"):
             os.mkdir(f"{self.path}/{name}")
@@ -76,9 +73,9 @@ class DemoHandler():
             shutil.rmtree(f"{self.path}/{name}/{next_id}", ignore_errors=True)
         os.mkdir(f"{self.path}/{name}/{next_id}")
 
-        dict_data = demo_copy.data.copy()
+        dict_data = demo_copy.get()
 
-        image_ids = list(range(demo_copy.get_episode_length()))
+        image_ids = list(range(demo_copy.length()))
         for i in image_ids:
             img = dict_data['observation']['image'][i]
             img.save(f"{self.path}/{name}/{next_id}/{i}.png")
@@ -98,10 +95,6 @@ class TaskHandler():
         os.makedirs(self.path, exist_ok = True)
 
     def get(self, name, id_):
-        '''
-        Return the task episode with DataStructure = dict_list
-        '''
-
         try:
             with open(f"{self.path}/{name}/{id_}/{TaskHandler.TASK_ID_INFO_FILE}", 'r') as stream:
                 info = yaml.safe_load(stream)
@@ -121,8 +114,8 @@ class TaskHandler():
         del info['observation']['image_id']
         del info['demonstration']
 
-        task_episode_data = EpisodeData(data=info)
-        demo_episode_data.append_episode_data(task_episode_data)
+        task_episode_data = EpisodeData(**info)
+        demo_episode_data.append(task_episode_data)
 
         return demo_episode_data
     
@@ -166,18 +159,14 @@ class TaskHandler():
             shutil.rmtree(f"{self.path}/{demo_name}/{next_id}", ignore_errors=True)
         os.mkdir(f"{self.path}/{demo_name}/{next_id}")
 
-        episode_copy = EpisodeData(episode.data)
+        episode_copy = EpisodeData(**episode.get())
 
-        if(episode_copy.get_data(index = -1)['action']['controller'] in [None, ControllerType.NONE]):
-            episode_copy.remove_data(index = -1, leftwards=False)
-        
-        task_index = episode_copy.data['action']['controller'].index(ControllerType.AGENT)
+        task_index = episode_copy.action.controller.get().index(ControllerType.AGENT)
+        episode_copy.remove(task_index-1, leftwards=True)
 
-        episode_copy.remove_data(task_index-1, leftwards=True)
+        dict_data = episode_copy.get()
 
-        dict_data = episode_copy.get_data()
-
-        image_ids = list(range(episode_copy.get_episode_length()))
+        image_ids = list(range(episode_copy.length()))
         for i in image_ids:
             img = dict_data['observation']['image'][i]
             img.save(f"{self.path}/{demo_name}/{next_id}/{i}.png")

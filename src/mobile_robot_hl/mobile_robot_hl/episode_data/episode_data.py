@@ -3,7 +3,6 @@ import torch
 import numpy as np
 from PIL import Image
 
-
 class Node():
     def __init__(self, childrens):
         self.childrens = childrens
@@ -30,9 +29,9 @@ class Node():
         for name, obj in self.childrens.items():
             obj.append(data[name])
     
-    def remove(self):
+    def remove(self, index, leftwards = True):
         for obj in self.childrens.values():
-            obj.remove()
+            obj.remove(index, leftwards)
 
     def reset(self):
         for obj in self.childrens.values():
@@ -74,28 +73,31 @@ class LeafNode():
             if(data is None or data == []):
                 self.data = []
             elif(type(data) == list):
-                assert (type(data[0]) == self.type), f"Input data type is not {str(self.type)}"
+                #assert (type(data[0]) == self.type), f"Input data type is not {str(self.type)}"
                 self.data = data
             else:
-                assert (type(data) == self.type), f"Input data type is not {str(self.type)}"
+                #assert (type(data) == self.type), f"Input data type is not {str(self.type)}"
                 self.data = [data]
         else:
             assert (type(index) == int), "Index should be of type <int>"
             assert (index < len(self.data)), "Index out of range"
-            assert (type(data) == self.type), f"Input data type is not {str(self.type)}"
+            #assert (type(data) == self.type), f"Input data type is not {str(self.type)}"
             self.data[index] = data
 
     def append(self, data):
         if(type(data) == list):
-            assert (type(data[0]) == self.type), f"Input data type is not {str(self.type)}"
+            #assert (type(data[0]) == self.type), f"Input data type is not {str(self.type)}"
             self.data += data
         elif(type(data) == self.type):
             self.data.append(data)
         else:
             raise Exception("Invalid data type")
 
-    def remove(self):
-        raise NotImplementedError()
+    def remove(self, index, leftwards = True):
+        if leftwards == True:
+            self.data = self.data[index+1:]
+        else:
+            self.data = self.data[:index]
 
     def reset(self):
         self.data = []
