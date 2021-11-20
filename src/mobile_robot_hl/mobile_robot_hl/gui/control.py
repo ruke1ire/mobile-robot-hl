@@ -156,16 +156,11 @@ class Demo():
         self.parent.rowconfigure(0, weight=1)
         self.parent.columnconfigure(0, weight=1)
     
-        try:
-            self.update_entry()
-        except:
-            pass
-    
     def buttons_start_trigger(self):
         if(self.ros_node.variables.supervisor_state in [SupervisorState.STANDBY, SupervisorState.DEMO_PAUSED]):
             if(self.ros_node.variables.supervisor_state == SupervisorState.STANDBY):
                 self.ros_node.call_service('supervisor/start', 'demo')
-        elif(self.state == SupervisorState.DEMO_RECORDING):
+        elif(self.ros_node.variables.supervisor_state == SupervisorState.DEMO_RECORDING):
             self.ros_node.call_service('supervisor/pause')
 
     def buttons_stop_trigger(self):
@@ -227,11 +222,6 @@ class Model():
 
         self.parent.rowconfigure(0, weight=1)
         self.parent.columnconfigure(0, weight=1)
-
-        try:
-            self.entries_name_update()
-        except:
-            pass
     
     def entries_name_trigger(self, val):
         try:

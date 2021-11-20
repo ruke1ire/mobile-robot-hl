@@ -45,8 +45,9 @@ class GUINode(Node):
         self.task_handler = TaskHandler(path=task_path, demo_handler = self.demo_handler)
         self.model_handler = ModelHandler(path=model_path)
 
+        self.prev_variables = GUIVariable()
         self.variables = GUIVariable()
-        self.prev_variables = copy.deepcopy(self.variables)
+        self.init_variables()
         self.constants = GUIConstant()
 
         self.episode_event_queue = Queue()
@@ -83,12 +84,22 @@ class GUINode(Node):
                 ],
             supervisor_state = [
                 self.gui.display.current.info.update_info,
-                self.update_episode_event
+                self.update_episode_event,
+                self.gui.control.task.update_buttons,
+                self.gui.control.demo.update_buttons,
+                self.gui.control.model.update_buttons,
                 ],
+            supervisor_controller = [
+                self.gui.control.task.update_buttons,
+                self.gui.control.demo.update_buttons,
+                self.gui.control.model.update_buttons,
+            ],
             demo_names = [
-                self.gui.control.demo.update_entry
+                self.gui.control.demo.update_entry,
+                self.gui.control.selection.update_demo
                 ],
             task_names = [
+                self.gui.control.selection.update_task
                 ],
             ids = [
                 self.gui.control.selection.update_id
@@ -100,6 +111,7 @@ class GUINode(Node):
                 self.gui.control.model.update_entries_id
             ],
             task_queue = [
+                self.gui.control.selection.update_queue
             ],
             episode_index = [
                 self.gui.display.episode.update_image,
@@ -266,6 +278,10 @@ class GUINode(Node):
                 episode_event['function'](**episode_event['kwargs'])
             except Exception as e:
                 self.get_logger().warn(str(e))
+    
+    def init_variables(self):
+        self.variables.demo_names = self.demo_handler.get_names()
+        self.variables.task_names = self.task_handler.get_names()
 
 def spin_thread_(node):
     while True:
