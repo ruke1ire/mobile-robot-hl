@@ -11,6 +11,7 @@ from std_msgs.msg import String
 
 from threading import Thread
 import time
+import json
 
 from .joystick import *
 from mobile_robot_hl.utils import *
@@ -26,6 +27,7 @@ class JoystickNode(Node):
                                         reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
 
         self.supervisor_state = SupervisorState.STANDBY
+        self.supervisor_controller = ControllerType.USER
 
         self.get_logger().info("Initializing Node")
 
@@ -59,7 +61,9 @@ class JoystickNode(Node):
         self.get_logger().info("Initialized Node")
 
     def supervisor_state_callback(self, msg):
-        self.supervisor_state = SupervisorState[msg.data]
+        supervisor_state = json.loads(msg.data)
+        self.supervisor_state = SupervisorState[supervisor_state['state']]
+        self.supervisor_controller = ControllerType[supervisor_state['controller']]
 
     def velocity_loop(self):
         self.get_logger().info("Publishing user_velocity")
@@ -80,15 +84,20 @@ class JoystickNode(Node):
                 if(self.supervisor_state in [SupervisorState.STANDBY, SupervisorState.TASK_PAUSED]):
                     self.call_service(supervisor_prefix+'start', command = 'task')
                 elif(self.supervisor_state == SupervisorState.TASK_RUNNING):
-                    self.call_service(supervisor_prefix+'pause')
-                elif(self.supervisor_state == SupervisorState.TASK_TAKE_OVER):
-                    self.call_service(supervisor_prefix+'select_controller', command='agent')
+                    if(self.supervisor_controller == ControllerType.AGENT):
+                        self.call_service(supervisor_prefix+'pause')
+                    elif(self.supervisor_controller == ControllerType.USER):
+                        self.call_service(supervisor_prefix+'select_controller', command='agent')
 
             elif(prev_joy_state[InterfaceType.TAKE_OVER_TASK.name] == False and joy_state[InterfaceType.TAKE_OVER_TASK.name] == True):
                 if(self.supervisor_state in [SupervisorState.TASK_PAUSED]):
                     self.call_service(supervisor_prefix+'select_controller', command='user')
-                elif(self.supervisor_state == SupervisorState.TASK_TAKE_OVER):
-                    self.call_service(supervisor_prefix+'pause')
+                    self.call_service(supervisor_prefix+'start', command = 'task')
+                elif(self.supervisor_state == SupervisorState.TASK_RUNNING):
+                    if(self.supervisor_controller == ControllerType.USER):
+                        self.call_service(supervisor_prefix+'pause')
+                    elif(self.supervisor_controller == ControllerType.AGENT):
+                        self.call_service(supervisor_prefix+'select_controller', command='user')
 
             elif(prev_joy_state[InterfaceType.START_PAUSE_DEMO.name] == False and joy_state[InterfaceType.START_PAUSE_DEMO.name] == True):
                 if(self.supervisor_state in [SupervisorState.STANDBY, SupervisorState.DEMO_PAUSED]):

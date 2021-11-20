@@ -171,7 +171,7 @@ class SupervisorNode(Node):
                 response.message = f"Unable to start task as the current state == {self.state.name}"
                 return response
 
-            self.controller = ControllerType.USER
+            self.controller = ControllerType.AGENT
             self.state = SupervisorState.TASK_RUNNING
 
         elif(start_type == 'demo'):
@@ -189,8 +189,11 @@ class SupervisorNode(Node):
                         response.success = False
                         response.message = f"Unable to get episode {self.selected_data}"
                         return response
+                self.state = SupervisorState.DEMO_RECORDING
+                self.controller = ControllerType.USER
             elif(self.state == SupervisorState.DEMO_PAUSED):
                 self.state = SupervisorState.DEMO_RECORDING
+                self.controller = ControllerType.USER
             else:
                 response.success = False
                 response.message = f"Unable to start demo as the current state == {self.state.name}"
@@ -286,7 +289,7 @@ class SupervisorNode(Node):
     def select_controller_callback(self, request, response):
         if(self.state in [SupervisorState.TASK_PAUSED, SupervisorState.TASK_RUNNING]):
             try:
-                self.controller = ControllerType[request.data]
+                self.controller = ControllerType[request.data.upper()]
             except Exception as e:
                 response.success = False
                 response.message = str(e)

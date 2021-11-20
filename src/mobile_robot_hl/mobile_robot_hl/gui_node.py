@@ -15,6 +15,7 @@ import numpy as np
 import os
 from PIL import Image as PImage
 import copy
+import json
 
 from mobile_robot_hl.episode_data import *
 from mobile_robot_hl.gui import *
@@ -45,6 +46,7 @@ class GUINode(Node):
         self.model_handler = ModelHandler(path=model_path)
 
         self.variables = GUIVariable()
+        self.prev_variables = copy.deepcopy(self.variables)
         self.constants = GUIConstant()
 
         self.episode_event_queue = Queue()
@@ -162,26 +164,16 @@ class GUINode(Node):
             episode_event = dict(function = self.update_episode, kwargs = dict(type = InformationType.TASK_EPISODE, name = self.variables.task_queue[0]['name'], id = self.variables.task_queue[0]['id']))
             self.episode_event_queue.put(episode_event)
     
-#    def desired_velocity_callback(self, msg):
-#        self.desired_vel = dict(linear = msg.linear.x, angular = msg.angular.z)
-#        self.got_desired_vel = True
-#
-#        episode_event = dict(function = self.variables.episode.action.)
-    
-#    def termination_flag_callback(self, msg):
-#        self.termination_flag = msg.data
-#        episode_event = dict(function = self.variables.)
-    
+    def frame_no_callback(self, msg):
+        self.frame_no = msg.data
+        episode_event = dict(function = self.variables.episode.frame_no.append, kwargs = dict(data = self.frame_no))
+        self.episode_event_queue.put(episode_event)
+
     def action_controller_callback(self, msg):
         self.action_controller = ControllerType[msg.data]
         episode_event = dict(function = self.variables.episode.action.controller.append, kwargs = dict(data = self.action_controller))
         self.episode_event_queue.put(episode_event)
         episode_event = dict(function = self.variables.episode.action.user.append, kwargs = self.user_output)
-        self.episode_event_queue.put(episode_event)
-    
-    def frame_no_callback(self, msg):
-        self.frame_no = msg.data
-        episode_event = dict(function = self.variables.episode.frame_no.append, kwargs = dict(data = self.frame_no))
         self.episode_event_queue.put(episode_event)
 
     def agent_velocity_callback(self, velocity):
@@ -193,16 +185,20 @@ class GUINode(Node):
         self.user_output['velocity'] = {'linear':vel.linear.x, 'angular': vel.angular.z}
     
     # Callbacks that doesn't have to be appended onto the episode
+
     def image_raw_callback(self, img):
         self.variables.image_raw = PImage.fromarray(rnp.numpify(img))
     
     def supervisor_state_callback(self, msg):
-        self.variables.supervisor_state = SupervisorState[msg.data]
+        supervisor_state = json.loads(msg.data)
+        self.variables.supervisor_state = SupervisorState[supervisor_state['state']]
+        self.variables.supervisor_controller = ControllerType[supervisor_state['controller']]
 
     def call_service(self, service_name, command=None):
         self.get_logger().info(f'Calling service "{service_name}"')
         if self.services_[service_name].wait_for_service(timeout_sec=0.1) == False:
             self.get_logger().warn(f'{service_name} service not available')
+            return False
         else:
             if(command == None):
                 request = Trigger.Request()
@@ -219,22 +215,44 @@ class GUINode(Node):
                 self.get_logger().info(f'Service successful: "{service_name}"')
             else:
                 self.get_logger().warn(f'"{service_name}" service error: {response.message}')
-            return response
+            return response.success
 
     def update_episode(self, type, name, id):
         if type == InformationType.DEMO:
             self.variables.episode = self.demo_handler.get(name, id)
         elif type == InformationType.TASK_EPISODE:
             self.variables.episode = self.task_handler.get(name, id)
+        else:
+            self.variables.episode.reset()
+            self.variables.episode_name = "None"
+            self.variables.episode_id = "None"
+            return
+        self.variables.episode_name = name
+        self.variables.episode_id = id
     
     def update_episode_event(self):
         if(self.variables.supervisor_state == SupervisorState.STANDBY):
-            self.variables.episode.reset()
+            type_ = InformationType.NONE
+            name = None
+            id_ = None
+            episode_event = dict(function = self.update_episode, kwargs = dict(type_, name, id_))
+            self.episode_event_queue.put(episode_event)
+        elif(self.variables.supervisor_state == SupervisorState.DEMO_RECORDING and self.prev_variables.supervisor_state == SupervisorState.STANDBY):
+            type_ = InformationType.NONE
+            name = None
+            id_ = None
+            episode_event = dict(function = self.update_episode, kwargs = dict(type_, name, id_))
+            self.episode_event_queue.put(episode_event)
+        elif(self.variables.supervisor_state == SupervisorState.TASK_RUNNING and self.prev_variables.supervisor_state == SupervisorState.STANDBY):
+            type_ = InformationType.TASK_EPISODE
+            name = self.variables.task_queue[0].split('.')[0]
+            id_ = self.variables.task_queue[0].split('.')[1]
+            episode_event = dict(function = self.update_episode, kwargs = dict(type_, name, id_))
+            self.episode_event_queue.put(episode_event)
     
     def update_state_loop(self):
-        self.prev_variables = copy.deepcopy(self.variables)
         while True:
-            for var_type in GUIVariables:
+            for var_type in self.variables.__dict__.keys():
                 if(self.variables[var_type.name] != self.prev_variables[var_type.name]):
                     for trigger in self.variable_trigger[var_type.name]:
                         Thread(target=trigger).start()
@@ -258,9 +276,9 @@ def main():
 
     node = GUINode()
 
+    Thread(target = node.update_state_loop).start()
     spin_thread = Thread(target=spin_thread_, args=(node,))
     spin_thread.start()
-    Thread(target = node.update_state_loop).start()
     node.run_episode_event_queue()
 
 if __name__ == '__main__':

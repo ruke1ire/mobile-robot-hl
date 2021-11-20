@@ -1,6 +1,7 @@
 import tkinter
 from tkinter import ttk
 from threading import Thread
+import json
 
 from mobile_robot_hl.gui.utils import *
 from mobile_robot_hl.model import *
@@ -68,26 +69,66 @@ class Task():
     def buttons_start_pause_trigger(self):
         if(self.ros_node.variables.supervisor_state in [SupervisorState.STANDBY, SupervisorState.TASK_PAUSED]):
             self.ros_node.call_service('supervisor/start', command = 'task')
-        elif(self.supervisor_state == SupervisorState.TASK_RUNNING):
-            self.ros_node.call_service('supervisor/pause')
-        elif(self.supervisor_state == SupervisorState.TASK_TAKE_OVER):
-            self.ros_node.call_service('supervisor/select_controller', command='agent')
+        elif(self.ros_node.variables.supervisor_state == SupervisorState.TASK_RUNNING):
+            if(self.ros_node.variables.supervisor_controller == ControllerType.AGENT):
+                self.ros_node.call_service('supervisor/pause')
+            elif(self.ros_node.variables.supervisor_controller == ControllerType.USER):
+                self.ros_node.call_service('supervisor/select_controller', command = 'agent')
 
     def buttons_stop_trigger(self):
         self.ros_node.call_service('supervisor/stop')
 
     def buttons_take_over_trigger(self):
-        if(self.supervisor_state in [SupervisorState.TASK_PAUSED]):
+        if(self.ros_node.variables.supervisor_state in [SupervisorState.TASK_PAUSED]):
             self.ros_node.call_service('supervisor/select_controller', command='user')
-        elif(self.supervisor_state == SupervisorState.TASK_TAKE_OVER):
-            self.ros_node.call_service('supervisor/pause')
+            self.ros_node.call_service('supervisor/start', command = 'task')
+        elif(self.ros_node.variables.supervisor_state == SupervisorState.TASK_RUNNING):
+            if(self.ros_node.variables.supervisor_controller == ControllerType.AGENT):
+                self.ros_node.call_serivce('supervisor/select_controller', command = 'user')
+            elif(self.ros_node.variables.supervisor_controller == ControllerType.USER):
+                self.ros_node.call_service('supervisor/pause')
 
     def buttons_save_trigger(self):
-        if(self.supervisor_state in [SupervisorState.TASK_PAUSED, SupervisorState.TASK_RUNNING, SupervisorState.TASK_TAKE_OVER]):
+        if(self.ros_node.variables.supervisor_state in [SupervisorState.TASK_PAUSED, SupervisorState.TASK_RUNNING]):
             self.ros_node.call_service('supervisor/save')
             self.ros_node.variables.task_names = self.ros_node.task_handler.get_names()
     
-    #TODO update_buttons() based on supervisorstate
+    def update_buttons(self):
+        if(self.ros_node.variables.supervisor_state == SupervisorState.STANDBY):
+            self.buttons_stop['state'] = tkinter.DISABLED
+            self.buttons_start_pause['state'] = tkinter.NORMAL
+            self.buttons_start_pause['text'] = "start"
+            self.buttons_take_over['state'] = tkinter.DISABLED
+            self.buttons_save['state'] = tkinter.DISABLED
+        elif(self.ros_node.variables.supervisor_state == SupervisorState.TASK_RUNNING):
+            if(self.ros_node.variables.supervisor_controller == ControllerType.AGENT):
+                self.buttons_stop['state'] = tkinter.NORMAL
+                self.buttons_start_pause['state'] = tkinter.NORMAL
+                self.buttons_start_pause['text'] = "pause"
+                self.buttons_take_over['state'] = tkinter.NORMAL
+                self.buttons_take_over['text'] = "take over"
+                self.buttons_save['state'] = tkinter.NORMAL
+            else:
+                self.buttons_stop['state'] = tkinter.NORMAL
+                self.buttons_start_pause['state'] = tkinter.NORMAL
+                self.buttons_start_pause['text'] = "start"
+                self.buttons_take_over['state'] = tkinter.NORMAL
+                self.buttons_take_over['text'] = "pause"
+                self.buttons_save['state'] = tkinter.NORMAL
+        elif(self.ros_node.variables.supervisor_state == SupervisorState.TASK_PAUSED):
+            self.buttons_stop['state'] = tkinter.NORMAL
+            self.buttons_start_pause['state'] = tkinter.NORMAL
+            self.buttons_start_pause['text'] = "start"
+            self.buttons_take_over['state'] = tkinter.NORMAL
+            self.buttons_take_over['text'] = "take over"
+            self.buttons_save['state'] = tkinter.NORMAL
+        elif(self.ros_node.variables.supervisor_state in [SupervisorState.DEMO_PAUSED, SupervisorState.DEMO_RECORDING]):
+            self.buttons_stop['state'] = tkinter.DISABLED
+            self.buttons_start_pause['state'] = tkinter.DISABLED
+            self.buttons_start_pause['text'] = "start"
+            self.buttons_take_over['state'] = tkinter.DISABLED
+            self.buttons_take_over['text'] = "take over"
+            self.buttons_save['state'] = tkinter.DISABLED
 
 class Demo():
     def __init__(self, parent = None, ros_node = None):
@@ -121,17 +162,15 @@ class Demo():
             pass
     
     def buttons_start_trigger(self):
-        if(self.ros_node.variables.supervisor_state == SupervisorState.STANDBY or self.ros_node.variables.supervisor_state == SupervisorState.DEMO_PAUSED):
+        if(self.ros_node.variables.supervisor_state in [SupervisorState.STANDBY, SupervisorState.DEMO_PAUSED]):
             if(self.ros_node.variables.supervisor_state == SupervisorState.STANDBY):
                 self.ros_node.call_service('supervisor/start', 'demo')
-                self.ros_node.variables.episode.reset()
         elif(self.state == SupervisorState.DEMO_RECORDING):
             self.ros_node.call_service('supervisor/pause')
 
     def buttons_stop_trigger(self):
         if(self.ros_node.variables.supervisor_state in [SupervisorState.DEMO_RECORDING, SupervisorState.DEMO_PAUSED]):
             self.ros_node.call_service('supervisor/stop')
-            self.ros_node.variables.episode.reset()
 
     def buttons_save_trigger(self):
         if(self.ros_node.variables.supervisor_state in [SupervisorState.DEMO_RECORDING, SupervisorState.DEMO_PAUSED]):
@@ -139,13 +178,29 @@ class Demo():
             self.ros_node.variables.demo_names = self.ros_node.demo_handler.get_names()
 
     def update_entry(self):
-        name_array = self.ros_node.variables.demo_names
-        self.entry.delete(0, tkinter.END)
-        for name in name_array:
-            self.entry.insert(0, name)
-        self.entry['values'] = tuple(name_array)
+        self.entry['values'] = tuple(self.ros_node.variables.demo_names)
 
-    #TODO update_buttons() based on supervisorstate
+    def update_buttons(self):
+        if(self.ros_node.variables.supervisor_state == SupervisorState.STANDBY):
+            self.buttons_stop['state'] = tkinter.DISABLED
+            self.buttons_start_pause['state'] = tkinter.NORMAL
+            self.buttons_start_pause['text'] = "start"
+            self.buttons_save['state'] = tkinter.DISABLED
+        elif(self.ros_node.variables.supervisor_state == SupervisorState.DEMO_RECORDING):
+            self.buttons_stop['state'] = tkinter.NORMAL
+            self.buttons_start_pause['state'] = tkinter.NORMAL
+            self.buttons_start_pause['text'] = "pause"
+            self.buttons_save['state'] = tkinter.NORMAL
+        elif(self.ros_node.variables.supervisor_state == SupervisorState.DEMO_PAUSED):
+            self.buttons_stop['state'] = tkinter.NORMAL
+            self.buttons_start_pause['state'] = tkinter.NORMAL
+            self.buttons_start_pause['text'] = "start"
+            self.buttons_save['state'] = tkinter.NORMAL
+        elif(self.ros_node.variables.supervisor_state in [SupervisorState.TASK_RUNNING, SupervisorState.TASK_PAUSED]):
+            self.buttons_stop['state'] = tkinter.DISABLED
+            self.buttons_start_pause['state'] = tkinter.DISABLED
+            self.buttons_start_pause['text'] = "start"
+            self.buttons_save['state'] = tkinter.DISABLED
 
 class Model():
     def __init__(self, parent = None, ros_node = None):
@@ -185,13 +240,6 @@ class Model():
             self.update_entries_id(model_name)
         except:
             pass
-    
-    def update_entries_name(self):
-        #name_array = self.ros_node.model_handler.get_names(ModelType.ACTOR)
-        self.entries_name['values'] = tuple(self.ros_node.variables.model_names)
-
-    def update_entries_id(self):
-        self.entries_id['values'] = tuple(self.ros_node.variables.model_ids)
 
     def select_trigger(self):
         model_name = self.entries_name.get()
@@ -200,15 +248,25 @@ class Model():
         model_id = self.entries_id.get()
         if(model_id == ''):
             return
-        model_string = f"{model_name}/{model_id}"
+        model_string = json.dumps(dict(name = model_name, id = model_id))
 
         response = self.ros_node.call_service('agent/select_model', model_string)
 
-        if response.success == True:
+        if response == True:
             self.ros_node.variables.episode_name = model_name
             self.ros_node.variables.episode_id = model_id
+    
+    def update_entries_name(self):
+        self.entries_name['values'] = tuple(self.ros_node.variables.model_names)
 
-    #TODO update_buttons() based on supervisorstate
+    def update_entries_id(self):
+        self.entries_id['values'] = tuple(self.ros_node.variables.model_ids)
+
+    def update_buttons(self):
+        if(self.ros_node.variables.supervisor_state in [SupervisorState.STANDBY, SupervisorState.DEMO_PAUSED, SupervisorState.DEMO_RECORDING]):
+            self.select['state'] = tkinter.NORMAL
+        else:
+            self.select['state'] = tkinter.DISABLED
 
 class Selection():
     def __init__(self, parent = None, ros_node = None):
@@ -250,6 +308,8 @@ class Selection():
         self.parent.columnconfigure(0, weight=1)
         self.parent.columnconfigure(1, weight=1)
         self.parent.columnconfigure(3, weight=1)
+
+        self.selected_type = InformationType.NONE
     
     def demo_box_trigger(self, event):
         demo_name = self.demo_box.get(tkinter.ANCHOR)
@@ -257,7 +317,7 @@ class Selection():
             self.ros_node.variables.ids = self.ros_node.demo_handler.get_ids(demo_name)
         except:
             self.ros_node.variables.ids = []
-        self.ros_node.variables.episode_type = InformationType.DEMO
+        self.selected_type = InformationType.DEMO
 
     def task_box_trigger(self, event):
         task_name = self.task_box.get(tkinter.ANCHOR)
@@ -265,22 +325,26 @@ class Selection():
             self.ros_node.variables.ids = self.ros_node.task_handler.get_ids(task_name)
         except:
             self.ros_node.variables.ids = []
-        self.ros_node.variables.episode_type = InformationType.TASK_EPISODE
+        self.selected_type = InformationType.TASK_EPISODE
 
     def id_box_trigger(self, event):
-        if(self.ros_node.variables.episode_type == InformationType.DEMO):
+        if(self.selected_type == InformationType.DEMO):
             demo_name = self.demo_box.get(tkinter.ANCHOR)
             demo_id = self.id_box.get(tkinter.ANCHOR)
             if(demo_id == '' or demo_id == None):
                 return
-            Thread(target = lambda: self.ros_node.update_episode(type = InformationType.DEMO, name = demo_name, id = demo_id)).start()
+            if(self.ros_node.variables.supervisor_state == SupervisorState.STANDBY):
+                episode_event = dict(function = self.ros_node.update_episode, kwargs = dict(type = InformationType.DEMO, name = demo_name, id = demo_id))
+                self.ros_node.episode_event_queue.put(episode_event)
 
-        elif(self.ros_node.variables.episode_type == InformationType.TASK_EPISODE):
+        elif(self.selected_type == InformationType.TASK_EPISODE):
             demo_name = self.saved_task_episode_name_list.get(tkinter.ANCHOR)
             task_id = self.id_box.get(tkinter.ANCHOR)
             if(task_id == '' or task_id == None):
                 return
-            Thread(target = lambda: self.ros_node.update_episode(type = InformationType.TASK_EPISODE, name = demo_name, id = demo_id)).start()
+            if(self.ros_node.variables.supervisor_state == SupervisorState.STANDBY):
+                episode_event = dict(function = self.ros_node.update_episode, kwargs = dict(type = InformationType.TASK_EPISODE, name = demo_name, id = task_id))
+                self.ros_node.episode_event_queue.put(episode_event)
     
     def add_trigger(self):
         if(self.ros_node.variables.episode_type == InformationType.DEMO):
@@ -304,4 +368,17 @@ class Selection():
         for id_ in self.ros_node.variables.ids:
             self.id_box.insert(tkinter.END, id_)
 
-    #TODO update_names
+    def update_demo(self):
+        self.demo_box.delete(0,tkinter.END)
+        for id_ in self.ros_node.variables.demo_names:
+            self.demo_box.insert(tkinter.END, id_)
+
+    def update_task(self):
+        self.task_box.delete(0,tkinter.end)
+        for id_ in self.ros_node.variables.task_names:
+            self.task_box.insert(tkinter.end, id_)
+    
+    def update_queue(self):
+        self.queue_box.delete(0,tkinter.end)
+        for id_ in self.ros_node.variables.task_queue:
+            self.queue_box.insert(tkinter.end, id_)
