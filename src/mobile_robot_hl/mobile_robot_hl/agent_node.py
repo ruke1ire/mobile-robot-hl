@@ -1,7 +1,6 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import *
-from custom_interfaces.msg import AgentOutput
 from custom_interfaces.srv import StringTrigger
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist, Vector3
@@ -90,45 +89,46 @@ class AgentNode(Node):
     # SUBSCRIBER CALLBACKS
 
     def task_image_callback(self, img):
-        self.task_image = rnp.numpify(img)
-        # check whether "demo" and model has been selected otherwise fail
-        if(self.model == None and self.selected_data == None):
-            self.get_logger().warn("Model or data not yet selected")
-            return
-        
-        # 1. Verify previous actions and frame_no are received
-        while(self.received_desired_vel == False or self.received_termination_flag == False or self.received_action_controller == False or self.received_frame_no == False):
-            pass
+        if(self.state['state'] == SupervisorState.TASK_RUNNING):
+            self.task_image = rnp.numpify(img)
+            # check whether "demo" and model has been selected otherwise fail
+            if(self.model == None and self.selected_data == None):
+                self.get_logger().warn("Model or data not yet selected")
+                return
+            
+            # 1. Verify previous actions and frame_no are received
+            while(self.received_desired_vel == False or self.received_termination_flag == False or self.received_action_controller == False or self.received_frame_no == False):
+                pass
 
-        self.received_desired_vel = False
-        self.received_termination_flag = False
-        self.received_action_controller = False
-        self.received_frame_no = False
+            self.received_desired_vel = False
+            self.received_termination_flag = False
+            self.received_action_controller = False
+            self.received_frame_no = False
 
-        prev_vel = self.desired_vel
-        prev_termination_flag = self.desired_termination_flag
-        prev_action_controller = self.action_controller
-        frame_no = self.frame_no
+            prev_vel = self.desired_vel
+            prev_termination_flag = self.desired_termination_flag
+            prev_action_controller = self.action_controller
+            frame_no = self.frame_no
 
-        # 2. Convert information to tensor
-        image_tensor, latent_tensor, frame_no_tensor = self.convert_to_model_input(self.task_image, prev_vel, prev_termination_flag, prev_action_controller, frame_no)
-        
-        # 3. Inference and processing
-        output_tensor = self.model(input = image_tensor, input_latent = latent_tensor, frame_no = frame_no_tensor, inference_mode = InferenceMode.STORE)
-        output_tensor = process_actor_output(output_tensor)
+            # 2. Convert information to tensor
+            image_tensor, latent_tensor, frame_no_tensor = self.convert_to_model_input(self.task_image, prev_vel, prev_termination_flag, prev_action_controller, frame_no)
+            
+            # 3. Inference and processing
+            output_tensor = self.model(input = image_tensor, input_latent = latent_tensor, frame_no = frame_no_tensor, inference_mode = InferenceMode.STORE)
+            output_tensor = process_actor_output(output_tensor)
 
-        # 4. Run model post processing to convert model output to appropriate values
-        agent_linear_vel = output_tensor[0].item()
-        agent_angular_vel = output_tensor[1].item()
-        agent_termination_flag = output_tensor[2].item()
+            # 4. Run model post processing to convert model output to appropriate values
+            agent_linear_vel = output_tensor[0].item()
+            agent_angular_vel = output_tensor[1].item()
+            agent_termination_flag = output_tensor[2].item()
 
-        # 5. Call supervisor/termination_flag if raised
-        if(agent_termination_flag >= 0.5):
-            self.termination_flag_client.call(Trigger.Request())
-                
-        # 6. Publish agent output
-        velocity_msg = Twist(linear=Vector3(x=agent_linear_vel,y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=agent_angular_vel))
-        self.agent_velocity_publisher.publish(velocity_msg)
+            # 5. Call supervisor/termination_flag if raised
+            if(agent_termination_flag >= 0.5):
+                self.termination_flag_client.call(Trigger.Request())
+                    
+            # 6. Publish agent output
+            velocity_msg = Twist(linear=Vector3(x=agent_linear_vel,y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=agent_angular_vel))
+            self.agent_velocity_publisher.publish(velocity_msg)
 
     def desired_velocity_callback(self, msg):
         self.desired_vel = dict(linear = msg.linear.x, angular = msg.angular.z)

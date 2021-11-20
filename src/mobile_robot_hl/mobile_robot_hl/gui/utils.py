@@ -3,10 +3,36 @@ from mobile_robot_hl.episode_data import *
 from PIL import Image as PImage
 
 import numpy as np
+import copy
 
 class GUIVariable():
-    def __init__(self):
-        self.reset()
+    def __init__(self, variable = None):
+        if variable != None:
+            self.episode = EpisodeData(**variable.episode.get())
+            self.episode_index = copy.deepcopy(variable.episode_index)
+            self.episode_type = copy.deepcopy(variable.episode_type)
+            self.episode_name = copy.deepcopy(variable.episode_name)
+            self.episode_id = copy.deepcopy(variable.episode_id)
+
+            self.model_name = copy.deepcopy(variable.model_name)
+            self.model_id = copy.deepcopy(variable.model_id)
+
+            self.image_raw = copy.deepcopy(variable.image_raw)
+            self.supervisor_state = copy.deepcopy(variable.supervisor_state)
+            self.supervisor_controller = copy.deepcopy(variable.supervisor_controller)
+
+            self.demo_names = copy.deepcopy(variable.demo_names)
+            self.task_names = copy.deepcopy(variable.task_names)
+            self.ids = copy.deepcopy(variable.ids)
+            self.task_queue = copy.deepcopy(variable.task_queue)
+
+            self.model_names = copy.deepcopy(variable.model_names)
+            self.model_ids = copy.deepcopy(variable.model_ids)
+
+            self.user_velocity = copy.deepcopy(variable.user_velocity)
+
+        else:
+            self.reset()
     
     def reset(self):
         self.episode = EpisodeData()

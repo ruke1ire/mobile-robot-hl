@@ -109,6 +109,11 @@ class Episode():
 
         self.plot_full_frame.columnconfigure(0, weight=1)
         self.plot_full_frame.rowconfigure(0, weight=1)
+
+        self.update_image_lock = False
+        self.update_plot_sel_lock = False
+        self.update_plot_full_lock = False
+        self.episode = None
     
     def set_episode_index(self):
         if(self.ros_node.variables.episode.length() > 0):
@@ -123,6 +128,11 @@ class Episode():
         self.set_episode_index()
 
     def update_image(self):
+        if(self.update_image_lock == True):
+            return
+        
+        self.update_image_lock = True
+
         episode_frame = EpisodeData(**self.ros_node.variables.episode.get(self.ros_node.variables.episode_index))
         image = episode_frame.observation.image.get(0)
         if(image == None):
@@ -135,12 +145,20 @@ class Episode():
             self.image_current = image_current
             self.image.configure(image=self.image_current)
 
+        self.update_image_lock = False
+
     def update_plot_sel(self):
+        if(self.update_plot_sel_lock == True):
+            return
+        self.update_plot_sel_lock = True
+
         episode_frame = EpisodeData(**self.ros_node.variables.episode.get(self.ros_node.variables.episode_index))
         if(episode_frame.action.controller.get(0) == ControllerType.USER):
             desired_vel = episode_frame.action.user.velocity.get(0)
-        else:
+        elif(episode_frame.action.controller.get(0) == ControllerType.AGENT):
             desired_vel = episode_frame.action.agent.velocity.get(0)
+        else:
+            return
 
         try:
             self.current_action_desired_vel.remove()
@@ -155,8 +173,17 @@ class Episode():
         self.plot_sel_ax.legend(loc='upper right', prop={'size': 8})
         self.plot_sel_plot.draw_idle()
 
+        self.update_plot_sel_lock = False
+
     def update_plot_full(self):
+        if(self.update_plot_full_lock == True):
+            return
+
+        self.update_plot_full_lock = True
         episode = self.ros_node.variables.episode
+        if(episode == self.episode):
+            return
+
         try:
             self.action_plot_desired_vel_line_linear.pop(0).remove()
             self.action_plot_desired_vel_line_angular.pop(0).remove()
@@ -176,17 +203,23 @@ class Episode():
         desired_vel_angular = [user_vel if(controller == ControllerType.USER) else agent_vel for (user_vel, agent_vel, controller) in zip(episode.action.user.velocity.angular.get(), episode.action.agent.velocity.angular.get(), episode.action.controller.get())]
         desired_vel = {'linear':desired_vel_linear, 'angular': desired_vel_angular}
 
-        self.action_plot_desired_vel_line_linear = self.plot_full_ax.plot(list_range, desired_vel['linear'], c = 'tab:blue', label="desired linear velocity", alpha=1.0, marker='x', linewidth=8, markersize=10)
-        self.action_plot_desired_vel_line_angular = self.plot_full_ax.plot(list_range, desired_vel['angular'], c = 'tab:cyan', label="desired angular velocity", alpha=1.0, marker = 'x', linewidth=8, markersize=10)
-        self.action_plot_user_vel_line_linear =  self.plot_full_ax.plot(list_range, episode.action.user.velocity.linear.get(),c = 'tab:orange', label="user linear velocity", alpha=1.0, marker='o', linewidth = 3, markersize = 7)
-        self.action_plot_user_vel_line_angular =  self.plot_full_ax.plot(list_range,episode.action.user.velocity.angular.get(),c = 'tab:brown', label="user angular velocity", alpha=1.0, marker='o', linewidth = 3, markersize = 7)
-        self.action_plot_agent_vel_line_linear = self.plot_full_ax.plot(list_range, episode.action.agent.velocity.linear.get(),c = 'tab:green', label="agent linear velocity", alpha = 1.0, marker='^', linewidth = 1, markersize = 4)
-        self.action_plot_agent_vel_line_angular = self.plot_full_ax.plot(list_range,episode.action.agent.velocity.angular.get(),c = 'olive', label="agent angular velocity", alpha = 1.0, marker='^', linewidth = 1, markersize = 4)
+        print(desired_vel['linear'], list_range)
+        try:
+            self.action_plot_desired_vel_line_linear = self.plot_full_ax.plot(list_range, desired_vel['linear'], c = 'tab:blue', label="desired linear velocity", alpha=1.0, marker='x', linewidth=8, markersize=10)
+            self.action_plot_desired_vel_line_angular = self.plot_full_ax.plot(list_range, desired_vel['angular'], c = 'tab:cyan', label="desired angular velocity", alpha=1.0, marker = 'x', linewidth=8, markersize=10)
+            self.action_plot_user_vel_line_linear =  self.plot_full_ax.plot(list_range, episode.action.user.velocity.linear.get(),c = 'tab:orange', label="user linear velocity", alpha=1.0, marker='o', linewidth = 3, markersize = 7)
+            self.action_plot_user_vel_line_angular =  self.plot_full_ax.plot(list_range,episode.action.user.velocity.angular.get(),c = 'tab:brown', label="user angular velocity", alpha=1.0, marker='o', linewidth = 3, markersize = 7)
+            self.action_plot_agent_vel_line_linear = self.plot_full_ax.plot(list_range, episode.action.agent.velocity.linear.get(),c = 'tab:green', label="agent linear velocity", alpha = 1.0, marker='^', linewidth = 1, markersize = 4)
+            self.action_plot_agent_vel_line_angular = self.plot_full_ax.plot(list_range,episode.action.agent.velocity.angular.get(),c = 'olive', label="agent angular velocity", alpha = 1.0, marker='^', linewidth = 1, markersize = 4)
 
-        self.plot_full_ax.set_xlim([0.5,max(episode.length(),1)+0.5])
-        self.plot_full_ax.legend(loc='lower left', prop={'size': 8})
+            self.plot_full_ax.set_xlim([0.5,max(episode.length(),1)+0.5])
+            self.plot_full_ax.legend(loc='lower left', prop={'size': 8})
 
-        self.plot_full_plot.draw_idle()
+            self.plot_full_plot.draw_idle()
+        except:
+            pass
+
+        self.update_plot_full_lock = False
 
 class Current():
     def __init__(self, parent = None, ros_node = None):
@@ -213,16 +246,23 @@ class Current():
         self.parent.columnconfigure(0, weight=1)
         self.parent.columnconfigure(1, weight=1)
         self.parent.rowconfigure(0, weight=1)
+
+        self.update_image_lock = False
+        self.image_current = None
     
     def update_image(self):
+        if(self.update_image_lock == True):
+            return
+        self.update_image_lock = True
         image = self.ros_node.variables.image_raw
         image = image.resize((480,360))
         image_current = ImageTk.PhotoImage(image = image)
         if(image_current == self.image_current):
-            pass
+            return
         else:
             self.image_current = image_current
             self.image.configure(image=self.image_current)
+        self.update_image_lock = False
 
 #==============================================================
 

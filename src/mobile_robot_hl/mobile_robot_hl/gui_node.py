@@ -17,6 +17,7 @@ from PIL import Image as PImage
 import copy
 import json
 import seaborn as sns
+import traceback
 
 from mobile_robot_hl.episode_data import *
 from mobile_robot_hl.gui import *
@@ -171,12 +172,9 @@ class GUINode(Node):
     # Callbacks that can udpate self.episode
     def task_image_callback(self, img):
         self.task_image  = PImage.fromarray(rnp.numpify(img))
-        self.got_task_image = True
+        episode_event = dict(function = self.variables.episode.observation.image.append, kwargs = dict(data = self.task_image))
+        self.episode_event_queue.put(episode_event)
 
-        if(self.variables.episode_type != InformationType.TASK_EPISODE or self.variables.episode_name != self.variables.task_queue[0]['name'] or self.variables.episode_id != self.variables.task_queue[0]['id']):
-            episode_event = dict(function = self.update_episode, kwargs = dict(type = InformationType.TASK_EPISODE, name = self.variables.task_queue[0]['name'], id = self.variables.task_queue[0]['id']))
-            self.episode_event_queue.put(episode_event)
-    
     def frame_no_callback(self, msg):
         self.frame_no = msg.data
         episode_event = dict(function = self.variables.episode.frame_no.append, kwargs = dict(data = self.frame_no))
@@ -184,14 +182,14 @@ class GUINode(Node):
 
     def action_controller_callback(self, msg):
         self.action_controller = ControllerType[msg.data]
+        episode_event1 = dict(function = self.variables.episode.action.user.append, kwargs = self.user_output)
+        self.episode_event_queue.put(episode_event1)
         episode_event = dict(function = self.variables.episode.action.controller.append, kwargs = dict(data = self.action_controller))
-        self.episode_event_queue.put(episode_event)
-        episode_event = dict(function = self.variables.episode.action.user.append, kwargs = self.user_output)
         self.episode_event_queue.put(episode_event)
 
     def agent_velocity_callback(self, velocity):
         self.agent_output['velocity'] = {'linear':velocity.linear.x, 'angular': velocity.angular.z}
-        episode_event = dict(function = self.variables.episode.action.agent.velocity.append, kwargs = self.agent_output)
+        episode_event = dict(function = self.variables.episode.action.agent.velocity.append, kwargs = self.agent_output['velocity'])
         self.episode_event_queue.put(episode_event)
 
     def user_velocity_callback(self, vel):
@@ -248,39 +246,45 @@ class GUINode(Node):
             type_ = InformationType.NONE
             name = None
             id_ = None
-            episode_event = dict(function = self.update_episode, kwargs = dict(type_, name, id_))
+            episode_event = dict(function = self.update_episode, kwargs = dict(type = type_, name = name, id = id_))
             self.episode_event_queue.put(episode_event)
         elif(self.variables.supervisor_state == SupervisorState.DEMO_RECORDING and self.prev_variables.supervisor_state == SupervisorState.STANDBY):
             type_ = InformationType.NONE
             name = None
             id_ = None
-            episode_event = dict(function = self.update_episode, kwargs = dict(type_, name, id_))
+            episode_event = dict(function = self.update_episode, kwargs = dict(type = type_, name = name, id = id_))
             self.episode_event_queue.put(episode_event)
         elif(self.variables.supervisor_state == SupervisorState.TASK_RUNNING and self.prev_variables.supervisor_state == SupervisorState.STANDBY):
             type_ = InformationType.TASK_EPISODE
             name = self.variables.task_queue[0].split('.')[0]
             id_ = self.variables.task_queue[0].split('.')[1]
-            episode_event = dict(function = self.update_episode, kwargs = dict(type_, name, id_))
+            episode_event = dict(function = self.update_episode, kwargs = dict(type = type_, name = name, id = id_))
             self.episode_event_queue.put(episode_event)
     
     def update_state_loop(self):
         while True:
             for var_type in self.variables.__dict__.keys():
                 if(self.variables.__dict__[var_type] != self.prev_variables.__dict__[var_type]):
-                    #print(self.variables.__dict__)
+                    #print(self.variables.__dict__[var_type])
                     for trigger in self.variable_trigger[var_type]:
-                        #print(trigger)
                         Thread(target=trigger).start()
-                    exec(f"self.prev_variables.{var_type} = self.variables.{var_type}")
+                        if(var_type == "episode"):
+                            self.prev_variables.episode = EpisodeData(**self.variables.episode.get())
+                        else:
+                            exec(f"self.prev_variables.{var_type} = self.variables.{var_type}")
     
     def run_episode_event_queue(self):
         self.get_logger().info("Starting execution of episode events")
         while True:
             try:
                 episode_event = self.episode_event_queue.get()
-                episode_event['function'](**episode_event['kwargs'])
-            except Exception as e:
-                self.get_logger().warn(str(e))
+                #print(str(episode_event))
+                try:
+                    episode_event['function'](**episode_event['kwargs'])
+                except:
+                    episode_event['function'](episode_event['kwargs'])
+            except Exception:
+                self.get_logger().warn(str(traceback.format_exc()))
     
     def init_variables(self):
         self.variables.demo_names = self.demo_handler.get_names()

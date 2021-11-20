@@ -19,6 +19,8 @@ import os
 from PIL import Image as PImage
 import json
 import copy
+import traceback
+import numpy as np
 
 class SupervisorNode(Node):
 
@@ -39,7 +41,7 @@ class SupervisorNode(Node):
         self.demo_handler = DemoHandler(path=demo_path)
         self.task_handler = TaskHandler(path=task_path, demo_handler = self.demo_handler)
 
-        self.image_raw_msg = Image()
+        self.image_raw_msg = rnp.msgify(Image,np.zeros((240,320,3),dtype = np.uint8), 'rgb8')
         self.agent_output = {'velocity':{'linear':0.0, 'angular': 0.0}, 'termination_flag':False}
         self.user_output =  {'velocity':{'linear':0.0, 'angular': 0.0}, 'termination_flag':False}
         self.episode = EpisodeData()
@@ -130,83 +132,92 @@ class SupervisorNode(Node):
     ### SERVICE CALLBACKS
 
     def start_callback(self, request, response):
-        # check type of start (task vs demo)
-        start_type = request.data
-        if(start_type == 'task'):
-            # state == standby
-            if(self.state == SupervisorState.STANDBY):
-                # check if episode has been selected
-                if(self.selected_data['name'] == None or self.selected_data['id'] == None):
-                    response.success = False
-                    response.message = "Episode not yet selected"
-                    return response
-                # call agent service to select demo
-                selected_data = copy.deepcopy(self.selected_data)
-                selected_data['type'] = selected_data['type'].name
-                select_data_response = self.call_service('agent/select_data', json.dumps(selected_data))
-                if(select_data_response == False):
-                    response.success = False
-                    response.message = "agent/select_data service not successful"
-                    return response
-                # set self.episode
-                try:
-                    if(self.selected_data['type'] == InformationType.TASK_EPISODE):
-                        self.episode = self.task_handler.get(self.selected_data['name'], self.selected_data['id'])
-                    elif(self.selected_data['type'] == InformationType.DEMO):
-                        self.episode = self.demo_handler.get(self.selected_data['name'], self.selected_data['id'])
-                    else:
-                        raise Exception()
-                except:
-                    response.success = False
-                    response.message = f"Unable to get episode {self.selected_data}"
-                    return response
-            
-            # state == task_paused or task_running
-            elif(self.state in [SupervisorState.TASK_PAUSED, SupervisorState.TASK_RUNNING]):
-                # do nothing
-                pass
-            # state == any other state => fail
-            else:
-                response.success = False
-                response.message = f"Unable to start task as the current state == {self.state.name}"
-                return response
-
-            self.controller = ControllerType.AGENT
-            self.state = SupervisorState.TASK_RUNNING
-
-        elif(start_type == 'demo'):
-            if(self.state == SupervisorState.STANDBY):
-                # check if demo name has been selected
-                if(self.selected_data['name'] == None or self.selected_data['type'] == InformationType.TASK_EPISODE):
-                    response.success = False
-                    response.message = "Demo name not yet selected"
-                    return response
-                # if the ID is selected, then set self.episode
-                if(self.selected_data['id'] != None):
+        try:
+            self.get_logger().info("<start> service called")
+            # check type of start (task vs demo)
+            start_type = request.command
+            if(start_type == 'task'):
+                self.get_logger().info("Starting task")
+                # state == standby
+                if(self.state == SupervisorState.STANDBY):
+                    # check if episode has been selected
+                    if(self.selected_data['name'] == None or self.selected_data['id'] == None):
+                        response.success = False
+                        response.message = "Episode not yet selected"
+                        return response
+                    # call agent service to select demo
+                    selected_data = copy.deepcopy(self.selected_data)
+                    selected_data['type'] = selected_data['type'].name
+                    select_data_response = self.call_service('agent/select_data', json.dumps(selected_data))
+                    if(select_data_response == False):
+                        response.success = False
+                        response.message = "agent/select_data service not successful"
+                        return response
+                    # set self.episode
                     try:
-                        self.episode = self.demo_handler.get(self.selected_data['name'], self.selected_data['id'])
+                        if(self.selected_data['type'] == InformationType.TASK_EPISODE):
+                            self.episode = self.task_handler.get(self.selected_data['name'], self.selected_data['id'])
+                        elif(self.selected_data['type'] == InformationType.DEMO):
+                            self.episode = self.demo_handler.get(self.selected_data['name'], self.selected_data['id'])
+                        else:
+                            raise Exception()
                     except:
                         response.success = False
                         response.message = f"Unable to get episode {self.selected_data}"
                         return response
-                self.state = SupervisorState.DEMO_RECORDING
-                self.controller = ControllerType.USER
-            elif(self.state == SupervisorState.DEMO_PAUSED):
-                self.state = SupervisorState.DEMO_RECORDING
-                self.controller = ControllerType.USER
+                
+                # state == task_paused or task_running
+                elif(self.state in [SupervisorState.TASK_PAUSED, SupervisorState.TASK_RUNNING]):
+                    # do nothing
+                    pass
+                # state == any other state => fail
+                else:
+                    response.success = False
+                    response.message = f"Unable to start task as the current state == {self.state.name}"
+                    return response
+
+                self.controller = ControllerType.AGENT
+                self.state = SupervisorState.TASK_RUNNING
+
+            elif(start_type == 'demo'):
+                self.get_logger().info("Starting demo")
+                if(self.state == SupervisorState.STANDBY):
+                    # check if demo name has been selected
+                    if(self.selected_data['name'] in [None, ''] or self.selected_data['type'] == InformationType.TASK_EPISODE):
+                        response.success = False
+                        response.message = "Demo name not yet selected"
+                        return response
+                    # if the ID is selected, then set self.episode
+                    if(self.selected_data['id'] not in [None, '']):
+                        try:
+                            self.episode = self.demo_handler.get(self.selected_data['name'], self.selected_data['id'])
+                        except:
+                            response.success = False
+                            response.message = f"Unable to get episode {self.selected_data}"
+                            return response
+                    self.state = SupervisorState.DEMO_RECORDING
+                    self.controller = ControllerType.USER
+                elif(self.state == SupervisorState.DEMO_PAUSED):
+                    self.state = SupervisorState.DEMO_RECORDING
+                    self.controller = ControllerType.USER
+                else:
+                    response.success = False
+                    response.message = f"Unable to start demo as the current state == {self.state.name}"
+                    return response
             else:
                 response.success = False
-                response.message = f"Unable to start demo as the current state == {self.state.name}"
+                response.message = f"Invalid start type"
                 return response
-        else:
+
+            response.success = True
+            return response
+        except Exception:
+            self.get_logger().warn(str(traceback.format_exc()))
             response.success = False
-            response.message = f"Invalid start type"
             return response
 
-        response.success = True
-        return response
-
     def pause_callback(self, request, response):
+        self.get_logger().info("<pause> service called")
         try:
             self.pause()
         except Exception as e:
@@ -233,27 +244,32 @@ class SupervisorNode(Node):
         return response
 
     def save_callback(self, request, response):
-        if(self.state == SupervisorState.STANDBY):
-            response.success = False
-            response.message = f"Unable to save episode because state == {self.state}"
-            return response
+        try:
+            if(self.state == SupervisorState.STANDBY):
+                response.success = False
+                response.message = f"Unable to save episode because state == {self.state}"
+                return response
 
-        # make sure episode is not empty
-        if(self.episode.length() != 0):
-            if(self.state in [SupervisorState.TASK_RUNNING, SupervisorState.TASK_PAUSED]):
-                self.state = SupervisorState.TASK_PAUSED
-                self.task_handler.save(self.episode, self.selected_data['name'], self.selected_data['id'])
+            # make sure episode is not empty
+            if(self.episode.length() != 0):
+                if(self.state in [SupervisorState.TASK_RUNNING, SupervisorState.TASK_PAUSED]):
+                    self.state = SupervisorState.TASK_PAUSED
+                    self.task_handler.save(self.episode, self.selected_data['name'], self.selected_data['id'])
+                
+                elif(self.state in [SupervisorState.DEMO_PAUSED, SupervisorState.DEMO_RECORDING]):
+                    self.state = SupervisorState.DEMO_PAUSED
+                    self.demo_handler.save(self.episode, self.selected_data['name'])
+            else:
+                response.success = False
+                response.message = f"Unable to save episode as episode is empty"
+                return response
             
-            elif(self.state in [SupervisorState.DEMO_PAUSED, SupervisorState.DEMO_RECORDING]):
-                self.state = SupervisorState.DEMO_PAUSED
-                self.demo_handler.save(self.episode, self.selected_data['name'])
-        else:
-            response.success = False
-            response.message = f"Unable to save episode as episode is empty"
+            response.success = True
             return response
-        
-        response.success = True
-        return response
+        except:
+            self.get_logger().warn(str(traceback.format_exc()))
+            response.success = False
+            return response
 
     def termination_flag_callback(self, request, response):
         requestor = ControllerType[request.data]
@@ -273,7 +289,7 @@ class SupervisorNode(Node):
 
     def select_data_callback(self, request, response):
         try:
-            data_dict = json.loads(request.data)
+            data_dict = json.loads(request.command)
             self.selected_data = dict(type = InformationType.NONE, name = "", id = "")
             for key, value in data_dict.items():
                 if(key == 'type'):
@@ -308,80 +324,86 @@ class SupervisorNode(Node):
     ### TIMER CALLBACK
 
     def control_callback(self):
-        # state = DEMO_RECORDING, TASK_RUNNING
-        state = copy.deepcopy(self.state)
-        if(state in [SupervisorState.DEMO_RECORDING, SupervisorState.TASK_RUNNING]):
-            # 1. send image_raw_msg to agent 
-            frame_no = self.frame_no + 1
-            desired_output = dict(velocity = dict(linear = None, angular = None), termination_flag = None)
+        try:
+            state = copy.deepcopy(self.state)
+            if(state in [SupervisorState.DEMO_RECORDING, SupervisorState.TASK_RUNNING]):
+                # 1. send image_raw_msg to agent 
+                frame_no = self.frame_no + 1
+                desired_output = dict(velocity = dict(linear = None, angular = None), termination_flag = None)
 
-            # publish image and wait for agent output
-            if(self.received_agent_velocity == False):
-                self.task_image_msg = self.image_raw_msg
-                self.task_image_publisher.publish(self.task_image_msg)
-                self.frame_no_publisher.publish(Int32(data=frame_no))
+                # publish image and wait for agent output
+                if(self.received_agent_velocity == False):
+                    self.get_logger().info("Publishing task_image and frame_no")
+                    self.task_image_msg = self.image_raw_msg
+                    #self.get_logger().info(str(type(self.task_image_msg)))
+                    self.task_image_publisher.publish(self.task_image_msg)
+                    self.frame_no_publisher.publish(Int32(data=frame_no))
 
-                while(self.received_agent_velocity == False):
-                    pass
+                    if(state == SupervisorState.TASK_RUNNING):
+                        while(self.received_agent_velocity == False):
+                            pass
 
-            agent_output = self.agent_output
-            self.received_agent_velocity = False
+                agent_output = self.agent_output
+                self.received_agent_velocity = False
 
-            # convert image to PImage to be appended to the episode
-            image = PImage.fromarray(rnp.numpify(self.task_image_msg))
+                # convert image to PImage to be appended to the episode
+                image = PImage.fromarray(rnp.numpify(self.task_image_msg))
 
-            # get user output
-            user_output = self.user_output
-            
-            # set desired_output based on self.state and termination flags
-            if(self.state == SupervisorState.DEMO_RECORDING):
-                agent_output = dict(velocity = dict(linear = None, angular = None), terminatinon_flag = None)
-                desired_output = user_output
-            else:
-                if(user_output['termination_flag'] == True and agent_output['terminatinon_flag'] == False):
-                    self.controller = ControllerType.USER
-
-                if(self.controller == ControllerType.USER):
+                # get user output
+                user_output = self.user_output
+                
+                # set desired_output based on self.state and termination flags
+                if(self.state == SupervisorState.DEMO_RECORDING):
+                    agent_output = dict(velocity = dict(linear = None, angular = None), termination_flag = None)
                     desired_output = user_output
-                elif(self.controller == ControllerType.AGENT):
-                    desired_output = agent_output
                 else:
-                    raise Exception("Invalid controller when recording demo or running task")
+                    if(user_output['termination_flag'] == True and agent_output['termination_flag'] == False):
+                        self.controller = ControllerType.USER
 
-            # get final decision on the controller
-            controller = self.controller
-            
-            # if the state changed during this process, then cancel this frame
-            if(self.state != state):
-                self.received_agent_velocity = True
-                return
-            else:
-                # publish desired velocity, desired termination flag, and action controller
-                desired_velocity_msg = Twist(linear=Vector3(x=desired_output['velocity']['linear'],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=desired_output['velocity']['angular']))
-                self.desired_velocity_publisher.publish(desired_velocity_msg)
-                termination_flag_msg = Bool(data=desired_output['termination_flag'])
-                self.termination_flag_publisher.publish(termination_flag_msg)
-                action_controller_msg = String(data=controller.name)
-                self.action_controller_publisher.publish(action_controller_msg)
-                # append frame to self.episode
-                episode_frame = EpisodeData(
-                    observation = dict(image=image), 
-                    action = dict(
-                        user = user_output,
-                        agent = agent_output,
-                        controller = controller), 
-                    frame_no = frame_no)
-                self.episode.append(episode_frame)
+                    if(self.controller == ControllerType.USER):
+                        desired_output = user_output
+                    elif(self.controller == ControllerType.AGENT):
+                        desired_output = agent_output
+                    else:
+                        raise Exception("Invalid controller when recording demo or running task")
 
-                # reset termination_flag
-                self.user_output['termination_flag'] = False
-                self.agent_output['termination_flag'] = False
-                # pause and reset frame_no if termination_flag was raised
-                if(desired_output['termination_flag'] == True):
-                    self.frame_no = 0
-                    self.pause()
+                # get final decision on the controller
+                controller = self.controller
+                
+                # if the state changed during this process, then cancel this frame
+                if(self.state != state):
+                    self.received_agent_velocity = True
+                    return
                 else:
-                    self.frame_no = frame_no
+                    self.get_logger().info("Publishing desired actions")
+                    # publish desired velocity, desired termination flag, and action controller
+                    desired_velocity_msg = Twist(linear=Vector3(x=desired_output['velocity']['linear'],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=desired_output['velocity']['angular']))
+                    self.desired_velocity_publisher.publish(desired_velocity_msg)
+                    termination_flag_msg = Bool(data=desired_output['termination_flag'])
+                    self.termination_flag_publisher.publish(termination_flag_msg)
+                    action_controller_msg = String(data=controller.name)
+                    self.action_controller_publisher.publish(action_controller_msg)
+                    # append frame to self.episode
+                    episode_frame = EpisodeData(
+                        observation = dict(image=image), 
+                        action = dict(
+                            user = user_output,
+                            agent = agent_output,
+                            controller = controller), 
+                        frame_no = frame_no)
+                    self.episode.append(episode_frame)
+
+                    # reset termination_flag
+                    self.user_output['termination_flag'] = False
+                    self.agent_output['termination_flag'] = False
+                    # pause and reset frame_no if termination_flag was raised
+                    if(desired_output['termination_flag'] == True):
+                        self.frame_no = 0
+                        self.pause()
+                    else:
+                        self.frame_no = frame_no
+        except:
+            self.get_logger().warn(str(traceback.format_exc()))
 
     def publish_state(self):
         state = json.dumps(dict(state = self.state.name, controller = self.controller.name))

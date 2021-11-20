@@ -155,10 +155,15 @@ class Demo():
 
         self.parent.rowconfigure(0, weight=1)
         self.parent.columnconfigure(0, weight=1)
-    
+
     def buttons_start_trigger(self):
         if(self.ros_node.variables.supervisor_state in [SupervisorState.STANDBY, SupervisorState.DEMO_PAUSED]):
             if(self.ros_node.variables.supervisor_state == SupervisorState.STANDBY):
+                demo_name = self.entry.get()
+                if(demo_name == ''):
+                    return
+                select_data_str = json.dumps(dict(type = InformationType.DEMO.name, name = demo_name, id = None))
+                self.ros_node.call_service('supervisor/select_data', select_data_str)
                 self.ros_node.call_service('supervisor/start', 'demo')
         elif(self.ros_node.variables.supervisor_state == SupervisorState.DEMO_RECORDING):
             self.ros_node.call_service('supervisor/pause')

@@ -1,7 +1,7 @@
 from mobile_robot_hl.utils import ControllerType
 import torch
 import numpy as np
-from PIL import Image
+from PIL import Image as PImage
 
 class Node():
     def __init__(self, childrens):
@@ -88,10 +88,8 @@ class LeafNode():
         if(type(data) == list):
             #assert (type(data[0]) == self.type), f"Input data type is not {str(self.type)}"
             self.data += data
-        elif(type(data) == self.type):
-            self.data.append(data)
         else:
-            raise Exception("Invalid data type")
+            self.data.append(data)
 
     def remove(self, index, leftwards = True):
         if leftwards == True:
@@ -132,7 +130,7 @@ class EpisodeBool(LeafNode):
         super().__init__(self.type, data)
 
 class EpisodeImage(LeafNode):
-    type = Image
+    type = PImage
     def __init__(self, data = None):
         super().__init__(self.type, data)
 
@@ -203,6 +201,13 @@ class EpisodeData(Node):
         frame_no_tensor = torch.tensor(self.frame_no.get(), dtype = torch.float32)
 
         return image_tensor, latent_tensor, frame_no_tensor
+
+    def __eq__(self, other):
+        """Overrides the default implementation"""
+        try:
+            return self.get() == other.get()
+        except:
+            return False
 
 #class EpisodeData:
 #    def __init__(self, data):
