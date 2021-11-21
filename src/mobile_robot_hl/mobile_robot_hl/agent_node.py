@@ -44,7 +44,7 @@ class AgentNode(Node):
         self.model = None
         self.model_name = None
         self.model_id = None
-        self.state = SupervisorState.STANDBY
+        self.state = dict(state = SupervisorState.STANDBY, controller = ControllerType.USER)
         self.selected_data = None
 
         self.get_logger().info("Initializing Node")
@@ -89,46 +89,59 @@ class AgentNode(Node):
     # SUBSCRIBER CALLBACKS
 
     def task_image_callback(self, img):
-        if(self.state['state'] == SupervisorState.TASK_RUNNING):
-            self.task_image = rnp.numpify(img)
-            # check whether "demo" and model has been selected otherwise fail
-            if(self.model == None and self.selected_data == None):
-                self.get_logger().warn("Model or data not yet selected")
-                return
-            
-            # 1. Verify previous actions and frame_no are received
-            while(self.received_desired_vel == False or self.received_termination_flag == False or self.received_action_controller == False or self.received_frame_no == False):
-                pass
+        self.get_logger().info("Received task_image")
+        try:
+            if(self.state['state'] == SupervisorState.TASK_RUNNING):
+                self.task_image = rnp.numpify(img)
+                # check whether "demo" and model has been selected otherwise fail
+                if(self.model == None and self.selected_data == None):
+                    self.get_logger().warn("Model or data not yet selected")
+                    return
+                
+                # 1. Verify previous actions and frame_no are received
+                self.get_logger().info("Receiving previous actions and frame_no")
+                while(self.received_desired_vel == False or self.received_termination_flag == False or self.received_action_controller == False or self.received_frame_no == False):
+                    pass
+                    #raise Exception("Task failed, previous actions unknown")
 
-            self.received_desired_vel = False
-            self.received_termination_flag = False
-            self.received_action_controller = False
-            self.received_frame_no = False
+                self.get_logger().info("Received previous actions and frame_no")
+                self.received_desired_vel = False
+                self.received_termination_flag = False
+                self.received_action_controller = False
+                self.received_frame_no = False
 
-            prev_vel = self.desired_vel
-            prev_termination_flag = self.desired_termination_flag
-            prev_action_controller = self.action_controller
-            frame_no = self.frame_no
+                prev_vel = self.desired_vel
+                prev_termination_flag = self.desired_termination_flag
+                prev_action_controller = self.action_controller
+                frame_no = self.frame_no
 
-            # 2. Convert information to tensor
-            image_tensor, latent_tensor, frame_no_tensor = self.convert_to_model_input(self.task_image, prev_vel, prev_termination_flag, prev_action_controller, frame_no)
-            
-            # 3. Inference and processing
-            output_tensor = self.model(input = image_tensor, input_latent = latent_tensor, frame_no = frame_no_tensor, inference_mode = InferenceMode.STORE)
-            output_tensor = process_actor_output(output_tensor)
+                # 2. Convert information to tensor
+                self.get_logger().info("Converting information to tensors")
+                image_tensor, latent_tensor, frame_no_tensor = self.convert_to_model_input(self.task_image, prev_vel, prev_termination_flag, prev_action_controller, frame_no)
+                
+                # 3. Inference and processing
+                self.get_logger().info("Computing model output")
+                output_tensor = self.model(input = image_tensor, input_latent = latent_tensor, frame_no = frame_no_tensor, inference_mode = InferenceMode.STORE)
+                output_tensor = process_actor_output(output_tensor)
 
-            # 4. Run model post processing to convert model output to appropriate values
-            agent_linear_vel = output_tensor[0].item()
-            agent_angular_vel = output_tensor[1].item()
-            agent_termination_flag = output_tensor[2].item()
+                # 4. Run model post processing to convert model output to appropriate values
+                agent_linear_vel = output_tensor[0].item()
+                agent_angular_vel = output_tensor[1].item()
+                agent_termination_flag = output_tensor[2].item()
 
-            # 5. Call supervisor/termination_flag if raised
-            if(agent_termination_flag >= 0.5):
-                self.termination_flag_client.call(Trigger.Request())
-                    
-            # 6. Publish agent output
-            velocity_msg = Twist(linear=Vector3(x=agent_linear_vel,y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=agent_angular_vel))
-            self.agent_velocity_publisher.publish(velocity_msg)
+                # 5. Call supervisor/termination_flag if raised
+                if(agent_termination_flag >= 0.5):
+                    service_request = StringTrigger.Request()
+                    service_request.command = "agent"
+                    self.termination_flag_client.call(StringTrigger.Request())
+                        
+                # 6. Publish agent output
+                self.get_logger().info("Publishing agent velocity")
+                velocity_msg = Twist(linear=Vector3(x=agent_linear_vel,y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=agent_angular_vel))
+                self.agent_velocity_publisher.publish(velocity_msg)
+
+        except Exception:
+            self.get_logger().warn(str(traceback.format_exc()))
 
     def desired_velocity_callback(self, msg):
         self.desired_vel = dict(linear = msg.linear.x, angular = msg.angular.z)
@@ -165,16 +178,19 @@ class AgentNode(Node):
             self.model.reset()
             self.reset_variables()
             # get data from demo handler or task handler
-            selected_data = json.loads(request.data)
+            selected_data = json.loads(request.command)
             selected_data['type'] = InformationType[selected_data['type']]
             if(selected_data['type'] == InformationType.TASK_EPISODE):
                 episode = self.task_handler.get(selected_data['name'], selected_data['id'])
-            elif(self.selected_data['type'] == InformationType.DEMO):
+            elif(selected_data['type'] == InformationType.DEMO):
                 episode = self.demo_handler.get(selected_data['name'], selected_data['id'])
+            else:
+                raise Exception("Invalid request. Unable to select data")
             # condition model on data
             image_tensor, latent_tensor, frame_no_tensor = episode.get_tensor()
             self.model(input = image_tensor, input_latent = latent_tensor, frame_no = frame_no_tensor, inference_mode = InferenceMode.STORE)
         except Exception:
+            self.get_logger().warn(str(traceback.format_exc()))
             self.selected_data = None
             response.success = False
             response.message = str(traceback.format_exc())
@@ -185,7 +201,7 @@ class AgentNode(Node):
 
     def select_model_callback(self, request, response):
         self.get_logger().info("Selecting Model")
-        if(self.state == SupervisorState.STANDBY):
+        if(self.state['state'] == SupervisorState.STANDBY):
             command_dict = json.loads(request.command)
             model_name = command_dict['name']
             model_id = command_dict['id']

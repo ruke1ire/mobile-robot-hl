@@ -203,7 +203,6 @@ class Episode():
         desired_vel_angular = [user_vel if(controller == ControllerType.USER) else agent_vel for (user_vel, agent_vel, controller) in zip(episode.action.user.velocity.angular.get(), episode.action.agent.velocity.angular.get(), episode.action.controller.get())]
         desired_vel = {'linear':desired_vel_linear, 'angular': desired_vel_angular}
 
-        print(desired_vel['linear'], list_range)
         try:
             self.action_plot_desired_vel_line_linear = self.plot_full_ax.plot(list_range, desired_vel['linear'], c = 'tab:blue', label="desired linear velocity", alpha=1.0, marker='x', linewidth=8, markersize=10)
             self.action_plot_desired_vel_line_angular = self.plot_full_ax.plot(list_range, desired_vel['angular'], c = 'tab:cyan', label="desired angular velocity", alpha=1.0, marker = 'x', linewidth=8, markersize=10)
@@ -359,7 +358,7 @@ class Info():
             self.episode_id.configure(text=f"Episode ID: {episode_id}")
 
         if type(model_name) == str:
-            self.episode_id.configure(text=f"Model Name: {model_name}")
+            self.model_name.configure(text=f"Model Name: {model_name}")
 
         if type(model_id) == str:
-            self.episode_id.configure(text=f"Model ID: {model_id}")
+            self.model_id.configure(text=f"Model ID: {model_id}")

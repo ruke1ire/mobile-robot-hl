@@ -8,8 +8,7 @@ from rclpy.executors import MultiThreadedExecutor
 import threading
 import os
 import numpy as np
-import traceback
-import json
+import time
 
 import ros2_numpy as rnp
 
@@ -50,6 +49,7 @@ class AgentNode(Node):
                 i += 1
             else:
                 i -= 1
+            time.sleep(0.1)
     
 def spin_thread_(node, executor):
     rclpy.spin(node, executor)

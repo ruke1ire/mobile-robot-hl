@@ -19,12 +19,15 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/AgentOutput.msg"
+  "msg/EpisodeFrame.msg"
   "srv/StringTrigger.srv"
   "srv/FloatTrigger.srv"
-  DEPENDENCIES geometry_msgs
+  DEPENDENCIES geometry_msgs 
+  DEPENDENCIES sensor_msgs
+
  )
 
 if(BUILD_TESTING)

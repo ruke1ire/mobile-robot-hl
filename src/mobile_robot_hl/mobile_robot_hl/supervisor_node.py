@@ -4,6 +4,7 @@ from rclpy.qos import *
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from custom_interfaces.srv import StringTrigger, FloatTrigger
+from custom_interfaces.msg import EpisodeFrame
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool, String, Int32
@@ -57,7 +58,7 @@ class SupervisorNode(Node):
         self.declare_parameters(
             namespace='',
             parameters=[
-                ('frequency', 0.6),
+                ('frequency', 0.3),
                 ('max_linear_velocity', None),
                 ('max_angular_velocity', None),
             ])
@@ -79,6 +80,7 @@ class SupervisorNode(Node):
                                         reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
 
         self.desired_velocity_publisher = self.create_publisher(Twist, desired_velocity_topic_name, reliable_qos, callback_group= ReentrantCallbackGroup())
+        self.episode_frame_publisher = self.create_publisher(EpisodeFrame, 'episode_frame', reliable_qos, callback_group = ReentrantCallbackGroup())
         self.termination_flag_publisher = self.create_publisher(Bool, 'termination_flag', reliable_qos, callback_group = ReentrantCallbackGroup())
         self.action_controller_publisher = self.create_publisher(String, 'action_controller', reliable_qos, callback_group = ReentrantCallbackGroup())
         self.task_image_publisher = self.create_publisher(Image, 'task_image', reliable_qos, callback_group = ReentrantCallbackGroup())
@@ -120,7 +122,7 @@ class SupervisorNode(Node):
         self.image_raw_msg = img
 
     def agent_velocity_callback(self, vel):
-        self.agent_velocity['velocity'] = {'linear':vel.linear.x, 'angular': vel.angular.z}
+        self.agent_output['velocity'] = {'linear':vel.linear.x, 'angular': vel.angular.z}
         self.received_agent_velocity = True
 
     def user_velocity_callback(self, vel):
@@ -272,7 +274,7 @@ class SupervisorNode(Node):
             return response
 
     def termination_flag_callback(self, request, response):
-        requestor = ControllerType[request.data]
+        requestor = ControllerType[request.command]
 
         if(requestor == ControllerType.AGENT):
             self.pause()
@@ -305,7 +307,7 @@ class SupervisorNode(Node):
     def select_controller_callback(self, request, response):
         if(self.state in [SupervisorState.TASK_PAUSED, SupervisorState.TASK_RUNNING]):
             try:
-                self.controller = ControllerType[request.data.upper()]
+                self.controller = ControllerType[request.command.upper()]
             except Exception as e:
                 response.success = False
                 response.message = str(e)
@@ -329,15 +331,15 @@ class SupervisorNode(Node):
             if(state in [SupervisorState.DEMO_RECORDING, SupervisorState.TASK_RUNNING]):
                 # 1. send image_raw_msg to agent 
                 frame_no = self.frame_no + 1
-                desired_output = dict(velocity = dict(linear = None, angular = None), termination_flag = None)
+                desired_output = dict(velocity = dict(linear = 0.0, angular = 0.0), termination_flag = False)
 
                 # publish image and wait for agent output
                 if(self.received_agent_velocity == False):
                     self.get_logger().info("Publishing task_image and frame_no")
                     self.task_image_msg = self.image_raw_msg
                     #self.get_logger().info(str(type(self.task_image_msg)))
-                    self.task_image_publisher.publish(self.task_image_msg)
                     self.frame_no_publisher.publish(Int32(data=frame_no))
+                    self.task_image_publisher.publish(self.task_image_msg)
 
                     if(state == SupervisorState.TASK_RUNNING):
                         while(self.received_agent_velocity == False):
@@ -354,16 +356,19 @@ class SupervisorNode(Node):
                 
                 # set desired_output based on self.state and termination flags
                 if(self.state == SupervisorState.DEMO_RECORDING):
-                    agent_output = dict(velocity = dict(linear = None, angular = None), termination_flag = None)
+                    agent_output = dict(velocity = dict(linear = 0.0, angular = 0.0), termination_flag = False)
                     desired_output = user_output
+                    demonstration_flag = True
                 else:
                     if(user_output['termination_flag'] == True and agent_output['termination_flag'] == False):
                         self.controller = ControllerType.USER
 
                     if(self.controller == ControllerType.USER):
                         desired_output = user_output
+                        demonstration_flag = True
                     elif(self.controller == ControllerType.AGENT):
                         desired_output = agent_output
+                        demonstration_flag = False
                     else:
                         raise Exception("Invalid controller when recording demo or running task")
 
@@ -373,6 +378,7 @@ class SupervisorNode(Node):
                 # if the state changed during this process, then cancel this frame
                 if(self.state != state):
                     self.received_agent_velocity = True
+                    self.get_logger().warn("Cancelled current frame as the state changed during execution")
                     return
                 else:
                     self.get_logger().info("Publishing desired actions")
@@ -383,6 +389,22 @@ class SupervisorNode(Node):
                     self.termination_flag_publisher.publish(termination_flag_msg)
                     action_controller_msg = String(data=controller.name)
                     self.action_controller_publisher.publish(action_controller_msg)
+                    episode_frame_msg = EpisodeFrame(
+                        user_velocity = Twist(
+                            linear = Vector3(x=user_output['velocity']['linear'], y=0.0, z=0.0),
+                            angular = Vector3(x=0.0, y=0.0, z=user_output['velocity']['angular'])
+                        ),
+                        agent_velocity = Twist(
+                            linear = Vector3(x=agent_output['velocity']['linear'], y=0.0, z=0.0),
+                            angular = Vector3(x=0.0, y=0.0, z=agent_output['velocity']['angular'])
+                        ),
+                        user_termination_flag = user_output['termination_flag'],
+                        agent_termination_flag = agent_output['termination_flag'],
+                        demonstration_flag = demonstration_flag,
+                        observation = self.task_image_msg,
+                        frame_no = self.frame_no
+                    )
+                    self.episode_frame_publisher.publish(episode_frame_msg)
                     # append frame to self.episode
                     episode_frame = EpisodeData(
                         observation = dict(image=image), 
@@ -402,6 +424,7 @@ class SupervisorNode(Node):
                         self.pause()
                     else:
                         self.frame_no = frame_no
+                self.get_logger().info("Completed a control frame")
         except:
             self.get_logger().warn(str(traceback.format_exc()))
 

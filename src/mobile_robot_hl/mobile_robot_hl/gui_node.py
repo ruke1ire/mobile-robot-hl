@@ -4,13 +4,14 @@ from rclpy.node import Node
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from custom_interfaces.srv import StringTrigger, FloatTrigger
+from custom_interfaces.msg import EpisodeFrame
 from std_srvs.srv import Trigger
 from std_msgs.msg import Bool, String, Int32
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist, Vector3
 
 from queue import Queue
-from threading import Thread
+from threading import Thread, active_count
 import numpy as np
 import os
 from PIL import Image as PImage
@@ -34,10 +35,6 @@ class GUINode(Node):
         task_path = os.environ['MOBILE_ROBOT_HL_TASK_PATH']
         model_path = os.environ['MOBILE_ROBOT_HL_MODEL_PATH']
         
-        try:
-            desired_velocity_topic_name = os.environ['MOBILE_ROBOT_HL_DESIRED_VELOCITY_TOPIC']
-        except:
-            desired_velocity_topic_name = "desired_velocity"
         try:
             image_raw_topic_name = os.environ['MOBILE_ROBOT_HL_IMAGE_RAW_TOPIC']
         except:
@@ -145,12 +142,7 @@ class GUINode(Node):
                                         depth=1, 
                                         reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
 
-        self.task_image_subscriber = self.create_subscription(Image, 'task_image', self.task_image_callback, best_effort_qos, callback_group=ReentrantCallbackGroup())
-        self.frame_no_subscriber = self.create_subscription(Int32, 'frame_no', self.frame_no_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
-        #self.desired_velocity_subscriber = self.create_subscription(Twist, desired_velocity_topic_name, self.desired_velocity_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
-        #self.termination_flag_subscriber = self.create_subscription(Bool, 'termination_flag', self.termination_flag_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
-        self.action_controller_subscriber = self.create_subscription(String, 'action_controller', self.action_controller_callback, reliable_qos, callback_group=ReentrantCallbackGroup())
-        self.agent_velocity_subscriber = self.create_subscription(Twist, 'agent_velocity', self.agent_velocity_callback ,best_effort_qos, callback_group = ReentrantCallbackGroup())
+        self.episode_frame_subscriber = self.create_subscription(EpisodeFrame, 'episode_frame', self.episode_frame_callback, reliable_qos, callback_group = ReentrantCallbackGroup())
         self.user_velocity_subscriber = self.create_subscription(Twist, 'user_velocity', self.user_velocity_callback, best_effort_qos, callback_group = ReentrantCallbackGroup())
 
         self.image_raw_subscriber = self.create_subscription(Image, image_raw_topic_name, self.image_raw_callback ,best_effort_qos, callback_group = ReentrantCallbackGroup())
@@ -166,34 +158,56 @@ class GUINode(Node):
         self.services_['supervisor/select_controller'] = self.create_client(StringTrigger, 'supervisor/select_controller', callback_group=self.client_callback_group)
         self.services_['supervisor/configure_disturbance'] = self.create_client(FloatTrigger, 'supervisor/configure_disturbance', callback_group=self.client_callback_group)
         self.services_['supervisor/save'] = self.create_client(Trigger, 'supervisor/save', callback_group=self.client_callback_group)
+        self.services_['agent/select_model'] = self.create_client(StringTrigger, 'agent/select_model', callback_group=self.client_callback_group)
 
         self.get_logger().info("Initialized Node")
     
-    # Callbacks that can udpate self.episode
-    def task_image_callback(self, img):
-        self.task_image  = PImage.fromarray(rnp.numpify(img))
-        episode_event = dict(function = self.variables.episode.observation.image.append, kwargs = dict(data = self.task_image))
-        self.episode_event_queue.put(episode_event)
+    def episode_frame_callback(self, episode_frame_msg):
+        self.get_logger().info("Receiving episode frame")
 
-    def frame_no_callback(self, msg):
-        self.frame_no = msg.data
-        episode_event = dict(function = self.variables.episode.frame_no.append, kwargs = dict(data = self.frame_no))
-        self.episode_event_queue.put(episode_event)
+        try:
+            user_velocity = episode_frame_msg.user_velocity
+            agent_velocity = episode_frame_msg.agent_velocity
+            user_termination_flag = episode_frame_msg.user_termination_flag
+            agent_termination_flag = episode_frame_msg.agent_termination_flag
+            demonstration_flag = episode_frame_msg.demonstration_flag
+            observation = PImage.fromarray(rnp.numpify(episode_frame_msg.observation))
+            frame_no = episode_frame_msg.frame_no
+            if(demonstration_flag == True):
+                controller = ControllerType.USER
+            else:
+                controller = ControllerType.AGENT
 
-    def action_controller_callback(self, msg):
-        self.action_controller = ControllerType[msg.data]
-        episode_event1 = dict(function = self.variables.episode.action.user.append, kwargs = self.user_output)
-        self.episode_event_queue.put(episode_event1)
-        episode_event = dict(function = self.variables.episode.action.controller.append, kwargs = dict(data = self.action_controller))
-        self.episode_event_queue.put(episode_event)
+            episode_data = EpisodeData(
+                observation = dict(image = observation),
+                action = dict(
+                    user = dict(
+                        velocity = dict(
+                            linear = user_velocity.linear.x,
+                            angular = user_velocity.angular.z
+                        ),
+                        termination_flag = user_termination_flag,
+                    ),
+                    agent = dict(
+                        velocity = dict(
+                            linear = agent_velocity.linear.x,
+                            angular = agent_velocity.angular.z
+                        ),
+                        termination_flag = agent_termination_flag,
+                    ),
+                    controller = controller
+                ),
+                frame_no = frame_no
+                )
 
-    def agent_velocity_callback(self, velocity):
-        self.agent_output['velocity'] = {'linear':velocity.linear.x, 'angular': velocity.angular.z}
-        episode_event = dict(function = self.variables.episode.action.agent.velocity.append, kwargs = self.agent_output['velocity'])
-        self.episode_event_queue.put(episode_event)
+            episode_event = dict(function = self.variables.episode.append, kwargs = episode_data)
+            self.episode_event_queue.put(episode_event)
+            self.get_logger().info("Received episode frame")
+        except Exception:
+            self.get_logger().warn(str(traceback.format_exc()))
 
     def user_velocity_callback(self, vel):
-        self.user_output['velocity'] = {'linear':vel.linear.x, 'angular': vel.angular.z}
+        self.live_user_output['velocity'] = {'linear':vel.linear.x, 'angular': vel.angular.z}
     
     # Callbacks that doesn't have to be appended onto the episode
 
@@ -268,10 +282,12 @@ class GUINode(Node):
                     #print(self.variables.__dict__[var_type])
                     for trigger in self.variable_trigger[var_type]:
                         Thread(target=trigger).start()
+                        #print(active_count())
+                        #self.get_logger().info(str(self.variables.task_queue))
                         if(var_type == "episode"):
                             self.prev_variables.episode = EpisodeData(**self.variables.episode.get())
                         else:
-                            exec(f"self.prev_variables.{var_type} = self.variables.{var_type}")
+                            exec(f"self.prev_variables.{var_type} = copy.deepcopy(self.variables.{var_type})")
     
     def run_episode_event_queue(self):
         self.get_logger().info("Starting execution of episode events")
@@ -289,6 +305,7 @@ class GUINode(Node):
     def init_variables(self):
         self.variables.demo_names = self.demo_handler.get_names()
         self.variables.task_names = self.task_handler.get_names()
+        self.variables.model_names = self.model_handler.get_names(ModelType.ACTOR)
 
 def spin_thread_(node):
     while True:

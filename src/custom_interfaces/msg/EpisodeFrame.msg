@@ -1,0 +1,7 @@
+geometry_msgs/Twist user_velocity
+geometry_msgs/Twist agent_velocity
+bool user_termination_flag
+bool agent_termination_flag
+bool demonstration_flag
+sensor_msgs/Image observation
+int32 frame_no

@@ -2,6 +2,7 @@ from mobile_robot_hl.utils import ControllerType
 import torch
 import numpy as np
 from PIL import Image as PImage
+import copy
 
 class Node():
     def __init__(self, childrens):
@@ -69,6 +70,7 @@ class LeafNode():
                 return self.data[index]
 
     def set(self, data, index = None):
+        data = copy.deepcopy(data)
         if index is None:
             if(data is None or data == []):
                 self.data = []

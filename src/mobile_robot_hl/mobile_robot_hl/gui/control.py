@@ -2,6 +2,7 @@ import tkinter
 from tkinter import ttk
 from threading import Thread
 import json
+from mobile_robot_hl.gui.display import Info
 
 from mobile_robot_hl.gui.utils import *
 from mobile_robot_hl.model import *
@@ -68,6 +69,11 @@ class Task():
     
     def buttons_start_pause_trigger(self):
         if(self.ros_node.variables.supervisor_state in [SupervisorState.STANDBY, SupervisorState.TASK_PAUSED]):
+            if(self.ros_node.variables.supervisor_state == SupervisorState.STANDBY):
+                select_data_dict = copy.deepcopy(self.ros_node.variables.task_queue[0])
+                select_data_dict['type'] = select_data_dict['type'].name
+                select_data_str = json.dumps(select_data_dict)
+                self.ros_node.call_service('supervisor/select_data', command = select_data_str)
             self.ros_node.call_service('supervisor/start', command = 'task')
         elif(self.ros_node.variables.supervisor_state == SupervisorState.TASK_RUNNING):
             if(self.ros_node.variables.supervisor_controller == ControllerType.AGENT):
@@ -164,7 +170,7 @@ class Demo():
                     return
                 select_data_str = json.dumps(dict(type = InformationType.DEMO.name, name = demo_name, id = None))
                 self.ros_node.call_service('supervisor/select_data', select_data_str)
-                self.ros_node.call_service('supervisor/start', 'demo')
+            self.ros_node.call_service('supervisor/start', 'demo')
         elif(self.ros_node.variables.supervisor_state == SupervisorState.DEMO_RECORDING):
             self.ros_node.call_service('supervisor/pause')
 
@@ -231,8 +237,7 @@ class Model():
     def entries_name_trigger(self, val):
         try:
             model_name = self.entries_name.get()
-            self.ros_node.variables.model_names = self.ros_node.model_handler.get_ids(ModelType.ACTOR, model_name)
-            self.update_entries_id(model_name)
+            self.ros_node.variables.model_ids = self.ros_node.model_handler.get_ids(ModelType.ACTOR, model_name)
         except:
             pass
 
@@ -248,8 +253,8 @@ class Model():
         response = self.ros_node.call_service('agent/select_model', model_string)
 
         if response == True:
-            self.ros_node.variables.episode_name = model_name
-            self.ros_node.variables.episode_id = model_id
+            self.ros_node.variables.model_name = model_name
+            self.ros_node.variables.model_id = model_id
     
     def update_entries_name(self):
         self.entries_name['values'] = tuple(self.ros_node.variables.model_names)
@@ -342,21 +347,26 @@ class Selection():
                 self.ros_node.episode_event_queue.put(episode_event)
     
     def add_trigger(self):
-        if(self.ros_node.variables.episode_type == InformationType.DEMO):
+        if(self.selected_type == InformationType.DEMO):
             demo_name = self.demo_box.get(tkinter.ANCHOR)
             demo_id = self.id_box.get(tkinter.ANCHOR)
             if(demo_id == "" or demo_name == ""):
                 return
-            demo = demo_name+"."+str(demo_id)
-            self.queue_box.insert(tkinter.END, demo)
-            self.ros_node.variables.task_queue.append(demo)
+            selected_data = dict(type = self.selected_type, name = demo_name, id = demo_id)
+            self.ros_node.variables.task_queue.append(selected_data)
+        elif(self.selected_type == InformationType.TASK_EPISODE):
+            demo_name = self.task_box.get(tkinter.ANCHOR)
+            demo_id = self.id_box.get(tkinter.ANCHOR)
+            if(demo_id == "" or demo_name == ""):
+                return
+            selected_data = dict(type = self.selected_type, name = demo_name, id = demo_id)
+            self.ros_node.variables.task_queue.append(selected_data)
 
     def remove_trigger(self):
         selected_index = self.queue_box.curselection()
         if(0 in selected_index and self.ros_node.variables.supervisor_state not in [SupervisorState.STANDBY, SupervisorState.DEMO_PAUSED, SupervisorState.DEMO_RECORDING]):
             return
-        self.queue_box.delete(tkinter.ANCHOR)
-        self.ros_node.variables.task_queue.pop(selected_index)
+        self.ros_node.variables.task_queue.pop(selected_index[0])
 
     def update_id(self):
         self.id_box.delete(0,tkinter.END)
@@ -375,5 +385,6 @@ class Selection():
     
     def update_queue(self):
         self.queue_box.delete(0,tkinter.END)
-        for id_ in self.ros_node.variables.task_queue:
-            self.queue_box.insert(tkinter.END, id_)
+        for selected_data in self.ros_node.variables.task_queue:
+            string = f"{selected_data['type'].name}.{selected_data['name']}.{selected_data['id']}"
+            self.queue_box.insert(tkinter.END, string)
