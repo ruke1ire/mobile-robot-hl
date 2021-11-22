@@ -44,10 +44,10 @@ class GUINode(Node):
         self.task_handler = TaskHandler(path=task_path, demo_handler = self.demo_handler)
         self.model_handler = ModelHandler(path=model_path)
 
-        self.prev_variables = GUIVariable()
         self.variables = GUIVariable()
         self.init_variables()
         self.constants = GUIConstant()
+        self.conditioned_episode = False
 
         self.episode_event_queue = Queue()
 
@@ -61,7 +61,8 @@ class GUINode(Node):
                 self.gui.display.episode.update_image, 
                 self.gui.display.episode.update_plot_full, 
                 self.gui.display.episode.update_plot_sel,
-                self.gui.display.current.info.update_info
+                self.gui.display.current.info.update_info,
+                self.gui.display.episode.update_episode_index
                 ],
             episode_type = [
                 self.gui.display.current.info.update_info
@@ -93,6 +94,9 @@ class GUINode(Node):
                 self.gui.control.demo.update_buttons,
                 self.gui.control.model.update_buttons,
             ],
+            supervisor_episode_type = [],
+            supervisor_episode_name = [],
+            supervisor_episode_id = [],
             demo_names = [
                 self.gui.control.demo.update_entry,
                 self.gui.control.selection.update_demo
@@ -117,6 +121,7 @@ class GUINode(Node):
                 self.gui.display.episode.update_plot_sel
             ],
             user_velocity = [
+                self.gui.display.episode.update_plot_sel_live_velocity
             ],
         )
 
@@ -207,20 +212,33 @@ class GUINode(Node):
             self.get_logger().warn(str(traceback.format_exc()))
 
     def user_velocity_callback(self, vel):
-        self.live_user_output['velocity'] = {'linear':vel.linear.x, 'angular': vel.angular.z}
+        try:
+            self.variables.user_velocity = {'linear':vel.linear.x, 'angular': vel.angular.z}
+        except Exception:
+            self.get_logger().warn(str(traceback.format_exc()))
     
-    # Callbacks that doesn't have to be appended onto the episode
-
     def image_raw_callback(self, img):
-        self.variables.image_raw = PImage.fromarray(rnp.numpify(img))
+        try:
+            self.variables.image_raw = PImage.fromarray(rnp.numpify(img))
+        except Exception:
+            self.get_logger().warn(str(traceback.format_exc()))
     
     def supervisor_state_callback(self, msg):
-        supervisor_state = json.loads(msg.data)
-        self.variables.supervisor_state = SupervisorState[supervisor_state['state']]
-        self.variables.supervisor_controller = ControllerType[supervisor_state['controller']]
+        try:
+            supervisor_state = json.loads(msg.data)
+            self.variables.supervisor_state = SupervisorState[supervisor_state['state']]
+            self.variables.supervisor_controller = ControllerType[supervisor_state['controller']]
+            if(supervisor_state['episode_type'] == None):
+                self.variables.supervisor_episode_type = InformationType.NONE
+            else:
+                self.variables.supervisor_episode_type = InformationType[supervisor_state['episode_type']]
+            self.variables.supervisor_episode_name = supervisor_state['episode_name']
+            self.variables.supervisor_episode_id = supervisor_state['episode_id']
+        except Exception:
+            self.get_logger().warn(str(traceback.format_exc()))
 
     def call_service(self, service_name, command=None):
-        self.get_logger().info(f'Calling service "{service_name}"')
+        self.get_logger().info(f'Calling service <{service_name}>')
         if self.services_[service_name].wait_for_service(timeout_sec=0.1) == False:
             self.get_logger().warn(f'{service_name} service not available')
             return False
@@ -237,57 +255,73 @@ class GUINode(Node):
             response = self.services_[service_name].call(request)
 
             if(response.success == True):
-                self.get_logger().info(f'Service successful: "{service_name}"')
+                self.get_logger().info(f'Service successful: <{service_name}>')
             else:
-                self.get_logger().warn(f'"{service_name}" service error: {response.message}')
+                self.get_logger().warn(f'<{service_name}> service error: {response.message}')
             return response.success
 
-    def update_episode(self, type, name, id):
+    def update_episode(self, type, name, id, condition = False):
+        self.get_logger().info(f"Updating episode with type = {type}, name = {name}, id = {id}")
         if type == InformationType.DEMO:
-            self.variables.episode = self.demo_handler.get(name, id)
+            if(id is None):
+                self.variables.episode.reset()
+            elif(name is None):
+                raise Exception("Cannot update episode")
+            else:
+                self.variables.episode = self.demo_handler.get(name, id)
+            self.variables.episode_type = InformationType.DEMO
+            self.conditioned_episode = condition
         elif type == InformationType.TASK_EPISODE:
-            self.variables.episode = self.task_handler.get(name, id)
+            if(name is None or id is None):
+                raise Exception("Cannot update episode")
+            else:
+                self.variables.episode = self.task_handler.get(name, id)
+            self.variables.episode_type = InformationType.TASK_EPISODE
+            self.conditioned_episode = condition
         else:
             self.variables.episode.reset()
             self.variables.episode_name = "None"
             self.variables.episode_id = "None"
+            self.variables.episode_type = InformationType.NONE
+            self.conditioned_episode = False
             return
-        self.variables.episode_name = name
-        self.variables.episode_id = id
+        self.variables.episode_name = str(name)
+        self.variables.episode_id = str(id)
     
     def update_episode_event(self):
         if(self.variables.supervisor_state == SupervisorState.STANDBY):
             type_ = InformationType.NONE
             name = None
             id_ = None
-            episode_event = dict(function = self.update_episode, kwargs = dict(type = type_, name = name, id = id_))
+            episode_event = dict(function = self.update_episode, kwargs = dict(type = type_, name = name, id = id_, condition = False))
             self.episode_event_queue.put(episode_event)
-        elif(self.variables.supervisor_state == SupervisorState.DEMO_RECORDING and self.prev_variables.supervisor_state == SupervisorState.STANDBY):
-            type_ = InformationType.NONE
-            name = None
-            id_ = None
-            episode_event = dict(function = self.update_episode, kwargs = dict(type = type_, name = name, id = id_))
+        elif(self.variables.supervisor_state == SupervisorState.DEMO_RECORDING and self.conditioned_episode == False):
+            type_ = self.variables.supervisor_episode_type
+            name = self.variables.supervisor_episode_name
+            id_ = self.variables.supervisor_episode_id
+            episode_event = dict(function = self.update_episode, kwargs = dict(type = type_, name = name, id = id_, condition = True))
             self.episode_event_queue.put(episode_event)
-        elif(self.variables.supervisor_state == SupervisorState.TASK_RUNNING and self.prev_variables.supervisor_state == SupervisorState.STANDBY):
-            type_ = InformationType.TASK_EPISODE
-            name = self.variables.task_queue[0].split('.')[0]
-            id_ = self.variables.task_queue[0].split('.')[1]
-            episode_event = dict(function = self.update_episode, kwargs = dict(type = type_, name = name, id = id_))
+        elif(self.variables.supervisor_state == SupervisorState.TASK_RUNNING and self.conditioned_episode == False):
+            type_ = self.variables.supervisor_episode_type
+            name = self.variables.supervisor_episode_name
+            id_ = self.variables.supervisor_episode_id
+            episode_event = dict(function = self.update_episode, kwargs = dict(type = type_, name = name, id = id_, condition = True))
             self.episode_event_queue.put(episode_event)
     
     def update_state_loop(self):
+        prev_variables = GUIVariable()
         while True:
             for var_type in self.variables.__dict__.keys():
-                if(self.variables.__dict__[var_type] != self.prev_variables.__dict__[var_type]):
+                if(self.variables.__dict__[var_type] != prev_variables.__dict__[var_type]):
                     #print(self.variables.__dict__[var_type])
                     for trigger in self.variable_trigger[var_type]:
                         Thread(target=trigger).start()
                         #print(active_count())
                         #self.get_logger().info(str(self.variables.task_queue))
                         if(var_type == "episode"):
-                            self.prev_variables.episode = EpisodeData(**self.variables.episode.get())
+                            prev_variables.episode = EpisodeData(**self.variables.episode.get())
                         else:
-                            exec(f"self.prev_variables.{var_type} = copy.deepcopy(self.variables.{var_type})")
+                            exec(f"prev_variables.{var_type} = copy.deepcopy(self.variables.{var_type})")
     
     def run_episode_event_queue(self):
         self.get_logger().info("Starting execution of episode events")

@@ -1,3 +1,4 @@
+from numpy.core.fromnumeric import trace
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import *
@@ -89,9 +90,9 @@ class AgentNode(Node):
     # SUBSCRIBER CALLBACKS
 
     def task_image_callback(self, img):
-        self.get_logger().info("Received task_image")
         try:
             if(self.state['state'] == SupervisorState.TASK_RUNNING):
+                self.get_logger().info("Received task_image")
                 self.task_image = rnp.numpify(img)
                 # check whether "demo" and model has been selected otherwise fail
                 if(self.model == None and self.selected_data == None):
@@ -133,7 +134,7 @@ class AgentNode(Node):
                 if(agent_termination_flag >= 0.5):
                     service_request = StringTrigger.Request()
                     service_request.command = "agent"
-                    self.termination_flag_client.call(StringTrigger.Request())
+                    #self.termination_flag_client.call(service_request)
                         
                 # 6. Publish agent output
                 self.get_logger().info("Publishing agent velocity")
@@ -144,40 +145,58 @@ class AgentNode(Node):
             self.get_logger().warn(str(traceback.format_exc()))
 
     def desired_velocity_callback(self, msg):
-        self.desired_vel = dict(linear = msg.linear.x, angular = msg.angular.z)
-        self.received_desired_vel = True
+        try:
+            self.desired_vel = dict(linear = msg.linear.x, angular = msg.angular.z)
+            self.received_desired_vel = True
+        except Exception:
+            self.get_logger().warn(str(traceback.format_exc()))
 
     def termination_flag_callback(self, msg):
-        self.desired_termination_flag = msg.data
-        self.received_termination_flag = True
+        try:
+            self.desired_termination_flag = msg.data
+            self.received_termination_flag = True
+        except Exception:
+            self.get_logger().warn(str(traceback.format_exc()))
     
     def action_controller_callback(self, msg):
-        self.action_controller = ControllerType[msg.data]
-        self.received_action_controller = True
+        try:
+            self.action_controller = ControllerType[msg.data]
+            self.received_action_controller = True
+        except Exception:
+            self.get_logger().warn(str(traceback.format_exc()))
     
     def frame_no_callback(self, msg):
-        self.frame_no = msg.data
-        self.received_frame_no = True
+        try:
+            self.frame_no = msg.data
+            self.received_frame_no = True
+        except Exception:
+            self.get_logger().warn(str(traceback.format_exc()))
     
     def supervisor_state_callback(self, msg):
-        state = json.loads(msg.data)
-        state['state'] = SupervisorState[state['state']]
-        state['controller'] = ControllerType[state['controller']]
-        self.state = state
+        try:
+            state = json.loads(msg.data)
+            state['state'] = SupervisorState[state['state']]
+            state['controller'] = ControllerType[state['controller']]
+            self.state = state
+        except Exception:
+            self.get_logger().warn(str(traceback.format_exc()))
     
     # SERVICE CALLBACKS
 
     def select_data_callback(self, request, response):
-        # if model = None, fail
-        if(self.model == None):
-            response.success = False
-            response.message = "Data selection failed as model is not yet selected"
-            return response
         try:
+            self.get_logger().info("<select_data> service called")
+
+            # if model = None, fail
+            if(self.model == None):
+                raise Exception("Data selection failed as model is not yet selected")
+
+            self.get_logger().info("Resetting model")
             # reset model and prev_actions
             self.model.reset()
             self.reset_variables()
             # get data from demo handler or task handler
+            self.get_logger().info("Retrieving data")
             selected_data = json.loads(request.command)
             selected_data['type'] = InformationType[selected_data['type']]
             if(selected_data['type'] == InformationType.TASK_EPISODE):
@@ -186,57 +205,68 @@ class AgentNode(Node):
                 episode = self.demo_handler.get(selected_data['name'], selected_data['id'])
             else:
                 raise Exception("Invalid request. Unable to select data")
+            self.get_logger().info("Retrieved data")
+
+            self.get_logger().info("Conditioning model")
             # condition model on data
             image_tensor, latent_tensor, frame_no_tensor = episode.get_tensor()
             self.model(input = image_tensor, input_latent = latent_tensor, frame_no = frame_no_tensor, inference_mode = InferenceMode.STORE)
-        except Exception:
-            self.get_logger().warn(str(traceback.format_exc()))
-            self.selected_data = None
-            response.success = False
-            response.message = str(traceback.format_exc())
+            self.get_logger().info("Conditioned model")
+            self.selected_data = selected_data
+            self.get_logger().info("<select_data> service completed")
+            response.success = True
             return response
-        self.selected_data = selected_data
-        response.success = True
-        return response
+        except Exception as e:
+            self.get_logger().warn(str(traceback.format_exc()))
+            response.message = str(e)
+            response.success = False
+            return response
 
     def select_model_callback(self, request, response):
-        self.get_logger().info("Selecting Model")
-        if(self.state['state'] == SupervisorState.STANDBY):
-            command_dict = json.loads(request.command)
-            model_name = command_dict['name']
-            model_id = command_dict['id']
-            self.get_logger().info(f"Model name : {model_name}")
-            self.get_logger().info(f"Model ID : {model_id}")
-            try:
+        try:
+            self.get_logger().info("<select_model> service called")
+            if(self.state['state'] == SupervisorState.STANDBY):
+                command_dict = json.loads(request.command)
+                model_name = command_dict['name']
+                model_id = command_dict['id']
+                self.get_logger().info(f"Model name : {model_name}")
+                self.get_logger().info(f"Model ID : {model_id}")
                 self.select_model(model_name, model_id)
                 self.model_name = model_name
                 self.model_id = model_id
-                self.get_logger().info("Selected Model")
-            except Exception:
-                self.get_logger().warn(f"Model selection failed, {traceback.format_exc()}")
-                self.model = None
-                self.model_name = None
-                self.model_id = None
-                response.success = False
-                response.message = str(traceback.format_exc())
-                return response
-            self.reset_variables()
-        else:
-            response.message = "Model selection failed, agent is currently RUNNING"
-            response.success = False
-            self.get_logger().warn("Model selection failed, agent is currently RUNNING")
-            return response
+                self.reset_variables()
+            else:
+                raise Exception("Model selection failed, agent is currently RUNNING")
 
-        response.success = True
-        return response
+            response.success = True
+            self.get_logger().info("<select_model> service completed")
+            return response
+        except Exception as e:
+            self.get_logger().warn(str(traceback.format_exc()))
+            self.model = None
+            self.model_name = None
+            self.model_id = None
+            response.message = str(e)
+            response.success = False
+            return response
     
     def reset_model_callback(self, request, response):
-        if(self.model_name is None or self.model_id is None or self.model is None):
-            response.message = "Unable to reset model as model is not yet selected"
+        try:
+            self.get_logger().info("<reset_model> service called")
+            if(self.model_name is None or self.model_id is None or self.model is None):
+                response.message = "Unable to reset model as model is not yet selected"
+                response.success = False
+            else:
+                self.model.reset()
+                self.reset_variables()
+            response.success = True
+            self.get_logger().info("<reset_model> service completed")
+            return response
+        except Exception as e:
+            self.get_logger().warn(str(traceback.format_exc()))
+            response.message = str(e)
             response.success = False
-        else:
-            self.model.reset()
-            self.reset_variables()
+            return response
 
     # UTILS
     def reset_variables(self):
@@ -250,9 +280,11 @@ class AgentNode(Node):
         self.received_frame_no = False
 
     def select_model(self, name, id_):
+        self.get_logger().info("Selecting model")
         self.model, model_info = self.model_handler.get(ModelType.ACTOR, name, id_)
         self.model = self.model.to(self.device)
-    
+        self.get_logger().info("Selected model")
+
     def convert_to_model_input(self, image_raw, velocity, termination_flag, action_controller, frame_no):
         linear_vel = velocity['linear']
         angular_vel = velocity['angular']

@@ -70,6 +70,8 @@ class Task():
     def buttons_start_pause_trigger(self):
         if(self.ros_node.variables.supervisor_state in [SupervisorState.STANDBY, SupervisorState.TASK_PAUSED]):
             if(self.ros_node.variables.supervisor_state == SupervisorState.STANDBY):
+                if(len(self.ros_node.variables.task_queue) == 0):
+                    return
                 select_data_dict = copy.deepcopy(self.ros_node.variables.task_queue[0])
                 select_data_dict['type'] = select_data_dict['type'].name
                 select_data_str = json.dumps(select_data_dict)
@@ -90,7 +92,7 @@ class Task():
             self.ros_node.call_service('supervisor/start', command = 'task')
         elif(self.ros_node.variables.supervisor_state == SupervisorState.TASK_RUNNING):
             if(self.ros_node.variables.supervisor_controller == ControllerType.AGENT):
-                self.ros_node.call_serivce('supervisor/select_controller', command = 'user')
+                self.ros_node.call_service('supervisor/select_controller', command = 'user')
             elif(self.ros_node.variables.supervisor_controller == ControllerType.USER):
                 self.ros_node.call_service('supervisor/pause')
 

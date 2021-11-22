@@ -20,6 +20,9 @@ class GUIVariable():
             self.image_raw = copy.deepcopy(variable.image_raw)
             self.supervisor_state = copy.deepcopy(variable.supervisor_state)
             self.supervisor_controller = copy.deepcopy(variable.supervisor_controller)
+            self.supervisor_episode_type = copy.deepcopy(variable.supervisor_episode_type)
+            self.supervisor_episode_name = copy.deepcopy(variable.supervisor_episode_name)
+            self.supervisor_episode_id = copy.deepcopy(variable.supervisor_episode_id)
 
             self.demo_names = copy.deepcopy(variable.demo_names)
             self.task_names = copy.deepcopy(variable.task_names)
@@ -49,6 +52,9 @@ class GUIVariable():
         self.image_raw = PImage.fromarray(blank_img)
         self.supervisor_state = SupervisorState.STANDBY
         self.supervisor_controller = ControllerType.NONE
+        self.supervisor_episode_type = InformationType.NONE
+        self.supervisor_episode_name = None
+        self.supervisor_episode_id = None
 
         self.demo_names = []
         self.task_names = []

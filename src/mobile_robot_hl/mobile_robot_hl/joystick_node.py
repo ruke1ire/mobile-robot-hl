@@ -1,3 +1,4 @@
+from mobile_robot_hl.episode_data.utils import InformationType
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import *
@@ -34,8 +35,8 @@ class JoystickNode(Node):
         self.declare_parameters(
             namespace='',
             parameters=[
-                ('max_linear_velocity', None),
-                ('max_angular_velocity', None),
+                ('max_linear_velocity', 1.0),
+                ('max_angular_velocity', 1.0),
             ])
 
         self.max_linear_velocity = self.get_parameter('max_linear_velocity').get_parameter_value().double_value
@@ -43,20 +44,20 @@ class JoystickNode(Node):
 
         self.joy_handler = JoyHandler(max_linear_vel=self.max_linear_velocity, max_angular_vel=self.max_angular_velocity)
 
-        self.get_logger().info(f"Parameter <frequency> = {self.frequency}")
         self.get_logger().info(f"Parameter <max_linear_velocity> = {self.max_linear_velocity}")
         self.get_logger().info(f"Parameter <max_angular_velocity> = {self.max_angular_velocity}")
 
         self.user_velocity_publisher = self.create_publisher(Twist, 'user_velocity', best_effort_qos, callback_group=ReentrantCallbackGroup())
-        self.supervisor_state_subscriber = self.create_subscription(String, 'supervisor_state', self.supervisor_state_callback, callback_group=ReentrantCallbackGroup())
+        self.supervisor_state_subscriber = self.create_subscription(String, 'supervisor_state', self.supervisor_state_callback, best_effort_qos, callback_group=ReentrantCallbackGroup())
 
         self.services_ = {}
 
         self.service_group = ReentrantCallbackGroup()
-        self.services_[supervisor_prefix+'termination_flag'] = self.create_client(Trigger, supervisor_prefix+'termination_flag', callback_group=self.service_group)
+        self.services_[supervisor_prefix+'termination_flag'] = self.create_client(StringTrigger, supervisor_prefix+'termination_flag', callback_group=self.service_group)
         self.services_[supervisor_prefix+'start'] = self.create_client(StringTrigger, supervisor_prefix+'start')
-        self.services_[supervisor_prefix+'pause'] = self.create_client(StringTrigger, supervisor_prefix+'start')
-        self.services_[supervisor_prefix+'stop'] = self.create_client(StringTrigger, supervisor_prefix+'start')
+        self.services_[supervisor_prefix+'select_controller'] = self.create_client(StringTrigger, supervisor_prefix+'select_controller')
+        self.services_[supervisor_prefix+'pause'] = self.create_client(Trigger, supervisor_prefix+'pause')
+        self.services_[supervisor_prefix+'stop'] = self.create_client(Trigger, supervisor_prefix+'stop')
 
         self.get_logger().info("Initialized Node")
 
@@ -87,17 +88,17 @@ class JoystickNode(Node):
                     if(self.supervisor_controller == ControllerType.AGENT):
                         self.call_service(supervisor_prefix+'pause')
                     elif(self.supervisor_controller == ControllerType.USER):
-                        self.call_service(supervisor_prefix+'select_controller', command='agent')
+                        self.call_service(supervisor_prefix+'select_controller', command=ControllerType.AGENT.name)
 
             elif(prev_joy_state[InterfaceType.TAKE_OVER_TASK.name] == False and joy_state[InterfaceType.TAKE_OVER_TASK.name] == True):
                 if(self.supervisor_state in [SupervisorState.TASK_PAUSED]):
-                    self.call_service(supervisor_prefix+'select_controller', command='user')
+                    self.call_service(supervisor_prefix+'select_controller', command=ControllerType.USER.name)
                     self.call_service(supervisor_prefix+'start', command = 'task')
                 elif(self.supervisor_state == SupervisorState.TASK_RUNNING):
                     if(self.supervisor_controller == ControllerType.USER):
                         self.call_service(supervisor_prefix+'pause')
                     elif(self.supervisor_controller == ControllerType.AGENT):
-                        self.call_service(supervisor_prefix+'select_controller', command='user')
+                        self.call_service(supervisor_prefix+'select_controller', command=ControllerType.USER.name)
 
             elif(prev_joy_state[InterfaceType.START_PAUSE_DEMO.name] == False and joy_state[InterfaceType.START_PAUSE_DEMO.name] == True):
                 if(self.supervisor_state in [SupervisorState.STANDBY, SupervisorState.DEMO_PAUSED]):
@@ -106,7 +107,7 @@ class JoystickNode(Node):
                     self.call_service(supervisor_prefix+'pause')
 
             elif(prev_joy_state[InterfaceType.TERMINATION_FLAG.name] == False and joy_state[InterfaceType.TERMINATION_FLAG.name] == True):
-                self.call_service(supervisor_prefix+'termination_flag')
+                self.call_service(supervisor_prefix+'termination_flag', command = 'user')
 
             prev_joy_state = joy_state.copy()
             time.sleep(0.1)

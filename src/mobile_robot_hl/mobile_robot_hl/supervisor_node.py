@@ -1,3 +1,4 @@
+from numpy.core.fromnumeric import trace
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import *
@@ -59,8 +60,8 @@ class SupervisorNode(Node):
             namespace='',
             parameters=[
                 ('frequency', 0.3),
-                ('max_linear_velocity', None),
-                ('max_angular_velocity', None),
+                ('max_linear_velocity', 1.0),
+                ('max_angular_velocity', 1.0),
             ])
 
         self.frequency = self.get_parameter('frequency').get_parameter_value().double_value
@@ -119,17 +120,27 @@ class SupervisorNode(Node):
     # SUBSCRIPTION CALLBACKS
 
     def image_raw_callback(self, img):
-        self.image_raw_msg = img
+        try:
+            self.image_raw_msg = img
+        except Exception:
+            self.get_logger().warn(str(traceback.format_exc()))
 
     def agent_velocity_callback(self, vel):
-        self.agent_output['velocity'] = {'linear':vel.linear.x, 'angular': vel.angular.z}
-        self.received_agent_velocity = True
+        try:
+            self.agent_output['velocity'] = {'linear':vel.linear.x, 'angular': vel.angular.z}
+            self.received_agent_velocity = True
+            self.get_logger().info("Got agent velocity")
+        except Exception:
+            self.get_logger().warn(str(traceback.format_exc()))
 
     def user_velocity_callback(self, vel):
-        self.user_output['velocity'] = {'linear':vel.linear.x, 'angular': vel.angular.z}
-        if(self.state == SupervisorState.STANDBY):
-            velocity_msg = Twist(linear=Vector3(x=self.user_output['velocity']['linear'],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=self.user_output['velocity']['angular']))
-            self.desired_velocity_publisher.publish(velocity_msg)
+        try:
+            self.user_output['velocity'] = {'linear':vel.linear.x, 'angular': vel.angular.z}
+            if(self.state == SupervisorState.STANDBY):
+                velocity_msg = Twist(linear=Vector3(x=self.user_output['velocity']['linear'],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=self.user_output['velocity']['angular']))
+                self.desired_velocity_publisher.publish(velocity_msg)
+        except Exception:
+            self.get_logger().warn(str(traceback.format_exc))
 
     ### SERVICE CALLBACKS
 
@@ -144,29 +155,21 @@ class SupervisorNode(Node):
                 if(self.state == SupervisorState.STANDBY):
                     # check if episode has been selected
                     if(self.selected_data['name'] == None or self.selected_data['id'] == None):
-                        response.success = False
-                        response.message = "Episode not yet selected"
-                        return response
+                        raise Exception("Episode not yet selected")
                     # call agent service to select demo
+                    self.get_logger().info("Calling agent/select_data")
                     selected_data = copy.deepcopy(self.selected_data)
                     selected_data['type'] = selected_data['type'].name
                     select_data_response = self.call_service('agent/select_data', json.dumps(selected_data))
                     if(select_data_response == False):
-                        response.success = False
-                        response.message = "agent/select_data service not successful"
-                        return response
+                        raise Exception("agent/select_data service not successful")
                     # set self.episode
-                    try:
-                        if(self.selected_data['type'] == InformationType.TASK_EPISODE):
-                            self.episode = self.task_handler.get(self.selected_data['name'], self.selected_data['id'])
-                        elif(self.selected_data['type'] == InformationType.DEMO):
-                            self.episode = self.demo_handler.get(self.selected_data['name'], self.selected_data['id'])
-                        else:
-                            raise Exception()
-                    except:
-                        response.success = False
-                        response.message = f"Unable to get episode {self.selected_data}"
-                        return response
+                    if(self.selected_data['type'] == InformationType.TASK_EPISODE):
+                        self.episode = self.task_handler.get(self.selected_data['name'], self.selected_data['id'])
+                    elif(self.selected_data['type'] == InformationType.DEMO):
+                        self.episode = self.demo_handler.get(self.selected_data['name'], self.selected_data['id'])
+                    else:
+                        raise Exception("Invalid data type")
                 
                 # state == task_paused or task_running
                 elif(self.state in [SupervisorState.TASK_PAUSED, SupervisorState.TASK_RUNNING]):
@@ -174,9 +177,7 @@ class SupervisorNode(Node):
                     pass
                 # state == any other state => fail
                 else:
-                    response.success = False
-                    response.message = f"Unable to start task as the current state == {self.state.name}"
-                    return response
+                    raise Exception(f"Unable to start task as the current state == {self.state.name}")
 
                 self.controller = ControllerType.AGENT
                 self.state = SupervisorState.TASK_RUNNING
@@ -186,50 +187,48 @@ class SupervisorNode(Node):
                 if(self.state == SupervisorState.STANDBY):
                     # check if demo name has been selected
                     if(self.selected_data['name'] in [None, ''] or self.selected_data['type'] == InformationType.TASK_EPISODE):
-                        response.success = False
-                        response.message = "Demo name not yet selected"
-                        return response
+                        raise Exception("Demo name not yet selected")
                     # if the ID is selected, then set self.episode
                     if(self.selected_data['id'] not in [None, '']):
+                        self.get_logger().info("Retrieving episode")
                         try:
                             self.episode = self.demo_handler.get(self.selected_data['name'], self.selected_data['id'])
                         except:
-                            response.success = False
-                            response.message = f"Unable to get episode {self.selected_data}"
-                            return response
+                            raise Exception(f"Unable to retrieve episode {self.selected_data}")
                     self.state = SupervisorState.DEMO_RECORDING
                     self.controller = ControllerType.USER
                 elif(self.state == SupervisorState.DEMO_PAUSED):
                     self.state = SupervisorState.DEMO_RECORDING
                     self.controller = ControllerType.USER
                 else:
-                    response.success = False
-                    response.message = f"Unable to start demo as the current state == {self.state.name}"
-                    return response
+                    raise Exception(f"Unable to start demo as the current state == {self.state.name}")
             else:
-                response.success = False
-                response.message = f"Invalid start type"
-                return response
+                raise Exception(f"Invalid start type")
 
+            self.get_logger().info("<start> service completed")
             response.success = True
             return response
-        except Exception:
+        except Exception as e:
             self.get_logger().warn(str(traceback.format_exc()))
+            response.message = str(e)
             response.success = False
             return response
 
     def pause_callback(self, request, response):
-        self.get_logger().info("<pause> service called")
         try:
+            self.get_logger().info("<pause> service called")
             self.pause()
-        except Exception as e:
-            response.success = False
-            response.message = str(e)
+            response.success = True
+            self.get_logger().info("<pause> service completed")
             return response
-        response.success = True
-        return response
+        except Exception as e:
+            self.get_logger().warn(str(traceback.format_exc()))
+            response.message = str(e)
+            response.success = False
+            return response
     
     def pause(self):
+        self.get_logger().info("Pausing episode")
         if(self.state in [SupervisorState.TASK_RUNNING]):
             self.state = SupervisorState.TASK_PAUSED
         elif(self.state == SupervisorState.DEMO_RECORDING):
@@ -238,87 +237,106 @@ class SupervisorNode(Node):
             raise Exception(f"Unable to pause as state == {self.state}")
 
     def stop_callback(self, request, response):
-        self.episode.reset()
-        self.selected_data = dict(string = "", type = InformationType.NONE, name = "", id = "")
-        self.frame_no = 0
-        self.state = SupervisorState.STANDBY
-        response.success = True
-        return response
+        try:
+            self.get_logger().info("<stop> service called")
+            self.episode.reset()
+            self.selected_data = dict(string = "", type = InformationType.NONE, name = "", id = "")
+            self.frame_no = 0
+            self.state = SupervisorState.STANDBY
+            response.success = True
+            self.get_logger().info("<stop> service completed")
+            return response
+        except Exception as e:
+            self.get_logger().warn(str(traceback.format_exc()))
+            response.message = str(e)
+            response.success = False
+            return response
 
     def save_callback(self, request, response):
         try:
+            self.get_logger().info("<save> service called")
             if(self.state == SupervisorState.STANDBY):
-                response.success = False
-                response.message = f"Unable to save episode because state == {self.state}"
-                return response
+                raise Exception(f"Unable to save episode because state == {self.state}")
 
             # make sure episode is not empty
             if(self.episode.length() != 0):
                 if(self.state in [SupervisorState.TASK_RUNNING, SupervisorState.TASK_PAUSED]):
                     self.state = SupervisorState.TASK_PAUSED
+                    self.get_logger().info("Saving task episode")
                     self.task_handler.save(self.episode, self.selected_data['name'], self.selected_data['id'])
                 
                 elif(self.state in [SupervisorState.DEMO_PAUSED, SupervisorState.DEMO_RECORDING]):
                     self.state = SupervisorState.DEMO_PAUSED
+                    self.get_logger().info("Saving demo episode")
                     self.demo_handler.save(self.episode, self.selected_data['name'])
             else:
-                response.success = False
-                response.message = f"Unable to save episode as episode is empty"
-                return response
+                raise Exception(f"Unable to save episode as episode is empty")
             
             response.success = True
+            self.get_logger().info("<save> service completed")
             return response
-        except:
+        except Exception as e:
             self.get_logger().warn(str(traceback.format_exc()))
+            response.message = str(e)
             response.success = False
             return response
 
     def termination_flag_callback(self, request, response):
-        requestor = ControllerType[request.command]
+        try:
+            self.get_logger().info("<termination_flag> service called")
+            requestor = ControllerType[request.command.upper()]
 
-        if(requestor == ControllerType.AGENT):
-            self.pause()
-            self.agent_output['termination_flag'] = True
-        elif(requestor == ControllerType.USER):
-            self.user_output['termination_flag'] = True
-        else:
-            response.success = False
-            response.message = f"Invalid requestor {requestor}"
+            if(requestor == ControllerType.AGENT):
+                self.pause()
+                self.agent_output['termination_flag'] = True
+            elif(requestor == ControllerType.USER):
+                self.user_output['termination_flag'] = True
+            else:
+                raise Exception(f"Invalid requestor {requestor}")
+
+            response.success = True
+            self.get_logger().info("<termination_flag> service completed")
             return response
-
-        response.success = True
-        return response
+        except Exception as e:
+            self.get_logger().warn(str(traceback.format_exc()))
+            response.message = str(e)
+            response.success = False
+            return response
 
     def select_data_callback(self, request, response):
         try:
+            self.get_logger().info("<select_data> service called")
             data_dict = json.loads(request.command)
             self.selected_data = dict(type = InformationType.NONE, name = "", id = "")
             for key, value in data_dict.items():
                 if(key == 'type'):
                     value = InformationType[value]
                 self.selected_data[key] = value
-        except Exception as e:
-            response.success = False
-            response.message = str(e)
+            response.success = True
+            self.get_logger().info("<select_data> service completed")
             return response
-        response.success = True
-        return response
+        except Exception as e:
+            self.get_logger().warn(str(traceback.format_exc()))
+            response.message = str(e)
+            response.success = False
+            return response
 
     def select_controller_callback(self, request, response):
-        if(self.state in [SupervisorState.TASK_PAUSED, SupervisorState.TASK_RUNNING]):
-            try:
+        try:
+            self.get_logger().info("<select_controller> service called")
+            if(self.state in [SupervisorState.TASK_PAUSED, SupervisorState.TASK_RUNNING]):
                 self.controller = ControllerType[request.command.upper()]
-            except Exception as e:
-                response.success = False
-                response.message = str(e)
-                return response
-        else:
-            response.success = False
-            response.message = f"Unable to select controller as state == {self.state.name}"
+            else:
+                raise Exception(f"Unable to select controller as state == {self.state.name}")
+            
+            response.success = True
+            self.get_logger().info("<select_controller> service completed")
             return response
-        
-        response.success = True
-        return response
+        except Exception as e:
+            self.get_logger().warn(str(traceback.format_exc()))
+            response.message = str(e)
+            response.success = False
+            return response
 
     def configure_disturbance_callback(self, request, response):
         pass
@@ -429,7 +447,10 @@ class SupervisorNode(Node):
             self.get_logger().warn(str(traceback.format_exc()))
 
     def publish_state(self):
-        state = json.dumps(dict(state = self.state.name, controller = self.controller.name))
+        episode_type = self.selected_data['type'].name
+        episode_name = self.selected_data['name']
+        episode_id = self.selected_data['id']
+        state = json.dumps(dict(state = self.state.name, controller = self.controller.name, episode_type = self.selected_data['type'].name, episode_name = self.selected_data['name'], episode_id = self.selected_data['id']))
         msg = String(data=state)
         self.supervisor_state_publisher.publish(msg)
 

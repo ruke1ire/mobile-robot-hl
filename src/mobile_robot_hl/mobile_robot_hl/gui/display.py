@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from PIL import Image, ImageTk
 import numpy as np
-from threading import Thread
+import time
 
 from mobile_robot_hl.episode_data import *
 from mobile_robot_hl.utils import *
@@ -113,9 +113,10 @@ class Episode():
         self.update_image_lock = False
         self.update_plot_sel_lock = False
         self.update_plot_full_lock = False
+        self.update_plot_sel_live_velocity_lock = False
         self.episode = None
     
-    def set_episode_index(self):
+    def update_episode_index(self):
         if(self.ros_node.variables.episode.length() > 0):
             no_of_divs = self.ros_node.variables.episode.length()
             current_selection = int((self.slider_value/(1/no_of_divs)))
@@ -125,7 +126,7 @@ class Episode():
 
     def slider_trigger(self, val):
         self.slider_value = float(val)
-        self.set_episode_index()
+        self.update_episode_index()
 
     def update_image(self):
         if(self.update_image_lock == True):
@@ -147,12 +148,38 @@ class Episode():
 
         self.update_image_lock = False
 
+    def update_plot_sel_live_velocity(self):
+        if(self.update_plot_sel_live_velocity_lock == True):
+            return 
+
+        self.update_plot_sel_live_velocity_lock = True
+
+        live_velocity = self.ros_node.variables.user_velocity
+
+        try:
+            self.current_action_live_user_vel.remove()
+        except:
+            pass
+
+        self.current_action_live_user_vel = self.plot_sel_ax.scatter(live_velocity['angular'], live_velocity['linear'],s = 15, c = 'tab:olive', label="live user velocity", alpha=1.0, marker='o')
+
+        self.plot_sel_ax.legend(loc='upper right', prop={'size': 8})
+
+        self.plot_sel_plot.draw_idle()
+
+        time.sleep(0.4)
+        self.update_plot_sel_live_velocity_lock = False
+
+
     def update_plot_sel(self):
         if(self.update_plot_sel_lock == True):
             return
         self.update_plot_sel_lock = True
 
+        print("updating plot_sel")
         episode_frame = EpisodeData(**self.ros_node.variables.episode.get(self.ros_node.variables.episode_index))
+        print("action controller = ", episode_frame.action.controller.get(0))
+        print("episode index = ", self.ros_node.variables.episode_index)
         if(episode_frame.action.controller.get(0) == ControllerType.USER):
             desired_vel = episode_frame.action.user.velocity.get(0)
         elif(episode_frame.action.controller.get(0) == ControllerType.AGENT):
@@ -171,7 +198,12 @@ class Episode():
         self.current_action_user_vel = self.plot_sel_ax.scatter(episode_frame.action.user.velocity.angular.get(0), episode_frame.action.user.velocity.linear.get(0), s = 50, c = 'tab:orange', label="user velocity", alpha=1.0, marker='o')
         self.current_action_agent_vel = self.plot_sel_ax.scatter(episode_frame.action.agent.velocity.angular.get(0), episode_frame.action.agent.velocity.linear.get(0), s = 20, c = 'tab:green', label="agent velocity", alpha = 1.0, marker='^')
         self.plot_sel_ax.legend(loc='upper right', prop={'size': 8})
-        self.plot_sel_plot.draw_idle()
+
+        if(self.update_plot_sel_live_velocity_lock == True):
+            pass
+        else:
+            self.plot_sel_plot.draw_idle()
+            time.sleep(0.4)
 
         self.update_plot_sel_lock = False
 
