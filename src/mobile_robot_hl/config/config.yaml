@@ -2,9 +2,14 @@ agent:
     ros__parameters:
         device: 'cpu'
 
+gui:
+    ros__parameters:
+        max_linear_velocity: 0.05
+        max_angular_velocity: 0.125
+
 supervisor:
     ros__parameters:
-        frequency: 0.6
+        frequency: 2.0
         max_linear_velocity: 0.05
         max_angular_velocity: 0.125
 

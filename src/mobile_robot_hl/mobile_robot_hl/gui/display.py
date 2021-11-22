@@ -176,10 +176,10 @@ class Episode():
             return
         self.update_plot_sel_lock = True
 
-        print("updating plot_sel")
+        #print("updating plot_sel")
         episode_frame = EpisodeData(**self.ros_node.variables.episode.get(self.ros_node.variables.episode_index))
-        print("action controller = ", episode_frame.action.controller.get(0))
-        print("episode index = ", self.ros_node.variables.episode_index)
+#        print("action controller = ", episode_frame.action.controller.get(0))
+#        print("episode index = ", self.ros_node.variables.episode_index)
         if(episode_frame.action.controller.get(0) == ControllerType.USER):
             desired_vel = episode_frame.action.user.velocity.get(0)
         elif(episode_frame.action.controller.get(0) == ControllerType.AGENT):

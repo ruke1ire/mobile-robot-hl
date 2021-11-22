@@ -33,6 +33,7 @@ setup(
             'trainer_node = mobile_robot_hl.trainer_node:main',
             'gui_node = mobile_robot_hl.gui_node:main',
             'joystick_node = mobile_robot_hl.joystick_node:main',
+            'mock_up_node = mobile_robot_hl.mock_up_node:main',
         ],
     },
 )

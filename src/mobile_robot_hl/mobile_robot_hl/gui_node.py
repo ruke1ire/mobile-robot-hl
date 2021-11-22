@@ -49,6 +49,20 @@ class GUINode(Node):
         self.constants = GUIConstant()
         self.conditioned_episode = False
 
+        self.get_logger().info("Initializing Node")
+
+        self.declare_parameters(
+            namespace='',
+            parameters=[
+                ('max_linear_velocity', None),
+                ('max_angular_velocity', None),
+            ])
+
+        self.constants.max_linear_vel = self.get_parameter('max_linear_velocity').get_parameter_value().double_value
+        self.constants.max_angular_vel = self.get_parameter('max_angular_velocity').get_parameter_value().double_value
+        self.get_logger().info(f"Parameter <max_linear_velocity> = {self.constants.max_linear_vel}")
+        self.get_logger().info(f"Parameter <max_angular_velocity> = {self.constants.max_angular_vel}")
+
         self.episode_event_queue = Queue()
 
         self.user_output = dict(velocity = dict(linear = 0.0, angular = 0.0), termination_flag = False)
@@ -124,20 +138,6 @@ class GUINode(Node):
                 self.gui.display.episode.update_plot_sel_live_velocity
             ],
         )
-
-        self.get_logger().info("Initializing Node")
-
-        self.declare_parameters(
-            namespace='',
-            parameters=[
-                ('max_linear_velocity', None),
-                ('max_angular_velocity', None),
-            ])
-
-        self.constants.max_linear_vel = self.get_parameter('max_linear_velocity').get_parameter_value().double_value
-        self.constants.max_angular_vel = self.get_parameter('max_angular_velocity').get_parameter_value().double_value
-        self.get_logger().info(f"Parameter <max_linear_velocity> = {self.constants.max_linear_vel}")
-        self.get_logger().info(f"Parameter <max_angular_velocity> = {self.constants.max_angular_vel}")
 
         reliable_qos = QoSProfile(history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST, 
                                         depth=10, 
