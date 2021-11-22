@@ -26,7 +26,8 @@ source src/init/init.sh
 ### Launch ROS nodes
 
 ```
-ros2 launch mobile_robot_hl full_system_launch.py
+ros2 launch mobile_robot_hl full_system_launch.py 
+ros2 launch mobile_robot_hl mock_system_launch.py # launches the system along witha mock_up node that publishes the raw images
 ```
 
 ### Start trainer.console

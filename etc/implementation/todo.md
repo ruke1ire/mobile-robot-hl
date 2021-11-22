@@ -6,9 +6,6 @@ The todo list is written to this file.
 
 - [ ] GUI CONTROL 
     - [ ] Termination flag button
-- [ ] LAunch files
-    - [ ] Create a launch file for mock up
-    - [ ] Create a launch file for real system
 - Make neural network lighter
     - [ ] Convert all information to be in 16 bit
         - https://medium.com/@dwightfoster03/fp16-in-pytorch-a042e9967f7e
