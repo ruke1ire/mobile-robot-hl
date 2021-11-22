@@ -4,6 +4,8 @@ The todo list is written to this file.
 
 ## In Progress
 
+- [ ] Supervisor
+    - [ ] When saving the episode, put information about the control frequency too
 - [ ] Record demonstrations
     - about 20 path following tasks
 - [ ] GUI CONTROL 
