@@ -5,6 +5,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from PIL import Image, ImageTk
 import numpy as np
 import time
+import traceback
+from threading import Thread
 
 from mobile_robot_hl.episode_data import *
 from mobile_robot_hl.utils import *
@@ -111,10 +113,10 @@ class Episode():
         self.plot_full_frame.rowconfigure(0, weight=1)
 
         self.update_image_lock = False
-        self.update_plot_sel_lock = False
         self.update_plot_full_lock = False
-        self.update_plot_sel_live_velocity_lock = False
         self.episode = None
+        
+        Thread(target=self.update_plot_sel).start()
     
     def update_episode_index(self):
         if(self.ros_node.variables.episode.length() > 0):
@@ -148,64 +150,41 @@ class Episode():
 
         self.update_image_lock = False
 
-    def update_plot_sel_live_velocity(self):
-        if(self.update_plot_sel_live_velocity_lock == True):
-            return 
-
-        self.update_plot_sel_live_velocity_lock = True
-
-        live_velocity = self.ros_node.variables.user_velocity
-
-        try:
-            self.current_action_live_user_vel.remove()
-        except:
-            pass
-
-        self.current_action_live_user_vel = self.plot_sel_ax.scatter(live_velocity['angular'], live_velocity['linear'],s = 15, c = 'tab:olive', label="live user velocity", alpha=1.0, marker='o')
-
-        self.plot_sel_ax.legend(loc='upper right', prop={'size': 8})
-
-        self.plot_sel_plot.draw_idle()
-
-        time.sleep(0.4)
-        self.update_plot_sel_live_velocity_lock = False
-
-
     def update_plot_sel(self):
-        if(self.update_plot_sel_lock == True):
-            return
-        self.update_plot_sel_lock = True
+        while True:
+            try:
+                live_velocity = copy.deepcopy(self.ros_node.variables.user_velocity)
 
-        #print("updating plot_sel")
-        episode_frame = EpisodeData(**self.ros_node.variables.episode.get(self.ros_node.variables.episode_index))
-#        print("action controller = ", episode_frame.action.controller.get(0))
-#        print("episode index = ", self.ros_node.variables.episode_index)
-        if(episode_frame.action.controller.get(0) == ControllerType.USER):
-            desired_vel = episode_frame.action.user.velocity.get(0)
-        elif(episode_frame.action.controller.get(0) == ControllerType.AGENT):
-            desired_vel = episode_frame.action.agent.velocity.get(0)
-        else:
-            return
+                try:
+                    self.current_action_live_user_vel.remove()
+                    self.current_action_desired_vel.remove()
+                    self.current_action_user_vel.remove()
+                    self.current_action_agent_vel.remove()
+                except:
+                    pass
 
-        try:
-            self.current_action_desired_vel.remove()
-            self.current_action_user_vel.remove()
-            self.current_action_agent_vel.remove()
-        except:
-            pass
+                self.current_action_live_user_vel = self.plot_sel_ax.scatter(live_velocity['angular'], live_velocity['linear'],s = 150, c = 'k', label="live user velocity", alpha=1.0, marker='+')
 
-        self.current_action_desired_vel = self.plot_sel_ax.scatter(desired_vel['angular'], desired_vel['linear'],s = 100, c = 'tab:blue', label="desired velocity", alpha=1.0, marker='x')
-        self.current_action_user_vel = self.plot_sel_ax.scatter(episode_frame.action.user.velocity.angular.get(0), episode_frame.action.user.velocity.linear.get(0), s = 50, c = 'tab:orange', label="user velocity", alpha=1.0, marker='o')
-        self.current_action_agent_vel = self.plot_sel_ax.scatter(episode_frame.action.agent.velocity.angular.get(0), episode_frame.action.agent.velocity.linear.get(0), s = 20, c = 'tab:green', label="agent velocity", alpha = 1.0, marker='^')
-        self.plot_sel_ax.legend(loc='upper right', prop={'size': 8})
+                episode_frame = EpisodeData(**self.ros_node.variables.episode.get(self.ros_node.variables.episode_index))
+                if(episode_frame.action.controller.get(0) == ControllerType.USER):
+                    desired_vel = episode_frame.action.user.velocity.get(0)
+                elif(episode_frame.action.controller.get(0) == ControllerType.AGENT):
+                    desired_vel = episode_frame.action.agent.velocity.get(0)
+                else:
+                    self.plot_sel_ax.legend(loc='upper right', prop={'size': 8})
+                    self.plot_sel_plot.draw_idle()
+                    time.sleep(2.0)
+                    continue
 
-        if(self.update_plot_sel_live_velocity_lock == True):
-            pass
-        else:
-            self.plot_sel_plot.draw_idle()
-            time.sleep(0.4)
+                self.current_action_desired_vel = self.plot_sel_ax.scatter(desired_vel['angular'], desired_vel['linear'],s = 100, c = 'tab:blue', label="desired velocity", alpha=1.0, marker='x')
+                self.current_action_user_vel = self.plot_sel_ax.scatter(episode_frame.action.user.velocity.angular.get(0), episode_frame.action.user.velocity.linear.get(0), s = 50, c = 'tab:orange', label="user velocity", alpha=1.0, marker='o')
+                self.current_action_agent_vel = self.plot_sel_ax.scatter(episode_frame.action.agent.velocity.angular.get(0), episode_frame.action.agent.velocity.linear.get(0), s = 20, c = 'tab:green', label="agent velocity", alpha = 1.0, marker='^')
+                self.plot_sel_ax.legend(loc='upper right', prop={'size': 8})
 
-        self.update_plot_sel_lock = False
+                self.plot_sel_plot.draw_idle()
+                time.sleep(2.0)
+            except Exception as e:
+                self.ros_node.get_logger().warn(str(traceback.format_exc()))
 
     def update_plot_full(self):
         if(self.update_plot_full_lock == True):

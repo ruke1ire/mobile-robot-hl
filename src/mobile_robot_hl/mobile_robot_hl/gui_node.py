@@ -74,7 +74,6 @@ class GUINode(Node):
             episode = [
                 self.gui.display.episode.update_image, 
                 self.gui.display.episode.update_plot_full, 
-                self.gui.display.episode.update_plot_sel,
                 self.gui.display.current.info.update_info,
                 self.gui.display.episode.update_episode_index
                 ],
@@ -132,10 +131,11 @@ class GUINode(Node):
             ],
             episode_index = [
                 self.gui.display.episode.update_image,
-                self.gui.display.episode.update_plot_sel
+                self.gui.display.current.info.update_info
+                #self.gui.display.episode.update_plot_sel
             ],
             user_velocity = [
-                self.gui.display.episode.update_plot_sel_live_velocity
+                #self.gui.display.episode.update_plot_sel_live_velocity
             ],
         )
 

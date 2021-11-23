@@ -55,6 +55,7 @@ class Task():
         self.buttons_stop = tkinter.ttk.Button(self.buttons_frame, text="stop", command = self.buttons_stop_trigger)
         self.buttons_start_pause = tkinter.ttk.Button(self.buttons_frame, text="start", command = self.buttons_start_pause_trigger)
         self.buttons_take_over = tkinter.ttk.Button(self.buttons_frame, text="take over", command = self.buttons_take_over_trigger)
+        self.buttons_termination_flag = tkinter.ttk.Button(self.buttons_frame, text="termination flag", command = self.buttons_termination_flag_trigger)
         self.buttons_save= tkinter.ttk.Button(self.buttons_frame, text="save", command = self.buttons_save_trigger)
 
         self.title.grid(row = 0, column = 0)
@@ -62,7 +63,8 @@ class Task():
         self.buttons_stop.grid(column=0, row = 0)
         self.buttons_start_pause.grid(column=1, row = 0)
         self.buttons_take_over.grid(column=2, row = 0)
-        self.buttons_save.grid(column=3, row = 0)
+        self.buttons_termination_flag.grid(column = 3, row = 0)
+        self.buttons_save.grid(column=4, row = 0)
 
         self.parent.rowconfigure(0, weight=1)
         self.parent.columnconfigure(0, weight=1)
@@ -96,6 +98,10 @@ class Task():
             elif(self.ros_node.variables.supervisor_controller == ControllerType.USER):
                 self.ros_node.call_service('supervisor/pause')
 
+    def buttons_termination_flag_trigger(self):
+        if(self.ros_node.variables.supervisor_state in [SupervisorState.TASK_PAUSED, SupervisorState.TASK_RUNNING, SupervisorState.DEMO_PAUSED, SupervisorState.DEMO_RECORDING]):
+            self.ros_node.call_service('supervisor/termination_flag', 'user')
+    
     def buttons_save_trigger(self):
         if(self.ros_node.variables.supervisor_state in [SupervisorState.TASK_PAUSED, SupervisorState.TASK_RUNNING]):
             self.ros_node.call_service('supervisor/save')
@@ -312,6 +318,7 @@ class Selection():
         self.parent.columnconfigure(3, weight=1)
 
         self.selected_type = InformationType.NONE
+        self.updating_id = False
     
     def demo_box_trigger(self, event):
         demo_name = self.demo_box.get(tkinter.ANCHOR)
@@ -320,6 +327,7 @@ class Selection():
         except:
             self.ros_node.variables.ids = []
         self.selected_type = InformationType.DEMO
+        self.updating_id = True
 
     def task_box_trigger(self, event):
         task_name = self.task_box.get(tkinter.ANCHOR)
@@ -328,8 +336,12 @@ class Selection():
         except:
             self.ros_node.variables.ids = []
         self.selected_type = InformationType.TASK_EPISODE
+        self.updating_id = True
 
     def id_box_trigger(self, event):
+        if(self.updating_id == True):
+            self.update_id()
+            return
         if(self.selected_type == InformationType.DEMO):
             demo_name = self.demo_box.get(tkinter.ANCHOR)
             demo_id = self.id_box.get(tkinter.ANCHOR)
@@ -374,6 +386,7 @@ class Selection():
         self.id_box.delete(0,tkinter.END)
         for id_ in self.ros_node.variables.ids:
             self.id_box.insert(tkinter.END, id_)
+        self.updating_id = False
 
     def update_demo(self):
         self.demo_box.delete(0,tkinter.END)

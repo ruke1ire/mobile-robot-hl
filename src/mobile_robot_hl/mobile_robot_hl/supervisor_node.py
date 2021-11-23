@@ -60,11 +60,13 @@ class SupervisorNode(Node):
             namespace='',
             parameters=[
                 ('frequency', 0.3),
+                ('max_episode_length', 100),
                 ('max_linear_velocity', 1.0),
                 ('max_angular_velocity', 1.0),
             ])
 
         self.frequency = self.get_parameter('frequency').get_parameter_value().double_value
+        self.max_episode_length = self.get_parameter('max_episode_length').get_parameter_value().integer_value
         self.max_linear_velocity = self.get_parameter('max_linear_velocity').get_parameter_value().double_value
         self.max_angular_velocity = self.get_parameter('max_angular_velocity').get_parameter_value().double_value
 
@@ -347,6 +349,9 @@ class SupervisorNode(Node):
         try:
             state = copy.deepcopy(self.state)
             if(state in [SupervisorState.DEMO_RECORDING, SupervisorState.TASK_RUNNING]):
+                if(self.episode.length() == self.max_episode_length):
+                    self.pause()
+                    return
                 # 1. send image_raw_msg to agent 
                 frame_no = self.frame_no + 1
                 desired_output = dict(velocity = dict(linear = 0.0, angular = 0.0), termination_flag = False)
@@ -382,10 +387,10 @@ class SupervisorNode(Node):
                         self.controller = ControllerType.USER
 
                     if(self.controller == ControllerType.USER):
-                        desired_output = user_output
+                        desired_output = copy.deepcopy(user_output)
                         demonstration_flag = True
                     elif(self.controller == ControllerType.AGENT):
-                        desired_output = agent_output
+                        desired_output = copy.deepcopy(agent_output)
                         demonstration_flag = False
                     else:
                         raise Exception("Invalid controller when recording demo or running task")
