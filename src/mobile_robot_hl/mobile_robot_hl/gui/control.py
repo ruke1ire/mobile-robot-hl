@@ -99,7 +99,7 @@ class Task():
                 self.ros_node.call_service('supervisor/pause')
 
     def buttons_termination_flag_trigger(self):
-        if(self.ros_node.variables.supervisor_state in [SupervisorState.TASK_PAUSED, SupervisorState.TASK_RUNNING, SupervisorState.DEMO_PAUSED, SupervisorState.DEMO_RECORDING]):
+        if(self.ros_node.variables.supervisor_state in [SupervisorState.TASK_PAUSED, SupervisorState.TASK_RUNNING]):
             self.ros_node.call_service('supervisor/termination_flag', 'user')
     
     def buttons_save_trigger(self):
@@ -114,6 +114,7 @@ class Task():
             self.buttons_start_pause['text'] = "start"
             self.buttons_take_over['state'] = tkinter.DISABLED
             self.buttons_save['state'] = tkinter.DISABLED
+            self.buttons_termination_flag['state'] = tkinter.DISABLED
         elif(self.ros_node.variables.supervisor_state == SupervisorState.TASK_RUNNING):
             if(self.ros_node.variables.supervisor_controller == ControllerType.AGENT):
                 self.buttons_stop['state'] = tkinter.NORMAL
@@ -122,6 +123,7 @@ class Task():
                 self.buttons_take_over['state'] = tkinter.NORMAL
                 self.buttons_take_over['text'] = "take over"
                 self.buttons_save['state'] = tkinter.NORMAL
+                self.buttons_termination_flag['state'] = tkinter.NORMAL
             else:
                 self.buttons_stop['state'] = tkinter.NORMAL
                 self.buttons_start_pause['state'] = tkinter.NORMAL
@@ -129,6 +131,7 @@ class Task():
                 self.buttons_take_over['state'] = tkinter.NORMAL
                 self.buttons_take_over['text'] = "pause"
                 self.buttons_save['state'] = tkinter.NORMAL
+                self.buttons_termination_flag['state'] = tkinter.NORMAL
         elif(self.ros_node.variables.supervisor_state == SupervisorState.TASK_PAUSED):
             self.buttons_stop['state'] = tkinter.NORMAL
             self.buttons_start_pause['state'] = tkinter.NORMAL
@@ -136,6 +139,7 @@ class Task():
             self.buttons_take_over['state'] = tkinter.NORMAL
             self.buttons_take_over['text'] = "take over"
             self.buttons_save['state'] = tkinter.NORMAL
+            self.buttons_termination_flag['state'] = tkinter.NORMAL
         elif(self.ros_node.variables.supervisor_state in [SupervisorState.DEMO_PAUSED, SupervisorState.DEMO_RECORDING]):
             self.buttons_stop['state'] = tkinter.DISABLED
             self.buttons_start_pause['state'] = tkinter.DISABLED
@@ -143,6 +147,7 @@ class Task():
             self.buttons_take_over['state'] = tkinter.DISABLED
             self.buttons_take_over['text'] = "take over"
             self.buttons_save['state'] = tkinter.DISABLED
+            self.buttons_termination_flag['state'] = tkinter.DISABLED
 
 class Demo():
     def __init__(self, parent = None, ros_node = None):
@@ -158,6 +163,7 @@ class Demo():
         self.buttons_frame = tkinter.ttk.Frame(self.parent)
         self.buttons_start = tkinter.ttk.Button(self.buttons_frame, text="start", command = self.buttons_start_trigger)
         self.buttons_stop = tkinter.ttk.Button(self.buttons_frame, text="stop", command = self.buttons_stop_trigger)
+        self.buttons_termination_flag = tkinter.ttk.Button(self.buttons_frame, text="termination flag", command = self.buttons_termination_flag_trigger)
         self.buttons_save = tkinter.ttk.Button(self.buttons_frame, text="save", command = self.buttons_save_trigger)
 
         self.title.grid(column=0, row=0)
@@ -165,7 +171,8 @@ class Demo():
         self.buttons_frame.grid(column=0, row =2)
         self.buttons_start.grid(column=0, row = 0)
         self.buttons_stop.grid(column=1, row = 0)
-        self.buttons_save.grid(column=2, row = 0)
+        self.buttons_termination_flag.grid(column=2, row = 0)
+        self.buttons_save.grid(column=3, row = 0)
 
         self.parent.rowconfigure(0, weight=1)
         self.parent.columnconfigure(0, weight=1)
@@ -186,6 +193,10 @@ class Demo():
         if(self.ros_node.variables.supervisor_state in [SupervisorState.DEMO_RECORDING, SupervisorState.DEMO_PAUSED]):
             self.ros_node.call_service('supervisor/stop')
 
+    def buttons_termination_flag_trigger(self):
+        if(self.ros_node.variables.supervisor_state in [SupervisorState.DEMO_PAUSED, SupervisorState.DEMO_RECORDING]):
+            self.ros_node.call_service('supervisor/termination_flag', 'user')
+
     def buttons_save_trigger(self):
         if(self.ros_node.variables.supervisor_state in [SupervisorState.DEMO_RECORDING, SupervisorState.DEMO_PAUSED]):
             self.ros_node.call_service('supervisor/save')
@@ -200,21 +211,25 @@ class Demo():
             self.buttons_start['state'] = tkinter.NORMAL
             self.buttons_start['text'] = "start"
             self.buttons_save['state'] = tkinter.DISABLED
+            self.buttons_termination_flag['state'] = tkinter.DISABLED
         elif(self.ros_node.variables.supervisor_state == SupervisorState.DEMO_RECORDING):
             self.buttons_stop['state'] = tkinter.NORMAL
             self.buttons_start['state'] = tkinter.NORMAL
             self.buttons_start['text'] = "pause"
             self.buttons_save['state'] = tkinter.NORMAL
+            self.buttons_termination_flag['state'] = tkinter.NORMAL
         elif(self.ros_node.variables.supervisor_state == SupervisorState.DEMO_PAUSED):
             self.buttons_stop['state'] = tkinter.NORMAL
             self.buttons_start['state'] = tkinter.NORMAL
             self.buttons_start['text'] = "start"
             self.buttons_save['state'] = tkinter.NORMAL
+            self.buttons_termination_flag['state'] = tkinter.NORMAL
         elif(self.ros_node.variables.supervisor_state in [SupervisorState.TASK_RUNNING, SupervisorState.TASK_PAUSED]):
             self.buttons_stop['state'] = tkinter.DISABLED
             self.buttons_start['state'] = tkinter.DISABLED
             self.buttons_start['text'] = "start"
             self.buttons_save['state'] = tkinter.DISABLED
+            self.buttons_termination_flag['state'] = tkinter.DISABLED
 
 class Model():
     def __init__(self, parent = None, ros_node = None):

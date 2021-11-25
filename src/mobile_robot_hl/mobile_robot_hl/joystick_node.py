@@ -70,7 +70,13 @@ class JoystickNode(Node):
         self.get_logger().info("Publishing user_velocity")
         while True:
             state = self.joy_handler.get_state()
-            velocity_msg = Twist(linear=Vector3(x=state[InterfaceType.LINEAR_VELOCITY.name],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=state[InterfaceType.ANGULAR_VELOCITY.name]))
+            linear_vel = state[InterfaceType.LINEAR_VELOCITY.name]
+            angular_vel = state[InterfaceType.ANGULAR_VELOCITY.name]
+            if(abs(linear_vel) < 0.001):
+                linear_vel = 0.0
+            if(abs(angular_vel) < 0.001):
+                angular_vel = 0.0
+            velocity_msg = Twist(linear=Vector3(x=linear_vel,y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=angular_vel))
             self.user_velocity_publisher.publish(velocity_msg)
             time.sleep(0.1)
     

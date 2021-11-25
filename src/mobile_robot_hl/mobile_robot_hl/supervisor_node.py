@@ -220,6 +220,7 @@ class SupervisorNode(Node):
         try:
             self.get_logger().info("<pause> service called")
             self.pause()
+            self.stop_vehicle()
             response.success = True
             self.get_logger().info("<pause> service completed")
             return response
@@ -229,19 +230,11 @@ class SupervisorNode(Node):
             response.success = False
             return response
     
-    def pause(self):
-        self.get_logger().info("Pausing episode")
-        if(self.state in [SupervisorState.TASK_RUNNING]):
-            self.state = SupervisorState.TASK_PAUSED
-        elif(self.state == SupervisorState.DEMO_RECORDING):
-            self.state = SupervisorState.DEMO_PAUSED
-        else:
-            raise Exception(f"Unable to pause as state == {self.state}")
-
     def stop_callback(self, request, response):
         try:
             self.get_logger().info("<stop> service called")
             self.episode.reset()
+            self.stop_vehicle()
             self.selected_data = dict(string = "", type = InformationType.NONE, name = "", id = "")
             self.frame_no = 0
             self.state = SupervisorState.STANDBY
@@ -290,6 +283,7 @@ class SupervisorNode(Node):
 
             if(requestor == ControllerType.AGENT):
                 self.pause()
+                self.stop_vehicle()
                 self.agent_output['termination_flag'] = True
             elif(requestor == ControllerType.USER):
                 self.user_output['termination_flag'] = True
@@ -438,15 +432,17 @@ class SupervisorNode(Node):
                         frame_no = frame_no)
                     self.episode.append(episode_frame)
 
-                    # reset termination_flag
-                    self.user_output['termination_flag'] = False
-                    self.agent_output['termination_flag'] = False
                     # pause and reset frame_no if termination_flag was raised
                     if(desired_output['termination_flag'] == True):
                         self.frame_no = 0
                         self.pause()
+                        self.stop_vehicle()
                     else:
                         self.frame_no = frame_no
+
+                    # reset termination_flag
+                    self.user_output['termination_flag'] = False
+                    self.agent_output['termination_flag'] = False
                 self.get_logger().info("Completed a control frame")
         except:
             self.get_logger().warn(str(traceback.format_exc()))
@@ -479,6 +475,19 @@ class SupervisorNode(Node):
             else:
                 self.get_logger().info(f'{service_name} service error: {response.message}')
             return response.success
+
+    def pause(self):
+        self.get_logger().info("Pausing episode")
+        if(self.state in [SupervisorState.TASK_RUNNING]):
+            self.state = SupervisorState.TASK_PAUSED
+        elif(self.state == SupervisorState.DEMO_RECORDING):
+            self.state = SupervisorState.DEMO_PAUSED
+        else:
+            raise Exception(f"Unable to pause as state == {self.state}")
+    
+    def stop_vehicle(self):
+        desired_velocity_msg = Twist(linear=Vector3(x=0.0,y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=0.0))
+        self.desired_velocity_publisher.publish(desired_velocity_msg)
     
 def main():
     rclpy.init()
