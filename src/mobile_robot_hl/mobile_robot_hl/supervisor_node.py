@@ -343,9 +343,14 @@ class SupervisorNode(Node):
         try:
             state = copy.deepcopy(self.state)
             if(state in [SupervisorState.DEMO_RECORDING, SupervisorState.TASK_RUNNING]):
-                if(self.episode.length() == self.max_episode_length):
-                    self.pause()
-                    return
+                if(state == SupervisorState.TASK_RUNNING):
+                    if(self.episode.length() == self.max_episode_length):
+                        self.pause()
+                        return
+                else:
+                    if(self.episode.length() == self.max_episode_length/2):
+                        self.pause()
+                        return
                 # 1. send image_raw_msg to agent 
                 frame_no = self.frame_no + 1
                 desired_output = dict(velocity = dict(linear = 0.0, angular = 0.0), termination_flag = False)
