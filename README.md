@@ -36,3 +36,9 @@ ros2 launch mobile_robot_hl mock_system_launch.py # launches the system along wi
 cd src/mobile_robot_hl
 python3 -m mobile_robot_hl.trainer.console
 ```
+
+### Transfer data files
+```
+rsync -avz $MOBILE_ROBOT_HL_ROOT/data/ dlbox3:~/mobile-robot-hl/data --delete
+rsync -avz dlbox3:~/mobile-robot-hl/data/ $MOBILE_ROBOT_HL_ROOT/data
+```

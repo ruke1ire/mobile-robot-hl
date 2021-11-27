@@ -456,6 +456,7 @@ class SupervisorNode(Node):
                         if(self.episode.length() == (self.max_episode_length-1)):
                             self.pause()
 
+                self.get_logger().info(f"Episode Length = {self.episode.length()}")
                 self.get_logger().info("Completed a control frame")
         except:
             self.get_logger().warn(str(traceback.format_exc()))
