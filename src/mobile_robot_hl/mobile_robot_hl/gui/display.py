@@ -133,20 +133,27 @@ class Episode():
     def update_image(self):
         if(self.update_image_lock == True):
             return
+        try:
         
-        self.update_image_lock = True
+            self.update_image_lock = True
 
-        episode_frame = EpisodeData(**self.ros_node.variables.episode.get(self.ros_node.variables.episode_index))
-        image = episode_frame.observation.image.get(0)
-        if(image == None):
-            return
-        image = image.resize((480,360))
-        image_current = ImageTk.PhotoImage(image = image)
-        if(image_current == self.image_current):
+            if(self.ros_node.variables.episode.length() == 0):
+                self.update_image_lock = False
+                return
+
+            episode_frame = EpisodeData(**self.ros_node.variables.episode.get(self.ros_node.variables.episode_index))
+            image = episode_frame.observation.image.get(0)
+            if(image == None):
+                return
+            image = image.resize((480,360))
+            image_current = ImageTk.PhotoImage(image = image)
+            if(image_current == self.image_current):
+                pass
+            else:
+                self.image_current = image_current
+                self.image.configure(image=self.image_current)
+        except:
             pass
-        else:
-            self.image_current = image_current
-            self.image.configure(image=self.image_current)
 
         self.update_image_lock = False
 

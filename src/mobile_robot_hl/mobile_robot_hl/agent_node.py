@@ -54,9 +54,13 @@ class AgentNode(Node):
             namespace='',
             parameters=[
                 ('device', 'cpu'),
+                ('max_linear_velocity', 1.0),
+                ('max_angular_velocity', 1.0),
             ])
 
         self.device = self.get_parameter('device').get_parameter_value().string_value
+        self.max_linear_velocity = self.get_parameter('max_linear_velocity').get_parameter_value().double_value
+        self.max_angular_velocity = self.get_parameter('max_angular_velocity').get_parameter_value().double_value
         self.get_logger().info(f"Parameter <device> = {self.device}")
 
         reliable_qos = QoSProfile(history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST, 
@@ -123,7 +127,7 @@ class AgentNode(Node):
                 # 3. Inference and processing
                 self.get_logger().info("Computing model output")
                 output_tensor = self.model(input = image_tensor, input_latent = latent_tensor, frame_no = frame_no_tensor, inference_mode = InferenceMode.STORE)
-                output_tensor = process_actor_output(output_tensor)
+                output_tensor = process_actor_output(output_tensor, self.max_linear_velocity, self.max_angular_velocity)
 
                 # 4. Run model post processing to convert model output to appropriate values
                 agent_linear_vel = output_tensor[0].item()

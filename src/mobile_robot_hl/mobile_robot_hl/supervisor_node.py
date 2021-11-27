@@ -344,11 +344,11 @@ class SupervisorNode(Node):
             state = copy.deepcopy(self.state)
             if(state in [SupervisorState.DEMO_RECORDING, SupervisorState.TASK_RUNNING]):
                 if(state == SupervisorState.TASK_RUNNING):
-                    if(self.episode.length() == self.max_episode_length*2):
+                    if(self.episode.length() == (self.max_episode_length*2)):
                         self.pause()
                         return
                 else:
-                    if(self.episode.length() == self.max_episode_length):
+                    if(self.episode.length() == (self.max_episode_length)):
                         self.pause()
                         return
                 # 1. send image_raw_msg to agent 
@@ -448,6 +448,14 @@ class SupervisorNode(Node):
                     # reset termination_flag
                     self.user_output['termination_flag'] = False
                     self.agent_output['termination_flag'] = False
+
+                    if(state == SupervisorState.TASK_RUNNING):
+                        if(self.episode.length() == (self.max_episode_length*2-1)):
+                            self.pause()
+                    else:
+                        if(self.episode.length() == (self.max_episode_length-1)):
+                            self.pause()
+
                 self.get_logger().info("Completed a control frame")
         except:
             self.get_logger().warn(str(traceback.format_exc()))

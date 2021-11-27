@@ -76,6 +76,9 @@ class JoystickNode(Node):
                 linear_vel = 0.0
             if(abs(angular_vel) < 0.001):
                 angular_vel = 0.0
+            if(self.supervisor_state == SupervisorState.STANDBY):
+                linear_vel = 2*linear_vel
+                angular_vel = 2*angular_vel
             velocity_msg = Twist(linear=Vector3(x=linear_vel,y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=angular_vel))
             self.user_velocity_publisher.publish(velocity_msg)
             time.sleep(0.1)

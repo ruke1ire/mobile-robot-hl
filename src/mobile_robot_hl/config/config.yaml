@@ -1,20 +1,22 @@
 agent:
     ros__parameters:
         device: 'cpu'
+        max_linear_velocity: 0.1
+        max_angular_velocity: 0.4
 
 gui:
     ros__parameters:
         max_linear_velocity: 0.1
-        max_angular_velocity: 0.25
+        max_angular_velocity: 0.4
 
 supervisor:
     ros__parameters:
-        frequency: 2.0
-        max_episode_length: 100
+        frequency: 1.0
+        max_episode_length: 50
         max_linear_velocity: 0.1
-        max_angular_velocity: 0.25
+        max_angular_velocity: 0.4
 
 joystick:
     ros__parameters:
         max_linear_velocity: 0.1
-        max_angular_velocity: 0.25
+        max_angular_velocity: 0.4
