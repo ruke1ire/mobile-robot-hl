@@ -462,9 +462,6 @@ class SupervisorNode(Node):
             self.get_logger().warn(str(traceback.format_exc()))
 
     def publish_state(self):
-        episode_type = self.selected_data['type'].name
-        episode_name = self.selected_data['name']
-        episode_id = self.selected_data['id']
         state = json.dumps(dict(state = self.state.name, controller = self.controller.name, episode_type = self.selected_data['type'].name, episode_name = self.selected_data['name'], episode_id = self.selected_data['id']))
         msg = String(data=state)
         self.supervisor_state_publisher.publish(msg)

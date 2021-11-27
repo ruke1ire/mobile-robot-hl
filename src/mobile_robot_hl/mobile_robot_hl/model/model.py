@@ -87,7 +87,7 @@ class MimeticSNAIL(nn.Module):
         
         self.out_net = nn.Sequential(*out_net_modules)
     
-    def forward(self, input, input_latent=None, frame_no=None, pre_output_latent=None, inference_mode = InferenceMode.NONE):
+    def forward(self, input, input_latent=None, pre_output_latent=None, frame_no = None, inference_mode = InferenceMode.NONE):
         shape_len = input.dim()
 
         if(shape_len in [3,4]):
