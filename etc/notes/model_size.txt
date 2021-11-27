@@ -1,0 +1,4 @@
+critic model:
+    size = 1025MiB
+    40 frames => 6417MiB
+
