@@ -197,6 +197,7 @@ class Trainer():
             max_epochs = -1
 
         for i in count(0):
+            self.task_dataset.get_all_data()
             if i == max_epochs:
                 self.actor_state = TrainerState.STANDBY
                 self.critic_state = TrainerState.STANDBY

@@ -100,25 +100,19 @@ class TD3(Algorithm):
 	
 	def train_one_epoch(self, stop_flag):
 		j = 0
-		for (images, lin_vels, ang_vels, term_flags, demo_flags, rewards) in self.dataloader:
+		for (images, latent, frame_no, rewards) in self.dataloader:
 			if(stop_flag == True):
 				return
 
 			images = images.to(self.device)
-			lin_vels = lin_vels.to(self.device)
-			ang_vels = ang_vels.to(self.device)
-			term_flags = term_flags.to(self.device)
-			demo_flags = demo_flags.to(self.device)
+			latent = latent.to(self.device)
 			rewards = rewards.to(self.device)
 
-			latent = torch.stack((lin_vels, ang_vels, term_flags, demo_flags))
+			actions = latent[:-1,:]
 			initial_action = torch.zeros_like(latent[:,0])
 			initial_action[3] = 1.0
 			prev_latent = torch.cat((initial_action.unsqueeze(1), latent[:,:-1]), dim = 1)
-			actions = latent[:-1,:]
 
-			initial_action.detach()
-			latent.detach()
 			del initial_action, latent
 
 			with torch.no_grad():

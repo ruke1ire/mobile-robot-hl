@@ -4,10 +4,12 @@ The todo list is written to this file.
 
 ## In Progress
 
+- [ ] Create rsync commands to pass information around
 - [ ] Supervisor
     - [ ] When saving the episode, put information about the control frequency too?
 - [ ] Record demonstrations
     - about 20 path following tasks
+- [ ] Train with RL
 - Make neural network lighter
     - [ ] Convert all information to be in 16 bit
         - https://medium.com/@dwightfoster03/fp16-in-pytorch-a042e9967f7e

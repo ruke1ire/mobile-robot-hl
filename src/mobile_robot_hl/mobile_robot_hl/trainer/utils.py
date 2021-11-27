@@ -22,19 +22,36 @@ class TrainingType(Enum):
 
 def compute_rewards(demonstration_flag):
     # TODO: add reward function rule on incorrect usage of the task termination flag and the reward at the end of a non-episodic task
-    reward = np.ones((demonstration_flag.shape[0]))
-    reward[demonstration_flag == 1] = 0
-    next_r = 1
-    count = 0
-    for i in reversed(range(reward.shape[0])):
-        r = reward[i]
-        if(r == 1):
-            if(next_r == 0):
-                reward[i] = count-1
-                count = 0
-        elif(r == 0):
-            count -= 1
-        next_r = r
+    if(type(demonstration_flag) == np.ndarray):
+        reward = np.ones((demonstration_flag.shape[0]))
+        reward[demonstration_flag == 1] = 0
+        next_r = 1
+        count = 0
+        for i in reversed(range(reward.shape[0])):
+            r = reward[i]
+            if(r == 1):
+                if(next_r == 0):
+                    reward[i] = count-1
+                    count = 0
+            elif(r == 0):
+                count -= 1
+            next_r = r
+    elif(type(demonstration_flag) == torch.Tensor):
+        reward = torch.ones((demonstration_flag.shape[0]), dtype = torch.float32)
+        reward[demonstration_flag == 1] = 0
+        next_r = 1
+        count = 0
+        for i in reversed(range(reward.shape[0])):
+            r = reward[i]
+            if(r == 1):
+                if(next_r == 0):
+                    reward[i] = count-1
+                    count = 0
+            elif(r == 0):
+                count -= 1
+            next_r = r
+    else:
+        raise Exception("Invalid type to compute rewards")
     return reward
             
 def compute_values(gamma, rewards):
