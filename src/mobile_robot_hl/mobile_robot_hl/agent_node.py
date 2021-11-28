@@ -1,4 +1,3 @@
-from numpy.core.fromnumeric import trace
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import *
