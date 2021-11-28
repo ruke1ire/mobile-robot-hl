@@ -107,7 +107,6 @@ class SupervisorNode(Node):
         self.services_[supervisor_prefix+'termination_flag'] = self.create_service(StringTrigger, supervisor_prefix+'termination_flag', self.termination_flag_callback, callback_group=self.supervisor_service_group)
         self.services_[supervisor_prefix+'select_data'] = self.create_service(StringTrigger, supervisor_prefix+'select_data', self.select_data_callback, callback_group=self.supervisor_service_group)
         self.services_[supervisor_prefix+'select_controller'] = self.create_service(StringTrigger, supervisor_prefix+'select_controller', self.select_controller_callback, callback_group=self.supervisor_service_group)
-        self.services_[supervisor_prefix+'configure_disturbance'] = self.create_service(FloatTrigger, supervisor_prefix+'configure_disturbance', self.configure_disturbance_callback, callback_group=self.supervisor_service_group)
 
         self.agent_service_group = ReentrantCallbackGroup()
         self.services_[agent_prefix+'select_data'] = self.create_client(StringTrigger, agent_prefix+'select_data', callback_group=self.agent_service_group)
@@ -333,9 +332,6 @@ class SupervisorNode(Node):
             response.message = str(e)
             response.success = False
             return response
-
-    def configure_disturbance_callback(self, request, response):
-        pass
 
     ### TIMER CALLBACK
 

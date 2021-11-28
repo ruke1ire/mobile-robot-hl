@@ -161,9 +161,9 @@ class GUINode(Node):
         self.services_['supervisor/select_data'] = self.create_client(StringTrigger, 'supervisor/select_data', callback_group=self.client_callback_group)
         self.services_['supervisor/termination_flag'] = self.create_client(StringTrigger, 'supervisor/termination_flag', callback_group=self.client_callback_group)
         self.services_['supervisor/select_controller'] = self.create_client(StringTrigger, 'supervisor/select_controller', callback_group=self.client_callback_group)
-        self.services_['supervisor/configure_disturbance'] = self.create_client(FloatTrigger, 'supervisor/configure_disturbance', callback_group=self.client_callback_group)
         self.services_['supervisor/save'] = self.create_client(Trigger, 'supervisor/save', callback_group=self.client_callback_group)
         self.services_['agent/select_model'] = self.create_client(StringTrigger, 'agent/select_model', callback_group=self.client_callback_group)
+        self.services_['agent/configure_disturbance'] = self.create_client(FloatTrigger, 'agent/configure_disturbance', callback_group=self.client_callback_group)
 
         self.get_logger().info("Initialized Node")
     

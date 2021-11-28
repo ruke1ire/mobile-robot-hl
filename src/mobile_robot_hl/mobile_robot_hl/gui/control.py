@@ -240,10 +240,11 @@ class Model():
         
         self.ros_node = ros_node
 
-        self.title = tkinter.ttk.Label(self.parent, text="Model Control Panel")
+        self.title = tkinter.ttk.Label(self.parent, text="Agent Control Panel")
         self.entries_frame = tkinter.ttk.Frame(self.parent)
         self.entries_name = tkinter.ttk.Combobox(self.entries_frame)
         self.entries_id = tkinter.ttk.Combobox(self.entries_frame)
+        self.entries_disturbance = tkinter.ttk.Spinbox(self.entries_frame, from_ = 0.0, to_ = 1.0, increment_ = 0.1, width = 5)
         self.select = tkinter.ttk.Button(self.parent, text="select", command = self.select_trigger)
 
         self.entries_name.bind('<<ComboboxSelected>>', self.entries_name_trigger)
@@ -252,6 +253,7 @@ class Model():
         self.entries_frame.grid(column = 0, row = 1)
         self.entries_name.grid(column = 0, row = 0)
         self.entries_id.grid(column = 1, row = 0)
+        self.entries_disturbance.grid(column  = 2, row = 0)
         self.select.grid(column=0, row=2)
 
         self.parent.rowconfigure(0, weight=1)
@@ -274,10 +276,17 @@ class Model():
         model_string = json.dumps(dict(name = model_name, id = model_id))
 
         response = self.ros_node.call_service('agent/select_model', model_string)
-
         if response == True:
             self.ros_node.variables.model_name = model_name
             self.ros_node.variables.model_id = model_id
+
+        disturbance = self.entries_disturbance.get()
+        if(disturbance == ''):
+            disturbance = 0.0
+        try:
+            response = self.ros_node.call_service('agent/configure_disturbance', float(disturbance))
+        except:
+            pass
     
     def update_entries_name(self):
         self.entries_name['values'] = tuple(self.ros_node.variables.model_names)

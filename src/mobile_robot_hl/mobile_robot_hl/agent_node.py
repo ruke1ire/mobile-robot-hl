@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import *
-from custom_interfaces.srv import StringTrigger
+from custom_interfaces.srv import StringTrigger, FloatTrigger
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist, Vector3
 from std_msgs.msg import Bool, String, Int32
@@ -47,6 +47,8 @@ class AgentNode(Node):
         self.state = dict(state = SupervisorState.STANDBY, controller = ControllerType.USER)
         self.selected_data = None
 
+        self.noise = 0.0
+
         self.get_logger().info("Initializing Node")
 
         self.declare_parameters(
@@ -83,8 +85,9 @@ class AgentNode(Node):
         self.service_group = ReentrantCallbackGroup()
 
         self.select_data_service = self.create_service(StringTrigger, service_prefix+'select_data', self.select_data_callback, callback_group = self.service_group)
-        self.select_model_service = self.create_service(StringTrigger, service_prefix+'select_model', self.select_model_callback, callback_group = self.service_group)
+        self.select_model_service = self.create_service(StringTrigger, service_prefix+'select_model', self.select_model_callback, callback_group = ReentrantCallbackGroup())
         self.reset_model_service = self.create_service(Trigger, service_prefix+'reset_model', self.reset_model_callback, callback_group = self.service_group)
+        self.configure_disturbance_service = self.create_service(FloatTrigger, service_prefix+'configure_disturbance', self.configure_disturbance_callback, callback_group=ReentrantCallbackGroup())
 
         self.termination_flag_client = self.create_client(StringTrigger, 'supervisor/termination_flag', callback_group = ReentrantCallbackGroup())
 
@@ -126,7 +129,7 @@ class AgentNode(Node):
                 # 3. Inference and processing
                 self.get_logger().info("Computing model output")
                 output_tensor = self.model(input = image_tensor, input_latent = latent_tensor, frame_no = frame_no_tensor, inference_mode = InferenceMode.STORE)
-                output_tensor = process_actor_output(output_tensor, self.max_linear_velocity, self.max_angular_velocity)
+                output_tensor = process_actor_output(output_tensor, self.max_linear_velocity, self.max_angular_velocity, self.noise)
 
                 # 4. Run model post processing to convert model output to appropriate values
                 agent_linear_vel = output_tensor[0].item()
@@ -270,6 +273,19 @@ class AgentNode(Node):
             response.message = str(e)
             response.success = False
             return response
+
+    def configure_disturbance_callback(self, request, response):
+        self.get_logger().info("Configuring disturbance")
+        if(self.state['state'] == SupervisorState.STANDBY):
+            self.noise = request.command
+            self.get_logger().info(f"Got noise value of {self.noise}")
+            response.success  = True
+            self.get_logger().info("Configured disturbance")
+        else:
+            response.success  = False
+            response.message  = "Unable to configure disturbance"
+            self.get_logger().info("Unable to configure disturbance")
+        return response
 
     # UTILS
     def reset_variables(self):
