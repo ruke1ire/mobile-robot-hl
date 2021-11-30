@@ -131,12 +131,7 @@ class Episode():
         self.update_episode_index()
 
     def update_image(self):
-        if(self.update_image_lock == True):
-            return
         try:
-        
-            self.update_image_lock = True
-
             if(self.ros_node.variables.episode.length() == 0):
                 self.update_image_lock = False
                 return
@@ -154,8 +149,6 @@ class Episode():
                 self.image.configure(image=self.image_current)
         except:
             pass
-
-        self.update_image_lock = False
 
     def update_plot_sel(self):
         while True:
