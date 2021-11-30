@@ -3,7 +3,6 @@ from threading import Thread
 
 import torch
 from torch.utils.data import Dataset, DataLoader
-from mobile_robot_hl.mobile_robot_hl.gui.control import Model
 
 from mobile_robot_hl.model.utils import *
 import mobile_robot_hl.model.model as m
@@ -197,9 +196,10 @@ class Trainer():
 
         for i in count(0):
             self.task_dataset.get_all_data()
-            if(i % save_every == save_every-1):
-                self.save_model(ModelType.ACTOR.name)
-                self.save_model(ModelType.CRITIC.name)
+            if(type(save_every) == int):
+                if(i % save_every == save_every-1):
+                    self.save_model(ModelType.ACTOR.name)
+                    self.save_model(ModelType.CRITIC.name)
             if i == max_epochs:
                 self.actor_state = TrainerState.STANDBY
                 self.critic_state = TrainerState.STANDBY

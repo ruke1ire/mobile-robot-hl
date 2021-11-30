@@ -153,7 +153,7 @@ class AttentionBlock(nn.Module):
         dot_product = query@keys.transpose(1,2)
         scores = dot_product / math.sqrt(self.key_size)
 
-        mask = subsequent_mask(seq_length)
+        mask = subsequent_mask(seq_length, input.device.type)
         scores = scores.masked_fill(mask[:,-scores.shape[1]:,:] == 0, -float('inf'))
 
         probs = self.softmax(scores)
@@ -170,11 +170,12 @@ class AttentionBlock(nn.Module):
         self.values = None
         self.keys = None
 
-def subsequent_mask(size):
+def subsequent_mask(size, device):
     "Mask out subsequent positions."
     attn_shape = (1, size, size)
     subsequent_mask = np.triu(np.ones(attn_shape), k=1).astype('uint8')
-    return torch.from_numpy(subsequent_mask) == 0
+    subsequent_mask = torch.from_numpy(subsequent_mask) == 0
+    return subsequent_mask.to(device)
     
 if __name__ == "__main__":
     dense_block = AttentionBlock(5, 30, 30)

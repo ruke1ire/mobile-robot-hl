@@ -104,6 +104,9 @@ class TD3(Algorithm):
 			if(stop_flag == True):
 				return
 
+			print(f"Run No. {j+1}")
+			print(f"Episode Length = {frame_no.shape[0]}")
+
 			images = images.to(self.device)
 			latent = latent.to(self.device)
 			rewards = rewards.to(self.device)
@@ -152,11 +155,11 @@ class TD3(Algorithm):
 
 			#time.sleep(5.0)
 			# 6. Compute Q-value from critics Q(s_t, a_t)
-			print("# 6. Compute Q-value from critics Q(s_t, a_t)")
+			print("# 6.1 Compute Q-value from critics Q(s_t, a_t)")
 			q1 = self.critic_model_1(input = images, input_latent = prev_latent, pre_output_latent = actions).squeeze(1)
 			#time.sleep(5.0)
 			# 7. Compute MSE loss for the critics
-			print("# 7. Compute MSE loss for the critics")
+			print("# 7.1 Compute MSE loss for the critics")
 			critic_loss = F.mse_loss(q1, target_q)
 			self.critic_1_optimizer.zero_grad()
 			critic_loss.backward()
@@ -165,8 +168,12 @@ class TD3(Algorithm):
 			q1.detach()
 			critic_loss.detach()
 			del q1, critic_loss
+			torch.cuda.empty_cache() 
 
+			print("# 6.2 Compute Q-value from critics Q(s_t, a_t)")
 			q2 = self.critic_model_2(input = images, input_latent = prev_latent, pre_output_latent = actions).squeeze(1)
+
+			print("# 7.2 Compute MSE loss for the critics")
 			critic_loss = F.mse_loss(q2, target_q)
 			critic_loss.backward()
 			self.critic_2_optimizer.zero_grad()
@@ -179,6 +186,7 @@ class TD3(Algorithm):
 
 			target_q.detach()
 			del target_q
+			torch.cuda.empty_cache() 
 			
 			#time.sleep(5.0)
 			# 8. Optimize critic
@@ -197,7 +205,8 @@ class TD3(Algorithm):
 				#time.sleep(5.0)
 				#11. Compute the negative critic values using the real critic
 				print("#11. Compute the negative critic values using the real critic")
-				actor_loss = -self.critic_model_1(input = images, input_latent = prev_latent, pre_output_latent = actor_actions).mean()
+				dummy_critic = self.critic_model_1.to('cuda:1')
+				actor_loss = -dummy_critic(input = images.to('cuda:1'), input_latent = prev_latent.to('cuda:1'), pre_output_latent = actor_actions.to('cuda:1')).mean()
 
 				actor_actions.detach()
 				del actor_actions
@@ -210,12 +219,12 @@ class TD3(Algorithm):
 				self.actor_optimizer.step()
 
 				actor_loss.detach()
-				del actor_loss
+				del actor_loss, dummy_critic
 
 				#time.sleep(5.0)
 				#13. Update target networks
 				print("#13. Update target networks")
-				for param, target_param in zip(self.critic_model_1.parameters(), self.critic_model_1_target.parameters()):
+				for param, target_param in zip(self.critic_model_1.to('cuda:0').parameters(), self.critic_model_1_target.parameters()):
 					target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
 				for param, target_param in zip(self.critic_model_2.parameters(), self.critic_model_2_target.parameters()):
@@ -225,6 +234,7 @@ class TD3(Algorithm):
 					target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)	
 				
 				del param, target_param
+				torch.cuda.empty_cache() 
 
 			j += 1
 	
