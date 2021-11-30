@@ -216,7 +216,26 @@ class AgentNode(Node):
             self.get_logger().info("Conditioning model")
             # condition model on data
             image_tensor, latent_tensor, frame_no_tensor = episode.get_tensor()
-            self.model(input = image_tensor, input_latent = latent_tensor, frame_no = frame_no_tensor, inference_mode = InferenceMode.STORE)
+
+            initial_action = torch.zeros_like(latent_tensor[:,0])
+            initial_action[3] = 1.0
+            prev_latent = torch.cat((initial_action.unsqueeze(1), latent_tensor[:,:-1]), dim = 1)
+            self.model(input = image_tensor, input_latent = prev_latent, frame_no = frame_no_tensor, inference_mode = InferenceMode.STORE)
+
+            self.desired_vel = dict(linear = latent_tensor[0,-1].item(), angular = latent_tensor[1,-1].item())
+            if(latent_tensor[2, -1] >= 0.5):
+                self.desired_termination_flag = True
+            else:
+                self.desired_termination_flag = False
+            if(latent_tensor[3, -1] == 1.0):
+                self.action_controller = ControllerType.USER
+            else:
+                self.action_controller = ControllerType.AGENT
+            
+            self.received_desired_vel = True
+            self.received_termination_flag = True
+            self.received_action_controller = True
+
             self.get_logger().info("Conditioned model")
             self.selected_data = selected_data
             self.get_logger().info("<select_data> service completed")
@@ -293,9 +312,9 @@ class AgentNode(Node):
         self.desired_termination_flag = False
         self.action_controller = ControllerType.USER
         self.frame_no = 0
-        self.received_desired_vel = True
-        self.received_termination_flag = True
-        self.received_action_controller = True
+        self.received_desired_vel = False
+        self.received_termination_flag = False
+        self.received_action_controller = False
         self.received_frame_no = False
 
     def select_model(self, name, id_):
