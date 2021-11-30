@@ -195,6 +195,7 @@ class Trainer():
             max_epochs = -1
 
         for i in count(0):
+            print(f'=================Epoch {i+1}=================')
             self.task_dataset.get_all_data()
             if(type(save_every) == int):
                 if(i % save_every == save_every-1):
@@ -205,7 +206,6 @@ class Trainer():
                 self.critic_state = TrainerState.STANDBY
                 return
             self.algorithm.train_one_epoch(self.stop)
-
         else:
             pass
     

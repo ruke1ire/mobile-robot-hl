@@ -112,11 +112,10 @@ class TD3(Algorithm):
 			rewards = rewards.to(self.device)
 
 			actions = latent[:-1,:]
+			demo_flag = latent[-1,:]
 			initial_action = torch.zeros_like(latent[:,0])
 			initial_action[3] = 1.0
 			prev_latent = torch.cat((initial_action.unsqueeze(1), latent[:,:-1]), dim = 1)
-
-			del initial_action, latent
 
 			with torch.no_grad():
 				# 1. Create noises for target action
@@ -160,7 +159,7 @@ class TD3(Algorithm):
 			#time.sleep(5.0)
 			# 7. Compute MSE loss for the critics
 			print("# 7.1 Compute MSE loss for the critics")
-			critic_loss = F.mse_loss(q1, target_q)
+			critic_loss = F.mse_loss(q1[demo_flag == 0.0], target_q[demo_flag == 0.0])
 			self.critic_1_optimizer.zero_grad()
 			critic_loss.backward()
 			self.critic_1_optimizer.step()
@@ -174,7 +173,7 @@ class TD3(Algorithm):
 			q2 = self.critic_model_2(input = images, input_latent = prev_latent, pre_output_latent = actions).squeeze(1)
 
 			print("# 7.2 Compute MSE loss for the critics")
-			critic_loss = F.mse_loss(q2, target_q)
+			critic_loss = F.mse_loss(q2[demo_flag == 0.0], target_q[demo_flag == 0.0])
 			critic_loss.backward()
 			self.critic_2_optimizer.zero_grad()
 			self.critic_2_optimizer.step()

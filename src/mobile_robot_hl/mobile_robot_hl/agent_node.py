@@ -127,8 +127,9 @@ class AgentNode(Node):
                 image_tensor, latent_tensor, frame_no_tensor = self.convert_to_model_input(self.task_image, prev_vel, prev_termination_flag, prev_action_controller, frame_no)
                 
                 # 3. Inference and processing
-                self.get_logger().info("Computing model output")
+                self.get_logger().info(f"Computing model output")
                 output_tensor = self.model(input = image_tensor, input_latent = latent_tensor, frame_no = frame_no_tensor, inference_mode = InferenceMode.STORE)
+                self.get_logger().info(f"Processing model output and introducing noise = {self.noise}")
                 output_tensor = process_actor_output(output_tensor, self.max_linear_velocity, self.max_angular_velocity, self.noise)
 
                 # 4. Run model post processing to convert model output to appropriate values
@@ -140,7 +141,7 @@ class AgentNode(Node):
                 if(agent_termination_flag >= 0.5):
                     service_request = StringTrigger.Request()
                     service_request.command = "agent"
-                    #self.termination_flag_client.call(service_request)
+                    self.termination_flag_client.call(service_request)
                         
                 # 6. Publish agent output
                 self.get_logger().info("Publishing agent velocity")

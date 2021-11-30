@@ -4,7 +4,12 @@ The todo list is written to this file.
 
 ## In Progress
 
-- [ ] Create rsync commands to pass information around
+- [ ] Make the noise function better
+- [ ] Make sure all the images are normalized correctly
+    - training
+    - inference
+        - demo
+        - live
 - [ ] Supervisor
     - [ ] When saving the episode, put information about the control frequency too?
 - [ ] Record demonstrations
