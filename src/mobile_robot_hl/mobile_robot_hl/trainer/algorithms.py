@@ -26,10 +26,6 @@ class Algorithm(ABC):
 		'''
 		pass
 
-	@abstractmethod
-	def select_device(self, device_name):
-		pass
-
 class TD3(Algorithm):
 	def __init__(self, 
 				actor_model,
@@ -37,7 +33,8 @@ class TD3(Algorithm):
 				actor_optimizer_dict, 
 				critic_optimizer_dict, 
 				dataloader, 
-				device,
+				device1,
+				device2,
 				logger = None,
 				discount = 0.99,
 				tau = 0.005,
@@ -61,7 +58,8 @@ class TD3(Algorithm):
 		noise_clip -- maximum values for the noise for each action dimension (list len(list) = N)
 		'''
 
-		self.device = device
+		self.device1 = device1
+		self.device2 = device2
 
 		self.actor_model = actor_model
 		self.critic_model_1 = critic_model
@@ -71,12 +69,12 @@ class TD3(Algorithm):
 		self.critic_model_1_target = pickle.loads(pickle.dumps(self.critic_model_1)).eval()
 		self.critic_model_2_target = pickle.loads(pickle.dumps(self.critic_model_1)).eval()
 
-		self.actor_model.to(self.device)
-		self.critic_model_1.to(self.device)
-		self.critic_model_2.to(self.device)
-		self.actor_model_target.to(self.device)
-		self.critic_model_1_target.to(self.device)
-		self.critic_model_2_target.to(self.device)
+		self.actor_model.to(self.device1)
+		self.critic_model_1.to(self.device1)
+		self.critic_model_2.to(self.device1)
+		self.actor_model_target.to(self.device1)
+		self.critic_model_1_target.to(self.device1)
+		self.critic_model_2_target.to(self.device1)
 
 		self.dataloader = dataloader
 		self.actor_optimizer = create_optimizer_from_dict(actor_optimizer_dict, self.actor_model.parameters())
@@ -85,12 +83,12 @@ class TD3(Algorithm):
 
 		self.discount = discount
 		self.tau = tau
-		policy_noise = torch.tensor(policy_noise).to(device)
+		policy_noise = torch.tensor(policy_noise).to(device1)
 		if(policy_noise.dim() == 2):
 			self.policy_noise = policy_noise
 		else:
 			self.policy_noise = policy_noise.unsqueeze(1)
-		noise_clip = torch.tensor(noise_clip).to(device)
+		noise_clip = torch.tensor(noise_clip).to(device1)
 		if(noise_clip.dim() == 2):
 			self.noise_clip = noise_clip
 		else:
@@ -107,9 +105,9 @@ class TD3(Algorithm):
 			print(f"Run No. {j+1}")
 			print(f"Episode Length = {frame_no.shape[0]}")
 
-			images = images.to(self.device)
-			latent = latent.to(self.device)
-			rewards = rewards.to(self.device)
+			images = images.to(self.device1)
+			latent = latent.to(self.device1)
+			rewards = rewards.to(self.device1)
 
 			actions = latent[:-1,:]
 			demo_flag = latent[-1,:]
@@ -147,7 +145,7 @@ class TD3(Algorithm):
 				#time.sleep(5.0)
 				# 5. Compute current Q-value with the reward
 				print("# 5. Compute current Q-value with the reward")
-				target_q_next = torch.cat((target_q[1:],torch.zeros(1).to(self.device)), dim = 0)
+				target_q_next = torch.cat((target_q[1:],torch.zeros(1).to(self.device1)), dim = 0)
 				target_q = rewards + self.discount * target_q_next
 
 				del target_q_next
@@ -204,8 +202,8 @@ class TD3(Algorithm):
 				#time.sleep(5.0)
 				#11. Compute the negative critic values using the real critic
 				print("#11. Compute the negative critic values using the real critic")
-				dummy_critic = self.critic_model_1.to('cuda:1')
-				actor_loss = -dummy_critic(input = images.to('cuda:1'), input_latent = prev_latent.to('cuda:1'), pre_output_latent = actor_actions.to('cuda:1')).mean()
+				dummy_critic = self.critic_model_1.to(self.device2)
+				actor_loss = -dummy_critic(input = images.to(self.device2), input_latent = prev_latent.to(self.device2), pre_output_latent = actor_actions.to(self.device2)).mean()
 
 				actor_actions.detach()
 				del actor_actions
@@ -223,7 +221,7 @@ class TD3(Algorithm):
 				#time.sleep(5.0)
 				#13. Update target networks
 				print("#13. Update target networks")
-				for param, target_param in zip(self.critic_model_1.to('cuda:0').parameters(), self.critic_model_1_target.parameters()):
+				for param, target_param in zip(self.critic_model_1.to(self.device1).parameters(), self.critic_model_1_target.parameters()):
 					target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
 				for param, target_param in zip(self.critic_model_2.parameters(), self.critic_model_2_target.parameters()):
@@ -236,12 +234,3 @@ class TD3(Algorithm):
 				torch.cuda.empty_cache() 
 
 			j += 1
-	
-	def select_device(self, device_name):
-		self.device = device_name
-		self.actor_model.to(self.device)
-		self.critic_model_1.to(self.device)
-		self.critic_model_2.to(self.device)
-		self.actor_model_target.to(self.device)
-		self.critic_model_1_target.to(self.device)
-		self.critic_model_2_target.to(self.device)

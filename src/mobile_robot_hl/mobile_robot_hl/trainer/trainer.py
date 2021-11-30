@@ -18,7 +18,6 @@ class Trainer():
         self.task_handler = task_handler
 
         self.logger = logger
-        self.device = 'cpu'
 
         self.actor_state = TrainerState.SLEEPING
         self.critic_state = TrainerState.SLEEPING
@@ -112,7 +111,6 @@ class Trainer():
                     actor_optimizer_dict = self.actor_optimizer_dict, 
                     critic_optimizer_dict = self.critic_optimizer_dict,
                     dataloader = self.task_dataloader,
-                    device = self.device,
                     logger = self.logger
                     )
                 if(additional_algorithm_kwargs is not None):
@@ -183,10 +181,6 @@ class Trainer():
         # TODO: self.dataloader = sth
         raise NotImplementedError()
     
-    def select_device(self, device_name):
-        if(self.actor_state != TrainerState.RUNNING and self.critic_state != TrainerState.RUNNING):
-            self.device = device_name
-    
     def training_loop(self, max_epochs = None, save_every = None):
         if(self.actor_state == TrainerState.SLEEPING):
             return
@@ -195,7 +189,6 @@ class Trainer():
             max_epochs = -1
 
         for i in count(0):
-            print(f'=================Epoch {i+1}=================')
             self.task_dataset.get_all_data()
             if(type(save_every) == int):
                 if(i % save_every == save_every-1):
@@ -205,6 +198,7 @@ class Trainer():
                 self.actor_state = TrainerState.STANDBY
                 self.critic_state = TrainerState.STANDBY
                 return
+            print(f'=================Epoch {i+1}=================')
             self.algorithm.train_one_epoch(self.stop)
         else:
             pass
