@@ -20,8 +20,7 @@ class TrainingType(Enum):
     IL = 0
     RL = 1
 
-def compute_rewards(demonstration_flag):
-    # TODO: add reward function rule on incorrect usage of the task termination flag and the reward at the end of a non-episodic task
+def compute_rewards(demonstration_flag, user_termination_flag, agent_termination_flag):
     if(type(demonstration_flag) == np.ndarray):
         reward = np.ones((demonstration_flag.shape[0]))
         reward[demonstration_flag == 1] = 0
@@ -36,6 +35,7 @@ def compute_rewards(demonstration_flag):
             elif(r == 0):
                 count -= 1
             next_r = r
+        reward[user_termination_flag != agent_termination_flag] -= 1.0
     elif(type(demonstration_flag) == torch.Tensor):
         reward = torch.ones((demonstration_flag.shape[0]), dtype = torch.float32)
         reward[demonstration_flag == 1] = 0
@@ -50,6 +50,7 @@ def compute_rewards(demonstration_flag):
             elif(r == 0):
                 count -= 1
             next_r = r
+        reward[user_termination_flag != agent_termination_flag] -= 1.0
     else:
         raise Exception("Invalid type to compute rewards")
     return reward
