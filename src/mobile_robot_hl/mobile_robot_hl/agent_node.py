@@ -335,7 +335,7 @@ class AgentNode(Node):
             demo_flag = 0.0
 
         latent_tensor = torch.tensor([linear_vel, angular_vel, termination_flag, demo_flag], dtype = torch.float32)
-        image_tensor = torch.tensor(image_raw, dtype = torch.float32).permute((2,0,1))/255-0.5
+        image_tensor = torch.tensor(image_raw, dtype = torch.float32).permute((2,0,1))/255.0 - 0.5
         frame_no_tensor = torch.tensor(frame_no, dtype = torch.float32)
 
         return image_tensor, latent_tensor, frame_no_tensor

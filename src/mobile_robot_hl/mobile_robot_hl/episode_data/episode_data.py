@@ -184,7 +184,7 @@ class EpisodeData(Node):
         p_image_list = self.observation.image.get()
         np_image_list = [np.array(img) for img in p_image_list]
 
-        image_tensor = torch.tensor(np.stack(np_image_list), dtype = torch.float32).permute((0,3,1,2))/255.0
+        image_tensor = torch.tensor(np.stack(np_image_list), dtype = torch.float32).permute((0,3,1,2))/255.0 - 0.5
 
         controller = self.action.controller.get()
         agent_linear_vel = self.action.agent.velocity.linear.get()

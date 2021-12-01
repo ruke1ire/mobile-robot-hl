@@ -6,8 +6,6 @@ import math
 from .module import *
 from .utils import *
 
-from mobile_robot_hl.utils import OutputProcessor
-
 class Snail(nn.Module):
     def __init__(self, input_size, seq_length, architecture: list):
         '''
@@ -210,6 +208,22 @@ class MimeticSNAILCritic(nn.Module):
 
     def reset(self):
         self.snail_net.reset()
+
+class OutputProcessor(nn.Module):
+    def __init__(self, max_linear_vel, max_angular_vel):
+        super().__init__()
+        self.max_linear_vel = max_linear_vel
+        self.max_angular_vel = max_angular_vel
+
+    def forward(self, actor_output, noise = 0.0):
+        device = actor_output.device.type
+        multiplier = torch.tensor([self.max_linear_vel, self.max_angular_vel, 0.5], dtype = torch.float32).to(device)
+        adder = torch.tensor([0.0, 0.0, 0.5], dtype = torch.float32).to(device)
+        noise_tensor = ((torch.rand(actor_output.shape).to(device)*(2*multiplier) - multiplier)).to(device)
+        actor_output = torch.tanh(actor_output)*multiplier
+        actor_output = noise*noise_tensor + (1-noise)*actor_output
+        actor_output += adder
+        return actor_output
 
 if __name__ == "__main__":
     architecture = [
