@@ -1,0 +1,6 @@
+start_training__IL:
+    training_type: 'IL'
+    save_every: 2
+    max_epochs: 2
+    additional_algorithm_kwargs:
+        device: 'cuda:0'

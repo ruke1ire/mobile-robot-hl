@@ -1,0 +1,49 @@
+create_model__actor:
+    model_type: 'ACTOR'
+    model_name: 'test_actor'
+    model_architecture:
+        base_net_name: 'efficientnet_b0'
+        latent_vector_size: 100
+        snail_kwargs:
+            input_size: 104
+            seq_length: 8
+            architecture:
+                - module_type: 'TC'
+                  module_kwargs:
+                      filter_size: 30
+                - module_type: 'ATTENTION'
+                  module_kwargs:
+                      key_size: 16
+                      value_size: 16
+                - module_type: 'TC'
+                  module_kwargs:
+                      filter_size: 30
+        out_net_architecture:
+            - module_type: 'Linear'
+              module_kwargs:
+                  in_features: 300
+                  out_features: 3
+        max_linear_velocity: 0.1
+        max_angular_velocity: 0.4
+
+create_model__critic:
+    model_type: 'CRITIC'
+    model_name: 'test_critic'
+    model_architecture:
+        base_net_name: 'efficientnet_b0'
+        latent_vector_size: 100
+        snail_kwargs:
+            input_size: 104
+            seq_length: 8
+            architecture:
+                - module_type: 'TC'
+                  module_kwargs:
+                      filter_size: 30
+                - module_type: 'TC'
+                  module_kwargs:
+                      filter_size: 30
+        out_net_architecture:
+            - module_type: Linear
+              module_kwargs:
+                  in_features: 287
+                  out_features: 1
