@@ -1,3 +1,3 @@
 from .model_handler import ModelHandler
-from .model import MimeticSNAIL
+from .model import MimeticSNAILActor, MimeticSNAILCritic
 from .utils import *

@@ -22,8 +22,8 @@ dummy_actions = torch.zeros((3, 40))
 
 trainer = Trainer(mh, dh, th, None)
 
-def load_runs(run_name):
-	with open(f'{run_setup_path}/{run_name}.yaml', 'r') as stream:
+def execute(run_name, run_file):
+	with open(f'{run_setup_path}/{run_name}/{run_file}.yaml', 'r') as stream:
 		f = yaml.safe_load(stream)
 	for key, value in f.items():
 		key_split = key.split('__')
@@ -33,6 +33,9 @@ def load_runs(run_name):
 
 while True:
 	user_input = input("Trainer> ")
+	if(user_input == '-h'):
+		print("You can execute commands through yaml files with the command \n\texecute(run_name, run_file)\n")
+		continue
 	try:
 		exec(f"{user_input}")
 	except Exception:

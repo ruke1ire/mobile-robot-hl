@@ -6,6 +6,8 @@ import math
 from .module import *
 from .utils import *
 
+from mobile_robot_hl.utils import OutputProcessor
+
 class Snail(nn.Module):
     def __init__(self, input_size, seq_length, architecture: list):
         '''
@@ -61,10 +63,86 @@ class Snail(nn.Module):
         for model in self.model:
             model.reset()
     
-class MimeticSNAIL(nn.Module):
+class MimeticSNAILActor(nn.Module):
+    def __init__(self, base_net_name, latent_vector_size, snail_kwargs, out_net_architecture, max_linear_velocity, max_angular_velocity):
+        '''
+        MimeticSNAIL Actor Neural Network Model
+
+        base_net_name: name of the pre-trained neural network found in https://pytorch.org/vision/stable/models.html
+        latent_vector_size: size of the latent vector computed by the base_net
+        snail_kwargs: keyword arguments to pass to the SNAIL model
+        out_net_architecture: output neural network which may differ depending on whether it is a actor or a critic
+        max_linear_velocity = maximum linear velocity
+        max_angular_velocity = maximum angular velocity
+        '''
+        super().__init__()
+        exec(f'self.base_net = models.{base_net_name}(pretrained=True)')
+        # reset weights of last linear layer
+        self.base_net.classifier = torch.nn.Sequential(
+            nn.Dropout(p=0.2, inplace=True), 
+            nn.Linear(in_features=1280, out_features=latent_vector_size, bias=True))
+
+        self.snail_net = Snail(**snail_kwargs)
+
+        out_net_modules = []
+
+        for module_information in out_net_architecture:
+            exec(f"out_net_modules.append(nn.{module_information['module_type']}(**{module_information['module_kwargs']}))")
+        
+        self.out_net = nn.Sequential(*out_net_modules)
+        self.output_processor = OutputProcessor(max_linear_velocity, max_angular_velocity)
+    
+    def forward(self, input, input_latent=None, pre_output_latent=None, frame_no = None, noise = 0.0, inference_mode = InferenceMode.NONE):
+        shape_len = input.dim()
+
+        if(shape_len in [3,4]):
+            if(shape_len == 3):
+                input = input.unsqueeze(0)
+            latent_vec = self.base_net(input)
+            latent_vec = latent_vec.permute((1,0))
+            if(input_latent is not None):
+                if(input_latent.dim() == 1):
+                    input_latent = input_latent.unsqueeze(1)
+                latent_vec = torch.cat((latent_vec, input_latent), dim = 0)
+            snail_out = self.snail_net(latent_vec, inference_mode)
+            if(pre_output_latent is not None):
+                if(pre_output_latent.dim() == 1):
+                    pre_output_latent = pre_output_latent.unsqueeze(1)
+                snail_out = torch.cat((snail_out, pre_output_latent), dim = 0)
+            if(shape_len == 3):
+                snail_out = snail_out.squeeze(1)
+            else:
+                snail_out = snail_out.permute((1,0))
+
+            output = self.out_net(snail_out)
+
+        elif(shape_len == 5):
+            output_list = []
+            for input_ in input:
+                latent_vec = self.base_net(input_)
+                latent_vec = latent_vec.permute((1,0))
+                if(input_latent is not None):
+                    latent_vec = torch.cat((latent_vec, input_latent), dim = 0)
+                snail_out = self.snail_net(latent_vec, inference_mode)
+                if(pre_output_latent is not None):
+                    snail_out = torch.cat((snail_out, pre_output_latent), dim = 0)
+                snail_out = snail_out.permute((1,0))
+                output = self.out_net(snail_out)
+                output_list.append(output)
+            output = torch.stack(output_list)
+        else:
+            raise Exception("Invalid input shape")
+
+        output = self.output_processor(output, noise)
+        return output
+
+    def reset(self):
+        self.snail_net.reset()
+
+class MimeticSNAILCritic(nn.Module):
     def __init__(self, base_net_name, latent_vector_size, snail_kwargs, out_net_architecture):
         '''
-        MimeticSNAIL Neural Network Model
+        MimeticSNAIL Critic Neural Network Model
 
         base_net_name: name of the pre-trained neural network found in https://pytorch.org/vision/stable/models.html
         latent_vector_size: size of the latent vector computed by the base_net
@@ -168,7 +246,7 @@ if __name__ == "__main__":
         )
     ]
 
-    msnail = MimeticSNAIL(
+    msnail = MimeticSNAILCritic(
         base_net_name='efficientnet_b0', 
         latent_vector_size=100, 
         snail_kwargs=snail_kwargs, 

@@ -66,7 +66,7 @@ class Trainer():
         if(model_type == ModelType.ACTOR.name):
             if(self.actor_state in [TrainerState.RUNNING, TrainerState.STANDBY]):
                 return
-            self.actor_model = m.MimeticSNAIL(**model_architecture)
+            self.actor_model = m.MimeticSNAILActor(**model_architecture)
             self.actor_model_info = dict(architecture = model_architecture, name = model_name)
             try:
                 if(self.actor_optimizer_dict is not None):
@@ -81,7 +81,7 @@ class Trainer():
             if(self.critic_state in [TrainerState.RUNNING, TrainerState.STANDBY]):
                 return
             try:
-                self.critic_model = m.MimeticSNAIL(**model_architecture)
+                self.critic_model = m.MimeticSNAILCritic(**model_architecture)
                 self.critic_model_info = dict(architecture = model_architecture, name = model_name)
                 if(self.critic_optimizer_dict is not None):
                     self.critic_state = TrainerState.STANDBY
@@ -134,7 +134,7 @@ class Trainer():
                 if(additional_algorithm_kwargs is not None):
                     algorithm_kwargs = {**algorithm_kwargs, **additional_algorithm_kwargs}
 
-                # TODO: self.algorithm = IL(**algorithm_kwargs)
+                self.algorithm = IL(**algorithm_kwargs)
                 Thread(target = self.training_loop, args = (max_epochs, save_every,)).start()
                 self.actor_state = TrainerState.RUNNING
 
@@ -156,12 +156,12 @@ class Trainer():
     def restart_model(self, model_type):
         if(model_type == ModelType.ACTOR.name):
             if(self.actor_state == TrainerState.STANDBY):
-                self.actor_model = m.MimeticSNAIL(**self.actor_model_info['architecture'])
+                self.actor_model = m.MimeticSNAILActor(**self.actor_model_info['architecture'])
             else:
                 return
         else:
             if(self.critic_state == TrainerState.STANDBY):
-                self.critic_model = m.MimeticSNAIL(**self.critic_model_info['architecture'])
+                self.critic_model = m.MimeticSNAILCritic(**self.critic_model_info['architecture'])
             else:
                 return
     
@@ -177,10 +177,6 @@ class Trainer():
 
         self.model_handler.save(model, architecture, ModelType[model_type], name)
     
-    def select_training_data(self, list_of_names):
-        # TODO: self.dataloader = sth
-        raise NotImplementedError()
-    
     def training_loop(self, max_epochs = None, save_every = None):
         if(self.actor_state == TrainerState.SLEEPING):
             return
@@ -192,11 +188,14 @@ class Trainer():
             self.task_dataset.get_all_data()
             if(type(save_every) == int):
                 if(i % save_every == save_every-1):
+                    print("Saving model")
                     self.save_model(ModelType.ACTOR.name)
                     self.save_model(ModelType.CRITIC.name)
             if i == max_epochs:
+                print("Max epochs reached")
                 self.actor_state = TrainerState.STANDBY
                 self.critic_state = TrainerState.STANDBY
+                torch.cuda.empty_cache() 
                 return
             print(f'=================Epoch {i+1}=================')
             self.algorithm.train_one_epoch(self.stop)

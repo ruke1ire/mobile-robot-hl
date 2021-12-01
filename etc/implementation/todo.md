@@ -4,6 +4,7 @@ The todo list is written to this file.
 
 ## In Progress
 
+- [ ] Make global config file?
 - [ ] Think about what can be logged 
 - [ ] Make the noise function better
 - [ ] Make sure all the images are normalized correctly

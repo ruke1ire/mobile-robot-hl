@@ -3,6 +3,7 @@ import torch
 import torch.nn.functional as F
 import time
 
+from mobile_robot_hl.utils import *
 from mobile_robot_hl.trainer.utils import *
 
 from abc import ABC, abstractmethod
@@ -38,8 +39,7 @@ class TD3(Algorithm):
 				logger = None,
 				discount = 0.99,
 				tau = 0.005,
-				policy_noise = 0.2,
-				noise_clip = 0.5,
+				noise = 0.5,
 				actor_update_period = 2):
 		'''
 		TD3 algorithm implementation.
@@ -47,6 +47,7 @@ class TD3(Algorithm):
 		Keyword arguments:
 		actor_model -- the actor model to be trained *
 		critic_model -- the critic model to be trained *
+		output_processor -- actor's output processor
 		actor_optimizer_dict -- the dictionary representation of the optimizer for the actor model *
 		critic_optimizer_dict -- the dictionary representation of the optimizer for the actor model *
 		dataloader -- the dataloader to be used to train the models *
@@ -54,7 +55,7 @@ class TD3(Algorithm):
 		logger -- logger to be used *
 		discount -- discount factor used to compute the value of a state-action pair (float)
 		tau -- the rate at which the target policies are updated (float)
-		policy_noise -- vector of noise for each action dimension (list len(list) = N)
+		noise -- noise value from 0.0 - 1.0
 		noise_clip -- maximum values for the noise for each action dimension (list len(list) = N)
 		'''
 
@@ -83,16 +84,7 @@ class TD3(Algorithm):
 
 		self.discount = discount
 		self.tau = tau
-		policy_noise = torch.tensor(policy_noise).to(device1)
-		if(policy_noise.dim() == 2):
-			self.policy_noise = policy_noise
-		else:
-			self.policy_noise = policy_noise.unsqueeze(1)
-		noise_clip = torch.tensor(noise_clip).to(device1)
-		if(noise_clip.dim() == 2):
-			self.noise_clip = noise_clip
-		else:
-			self.noise_clip = noise_clip.unsqueeze(1)
+		self.noise = noise
 		self.actor_update_period = actor_update_period
 		self.logger = None
 	
@@ -116,16 +108,12 @@ class TD3(Algorithm):
 			prev_latent = torch.cat((initial_action.unsqueeze(1), latent[:,:-1]), dim = 1)
 
 			with torch.no_grad():
-				# 1. Create noises for target action
-				print("# 1. Create noises for target action")
-				noise = (torch.randn_like(actions) * self.policy_noise).clamp(-self.noise_clip, self.noise_clip)
-				#time.sleep(5.0)
-				# 2. Compute target actions from target actor P'(s(t+1))
-				print("# 2. Compute target actions from target actor P'(s(t+1))")
-				target_actions = self.actor_model_target(input = images, input_latent = prev_latent).permute((1,0)) + noise
+				# 1. Compute target actions from target actor P'(s(t+1))
+				print("# 1. Compute target actions from target actor P'(s(t+1))")
+				target_actions = self.actor_model_target(input = images, input_latent = prev_latent, noise = self.noise).permute((1,0)) 
 				#time.sleep(5.0)
 				# 3. Compute Q-value of next state using the  target critics Q'(s(t+1), P'(s(t+1)))
-				print("# 3. Compute Q-value of next state using the  target critics Q'(s(t+1), P'(s(t+1)))")
+				print("# 2. Compute Q-value of next state using the  target critics Q'(s(t+1), P'(s(t+1)))")
 				target_q1 = self.critic_model_1_target(input = images, input_latent = prev_latent, pre_output_latent = target_actions).squeeze(1)
 				target_q2 = self.critic_model_2_target(input = images, input_latent = prev_latent, pre_output_latent = target_actions).squeeze(1)
 
@@ -133,7 +121,7 @@ class TD3(Algorithm):
 				#time.sleep(5.0)
 
 				# 4. Use smaller Q-value as the Q-value target
-				print("# 4. Use smaller Q-value as the Q-value target")
+				print("# 3. Use smaller Q-value as the Q-value target")
 				target_q = torch.min(target_q1, target_q2)
 
 				del target_q1, target_q2
@@ -144,7 +132,7 @@ class TD3(Algorithm):
 				del episode_values
 				#time.sleep(5.0)
 				# 5. Compute current Q-value with the reward
-				print("# 5. Compute current Q-value with the reward")
+				print("# 4. Compute current Q-value with the reward")
 				target_q_next = torch.cat((target_q[1:],torch.zeros(1).to(self.device1)), dim = 0)
 				target_q = rewards + self.discount * target_q_next
 
@@ -152,11 +140,11 @@ class TD3(Algorithm):
 
 			#time.sleep(5.0)
 			# 6. Compute Q-value from critics Q(s_t, a_t)
-			print("# 6.1 Compute Q-value from critics Q(s_t, a_t)")
+			print("# 5.1 Compute Q-value from critics Q(s_t, a_t)")
 			q1 = self.critic_model_1(input = images, input_latent = prev_latent, pre_output_latent = actions).squeeze(1)
 			#time.sleep(5.0)
 			# 7. Compute MSE loss for the critics
-			print("# 7.1 Compute MSE loss for the critics")
+			print("# 6.1 Compute MSE loss for the critics")
 			critic_loss = F.mse_loss(q1[demo_flag == 0.0], target_q[demo_flag == 0.0])
 			self.critic_1_optimizer.zero_grad()
 			critic_loss.backward()
@@ -167,10 +155,10 @@ class TD3(Algorithm):
 			del q1, critic_loss
 			torch.cuda.empty_cache() 
 
-			print("# 6.2 Compute Q-value from critics Q(s_t, a_t)")
+			print("# 5.2 Compute Q-value from critics Q(s_t, a_t)")
 			q2 = self.critic_model_2(input = images, input_latent = prev_latent, pre_output_latent = actions).squeeze(1)
 
-			print("# 7.2 Compute MSE loss for the critics")
+			print("# 6.2 Compute MSE loss for the critics")
 			critic_loss = F.mse_loss(q2[demo_flag == 0.0], target_q[demo_flag == 0.0])
 			critic_loss.backward()
 			self.critic_2_optimizer.zero_grad()
@@ -187,21 +175,21 @@ class TD3(Algorithm):
 			
 			#time.sleep(5.0)
 			# 8. Optimize critic
-			print("# 8. Optimize critic")
+			print("# 7. Optimize critic")
 			self.critic_2_optimizer.zero_grad()
 			self.critic_2_optimizer.step()
 
 			#time.sleep(5.0)
 			# 9. Check whether to update the actor and the target policies
-			print("# 9. Check whether to update the actor and the target policies")
+			print("# 8. Check whether to update the actor and the target policies")
 			if(j % self.actor_update_period == (self.actor_update_period - 1)):
 				#time.sleep(5.0)
 				#10. Compute the actor's action using the real actor
-				print("#10. Compute the actor's action using the real actor")
+				print("# 9. Compute the actor's action using the real actor")
 				actor_actions = self.actor_model(input = images, input_latent = prev_latent).permute((1,0))
 				#time.sleep(5.0)
 				#11. Compute the negative critic values using the real critic
-				print("#11. Compute the negative critic values using the real critic")
+				print("# 10. Compute the negative critic values using the real critic")
 				dummy_critic = self.critic_model_1.to(self.device2)
 				actor_loss = -dummy_critic(input = images.to(self.device2), input_latent = prev_latent.to(self.device2), pre_output_latent = actor_actions.to(self.device2)).mean()
 
@@ -210,7 +198,7 @@ class TD3(Algorithm):
 
 				#time.sleep(5.0)
 				#12. Optimize actor
-				print("#12. Optimize actor")
+				print("# 11. Optimize actor")
 				self.actor_optimizer.zero_grad()
 				actor_loss.backward()
 				self.actor_optimizer.step()
@@ -220,7 +208,7 @@ class TD3(Algorithm):
 
 				#time.sleep(5.0)
 				#13. Update target networks
-				print("#13. Update target networks")
+				print("# 12. Update target networks")
 				for param, target_param in zip(self.critic_model_1.to(self.device1).parameters(), self.critic_model_1_target.parameters()):
 					target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
@@ -232,5 +220,66 @@ class TD3(Algorithm):
 				
 				del param, target_param
 				torch.cuda.empty_cache() 
+
+			j += 1
+
+
+class IL(Algorithm):
+	def __init__(self,
+				actor_model,
+				actor_optimizer_dict,
+				dataloader,
+				device,
+				logger = None):
+		'''
+		IL (Behavior Cloning) Algorithm Implementation.
+
+		actor_model -- nn.Module model 
+		actor_optimizer_dict -- dictionary with information about optimizer
+		dataloader -- torch.utils.data.Dataloader
+		device -- device name in strings Eg. "cuda:1"
+		logger -- mobile_robot_hl.logger
+		'''
+
+		self.device = device
+
+		self.actor_model = actor_model.to(self.device)
+
+		self.optimizer = create_optimizer_from_dict(actor_optimizer_dict, self.actor_model.parameters())
+		self.dataloader = dataloader
+
+		self.logger = logger
+
+	def train_one_epoch(self, stop_flag):
+		j = 0
+		for (images, latent, frame_no) in self.dataloader:
+			if(stop_flag == True):
+				return
+
+			print(f"Run No. {j+1}")
+			print(f"Episode Length = {frame_no.shape[0]}")
+
+			images = images.to(self.device)
+			latent = latent.to(self.device)
+
+			actions = latent[:-1,:]
+			initial_action = torch.zeros_like(latent[:,0])
+			initial_action[3] = 1.0
+			dup_images = torch.cat((images, images), dim = 0)
+			dup_latent = torch.cat((initial_action.unsqueeze(1), latent[:,:], latent[:,:-1]), dim = 1)
+
+			print("# 1. Compute actor output")
+			actor_output = self.actor_model(dup_images, dup_latent)
+
+			target = actions.T
+			output = actor_output[frame_no.shape[0]:]
+
+			print("# 2. Compute loss")
+			loss = F.mse_loss(target, output)
+
+			print("# 2. Optimize actor model")
+			self.optimizer.zero_grad()
+			loss.backward()
+			self.optimizer.step()
 
 			j += 1

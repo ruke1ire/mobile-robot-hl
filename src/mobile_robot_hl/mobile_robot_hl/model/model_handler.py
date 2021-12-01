@@ -5,6 +5,7 @@ import torch
 import glob
 
 import mobile_robot_hl.model.model as m
+from mobile_robot_hl.model.utils import ModelType
 
 class ModelHandler():
     MODEL_INFO_FILE = "info.yaml"
@@ -28,7 +29,11 @@ class ModelHandler():
         
         model_architecture = info_dict['architecture']
 
-        model = m.MimeticSNAIL(**model_architecture)
+        if(model_type == ModelType.ACTOR):
+            model = m.MimeticSNAILActor(**model_architecture)
+        else:
+            model = m.MimeticSNAILCritic(**model_architecture)
+
         model.load_state_dict(torch.load(f"{self.path}/{model_type.name.lower()}/{name}/{id_}.pth"))
 
         info_dict['name'] = name
