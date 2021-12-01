@@ -13,6 +13,11 @@ This repo contains code that allows mobile robots to be trained for any navigati
 
 - [ROS2 Foxy](https://docs.ros.org/en/foxy/Installation.html)
 
+Install additional requirements
+```
+pip3 install -r ./etc/requirements/requirements.txt
+```
+
 ## Startup
 
 ### Source files

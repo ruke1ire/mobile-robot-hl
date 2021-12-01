@@ -4,8 +4,11 @@ The todo list is written to this file.
 
 ## In Progress
 
-- [ ] Automatically run rsync commands after an episode is saved?
+- [ ] work on logger
+    - wandb
 - [ ] Create some script which will run a command whenever a new data is received?
+    - create events
+    - if this event then run those
 - [ ] Record demonstrations
     - about 20 path following tasks
 - [ ] Supervisor
