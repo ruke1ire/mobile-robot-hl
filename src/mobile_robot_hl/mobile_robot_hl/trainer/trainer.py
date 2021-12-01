@@ -186,11 +186,6 @@ class Trainer():
 
         for i in count(0):
             self.task_dataset.get_all_data()
-            if(type(save_every) == int):
-                if(i % save_every == save_every-1):
-                    print("Saving model")
-                    self.save_model(ModelType.ACTOR.name)
-                    self.save_model(ModelType.CRITIC.name)
             if i == max_epochs:
                 print("Max epochs reached")
                 self.actor_state = TrainerState.STANDBY
@@ -199,6 +194,11 @@ class Trainer():
                 return
             print(f'=================Epoch {i+1}=================')
             self.algorithm.train_one_epoch(self.stop)
+            if(type(save_every) == int):
+                if(i % save_every == save_every-1):
+                    print("Saving model")
+                    self.save_model(ModelType.ACTOR.name)
+                    self.save_model(ModelType.CRITIC.name)
         else:
             pass
     

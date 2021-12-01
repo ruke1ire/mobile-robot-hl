@@ -43,7 +43,7 @@ python3 -m mobile_robot_hl.trainer.console
 ```
 rsync -avz $MOBILE_ROBOT_HL_ROOT/data/demo/ dlbox3:~/mobile-robot-hl/data/demo
 rsync -avz $MOBILE_ROBOT_HL_ROOT/data/task/ dlbox3:~/mobile-robot-hl/data/task
-rsync -avz $MOBILE_ROBOT_HL_ROOT/data/run_setup/ dlbox3:~/mobile-robot-hl/data/run_setup
+rsync -avz $MOBILE_ROBOT_HL_ROOT/data/run_setup/ dlbox3:~/mobile-robot-hl/data/run_setup --delete
 ```
 
 #### Model -> local

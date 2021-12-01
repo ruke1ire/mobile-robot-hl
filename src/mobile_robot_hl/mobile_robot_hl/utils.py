@@ -21,8 +21,9 @@ class OutputProcessor(nn.Module):
         self.max_angular_vel = max_angular_vel
 
     def forward(self, actor_output, noise = 0.0):
-        multiplier = torch.tensor([self.max_linear_vel, self.max_angular_vel, 0.5], dtype = torch.float32).to(actor_output.device.type)
-        adder = torch.tensor([0.0, 0.0, 0.5], dtype = torch.float32).to(actor_output.device.type)
-        noise_tensor = (20*noise*(torch.rand(actor_output.shape)*(2*multiplier) - multiplier)).to(actor_output.device.type)
+        device = actor_output.device.type
+        multiplier = torch.tensor([self.max_linear_vel, self.max_angular_vel, 0.5], dtype = torch.float32).to(device)
+        adder = torch.tensor([0.0, 0.0, 0.5], dtype = torch.float32).to(device)
+        noise_tensor = (20*noise*(torch.rand(actor_output.shape).to(device)*(2*multiplier) - multiplier)).to(device)
         actor_output = torch.tanh(actor_output+noise_tensor)*multiplier + adder
         return actor_output
