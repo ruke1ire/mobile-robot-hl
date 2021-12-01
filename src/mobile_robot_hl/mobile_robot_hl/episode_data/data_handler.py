@@ -86,7 +86,7 @@ class DemoHandler():
 
         with open(f'{self.path}/{name}/{next_id}/{DemoHandler.DEMO_ID_INFO_FILE}', 'w') as outfile:
             yaml.dump(dict_data, outfile)
-
+    
 class TaskHandler():
     TASK_ID_INFO_FILE= "info.yaml"
     def __init__(self, path, demo_handler):

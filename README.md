@@ -39,17 +39,15 @@ python3 -m mobile_robot_hl.trainer.console
 
 ### Transfer data files
 
-#### Demo, task and run_setup -> server
+#### Demo, task, run_setup, source -> server
 ```
-rsync -avz $MOBILE_ROBOT_HL_ROOT/data/demo/ dlbox3:~/mobile-robot-hl/data/demo
-rsync -avz $MOBILE_ROBOT_HL_ROOT/data/task/ dlbox3:~/mobile-robot-hl/data/task
-rsync -avz $MOBILE_ROBOT_HL_ROOT/data/run_setup/ dlbox3:~/mobile-robot-hl/data/run_setup --delete
+$MOBILE_ROBOT_HL_ROOT/src/utils/send.sh
 ```
 
 #### Model -> local
 
 ```
-rsync -avz dlbox3:~/mobile-robot-hl/data/model/ $MOBILE_ROBOT_HL_ROOT/data/model
+$MOBILE_ROBOT_HL_ROOT/src/utils/recv.sh
 ```
 
 #### Source -> server

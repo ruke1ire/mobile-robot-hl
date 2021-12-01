@@ -2,7 +2,8 @@ import tkinter
 from tkinter import ttk
 from threading import Thread
 import json
-from mobile_robot_hl.gui.display import Info
+import subprocess
+import os
 
 from mobile_robot_hl.gui.utils import *
 from mobile_robot_hl.model import *
@@ -106,6 +107,12 @@ class Task():
         if(self.ros_node.variables.supervisor_state in [SupervisorState.TASK_PAUSED, SupervisorState.TASK_RUNNING]):
             self.ros_node.call_service('supervisor/save')
             self.ros_node.variables.task_names = self.ros_node.task_handler.get_names()
+            try:
+                self.ros_node.get_logger().info("Sending files to server")
+                subprocess.run([os.path.join(os.environ['MOBILE_ROBOT_HL_ROOT'], "src", "utils", "send.sh"), "-t"])
+                self.ros_node.get_logger().info("Files sent")
+            except Exception as e:
+                self.ros_node.get_logger().warn(f"Failed to send the files: {e}")
     
     def update_buttons(self):
         if(self.ros_node.variables.supervisor_state == SupervisorState.STANDBY):
@@ -201,6 +208,12 @@ class Demo():
         if(self.ros_node.variables.supervisor_state in [SupervisorState.DEMO_RECORDING, SupervisorState.DEMO_PAUSED]):
             self.ros_node.call_service('supervisor/save')
             self.ros_node.variables.demo_names = self.ros_node.demo_handler.get_names()
+            try:
+                self.ros_node.get_logger().info("Sending files to server")
+                subprocess.run([os.path.join(os.environ['MOBILE_ROBOT_HL_ROOT'], "src", "utils", "send.sh"), "-d"])
+                self.ros_node.get_logger().info("Files sent")
+            except Exception as e:
+                self.ros_node.get_logger().warn(f"Failed to send the files: {e}")
 
     def update_entry(self):
         self.entry['values'] = tuple(self.ros_node.variables.demo_names)
