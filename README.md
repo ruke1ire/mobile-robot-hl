@@ -38,8 +38,7 @@ ros2 launch mobile_robot_hl mock_system_launch.py # launches the system along wi
 ### Start trainer.console
 
 ```
-cd src/mobile_robot_hl
-python3 -m mobile_robot_hl.trainer.console
+./trainer.sh
 ```
 
 ### Transfer data files
