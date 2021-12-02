@@ -13,11 +13,11 @@ set_optimizer__actor:
     optimizer_dict:
         optimizer_name: 'Adam'
         optimizer_kwargs:
-            lr: 0.00001
+            lr: 0.0001
 
 set_optimizer__critic:
     model_type: 'CRITIC'
     optimizer_dict:
         optimizer_name: 'Adam'
         optimizer_kwargs:
-            lr: 0.00001
+            lr: 0.0001

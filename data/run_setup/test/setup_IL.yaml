@@ -9,3 +9,4 @@ set_optimizer__actor:
         optimizer_name: 'Adam'
         optimizer_kwargs:
             lr: 0.001
+            weight_decay: 0.001

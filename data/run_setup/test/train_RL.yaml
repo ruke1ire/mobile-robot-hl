@@ -5,6 +5,6 @@ start_training__RL:
     additional_algorithm_kwargs:
         device1: 'cuda:0'
         device2: 'cuda:1'
-        discount: 0.99
+        discount: 0.9
         tau: 0.005
         noise: 0.5

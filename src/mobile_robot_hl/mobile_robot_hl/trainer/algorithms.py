@@ -138,20 +138,18 @@ class TD3(Algorithm):
 
 				del target_q_next
 
-			#time.sleep(5.0)
-			# 6. Compute Q-value from critics Q(s_t, a_t)
 			print("# 5.1 Compute Q-value from critics Q(s_t, a_t)")
 			q1 = self.critic_model_1(input = images, input_latent = prev_latent, pre_output_latent = actions).squeeze(1)
-			#time.sleep(5.0)
-			# 7. Compute MSE loss for the critics
+
 			print("# 6.1 Compute MSE loss for the critics")
 			critic_loss = F.mse_loss(q1[demo_flag == 0.0], target_q[demo_flag == 0.0])
+
+			print("# 7.1 Optimize critic")
 			self.critic_1_optimizer.zero_grad()
 			critic_loss.backward()
 			self.critic_1_optimizer.step()
+			self.logger.log(DataType.num, critic_loss.item(), key = "critic1 loss")
 
-			q1.detach()
-			critic_loss.detach()
 			del q1, critic_loss
 			torch.cuda.empty_cache() 
 
@@ -160,35 +158,21 @@ class TD3(Algorithm):
 
 			print("# 6.2 Compute MSE loss for the critics")
 			critic_loss = F.mse_loss(q2[demo_flag == 0.0], target_q[demo_flag == 0.0])
+
+			print("# 7.2 Optimize critic")
+			self.critic_2_optimizer.zero_grad()
 			critic_loss.backward()
-			self.critic_2_optimizer.zero_grad()
 			self.critic_2_optimizer.step()
-			self.critic_2_optimizer.zero_grad()
+			self.logger.log(DataType.num, critic_loss.item(), key = "critic2 loss")
 
-			q2.detach()
-			critic_loss.detach()
 			del q2, critic_loss
-
-			target_q.detach()
 			del target_q
 			torch.cuda.empty_cache() 
-			
-			#time.sleep(5.0)
-			# 8. Optimize critic
-			print("# 7. Optimize critic")
-			self.critic_2_optimizer.zero_grad()
-			self.critic_2_optimizer.step()
 
-			#time.sleep(5.0)
-			# 9. Check whether to update the actor and the target policies
 			print("# 8. Check whether to update the actor and the target policies")
 			if(j % self.actor_update_period == (self.actor_update_period - 1)):
-				#time.sleep(5.0)
-				#10. Compute the actor's action using the real actor
 				print("# 9. Compute the actor's action using the real actor")
 				actor_actions = self.actor_model(input = images, input_latent = prev_latent).permute((1,0))
-				#time.sleep(5.0)
-				#11. Compute the negative critic values using the real critic
 				print("# 10. Compute the negative critic values using the real critic")
 				dummy_critic = self.critic_model_1.to(self.device2)
 				actor_loss = -dummy_critic(input = images.to(self.device2), input_latent = prev_latent.to(self.device2), pre_output_latent = actor_actions.to(self.device2)).mean()
@@ -196,18 +180,14 @@ class TD3(Algorithm):
 				actor_actions.detach()
 				del actor_actions
 
-				#time.sleep(5.0)
-				#12. Optimize actor
 				print("# 11. Optimize actor")
 				self.actor_optimizer.zero_grad()
 				actor_loss.backward()
 				self.actor_optimizer.step()
 
-				actor_loss.detach()
 				del actor_loss, dummy_critic
+				torch.cuda.empty_cache() 
 
-				#time.sleep(5.0)
-				#13. Update target networks
 				print("# 12. Update target networks")
 				for param, target_param in zip(self.critic_model_1.to(self.device1).parameters(), self.critic_model_1_target.parameters()):
 					target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
@@ -219,7 +199,6 @@ class TD3(Algorithm):
 					target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)	
 				
 				del param, target_param
-				torch.cuda.empty_cache() 
 
 			j += 1
 
