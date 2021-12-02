@@ -6,18 +6,15 @@ from torch.utils.data import Dataset, DataLoader
 
 from mobile_robot_hl.model.utils import *
 import mobile_robot_hl.model.model as m
-from mobile_robot_hl.logger import *
 from .utils import *
 from .dataset import *
 from .algorithms import *
 
 class Trainer():
-    def __init__(self, model_handler, demo_handler, task_handler, logger = None):
+    def __init__(self, model_handler, demo_handler, task_handler):
         self.model_handler = model_handler
         self.demo_handler = demo_handler
         self.task_handler = task_handler
-
-        self.logger = logger
 
         self.actor_state = TrainerState.SLEEPING
         self.critic_state = TrainerState.SLEEPING
@@ -111,14 +108,13 @@ class Trainer():
                     actor_optimizer_dict = self.actor_optimizer_dict, 
                     critic_optimizer_dict = self.critic_optimizer_dict,
                     dataloader = self.task_dataloader,
-                    logger = self.logger
                     )
                 if(additional_algorithm_kwargs is not None):
                     algorithm_kwargs = {**algorithm_kwargs, **additional_algorithm_kwargs}
                 self.algorithm = TD3(**algorithm_kwargs)
 
-                #Thread(target = self.training_loop, args = (max_epochs, save_every,)).start()
-                self.training_loop(max_epochs, save_every)
+                Thread(target = self.training_loop, args = (max_epochs, save_every,)).start()
+                #self.training_loop(max_epochs, save_every)
                 self.actor_state = TrainerState.RUNNING
                 self.critic_state = TrainerState.RUNNING
         elif(training_type == TrainingType.IL.name):
@@ -129,7 +125,6 @@ class Trainer():
                     actor_model = self.actor_model,
                     actor_optimizer_dict = self.actor_optimizer_dict, 
                     dataloader = self.demo_dataloader,
-                    logger = self.logger
                     )
                 if(additional_algorithm_kwargs is not None):
                     algorithm_kwargs = {**algorithm_kwargs, **additional_algorithm_kwargs}
@@ -192,13 +187,18 @@ class Trainer():
                 self.critic_state = TrainerState.STANDBY
                 torch.cuda.empty_cache() 
                 return
+            if(self.stop == True):
+                print("Training stopped")
+                torch.cuda.empty_cache() 
+                return
             print(f'=================Epoch {i+1}=================')
-            self.algorithm.train_one_epoch(self.stop)
+            self.algorithm.train_one_epoch(self)
             if(type(save_every) == int):
                 if(i % save_every == save_every-1):
                     print("Saving model")
                     self.save_model(ModelType.ACTOR.name)
-                    self.save_model(ModelType.CRITIC.name)
+                    if(self.critic_state == TrainerState.RUNNING):
+                        self.save_model(ModelType.CRITIC.name)
         else:
             pass
     

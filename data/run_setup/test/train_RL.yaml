@@ -8,5 +8,3 @@ start_training__RL:
         discount: 0.99
         tau: 0.005
         noise: 0.5
-
-        ##

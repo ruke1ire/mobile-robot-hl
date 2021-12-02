@@ -153,7 +153,7 @@ class AttentionBlock(nn.Module):
         dot_product = query@keys.transpose(1,2)
         scores = dot_product / math.sqrt(self.key_size)
 
-        mask = subsequent_mask(seq_length, input.device.type)
+        mask = subsequent_mask(seq_length, input.device)
         scores = scores.masked_fill(mask[:,-scores.shape[1]:,:] == 0, -float('inf'))
 
         probs = self.softmax(scores)

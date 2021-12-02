@@ -25,7 +25,7 @@ pip3 install -r ./etc/requirements/requirements.txt
 ```
 source /opt/ros/foxy/setup.bash
 source install/setup.bash
-source src/init/init.sh
+source src/utils/init.sh
 ```
 
 ### Launch ROS nodes
@@ -46,18 +46,21 @@ python3 -m mobile_robot_hl.trainer.console
 
 #### Demo, task, run_setup, source -> server
 ```
+source src/utils/init.sh
 $MOBILE_ROBOT_HL_ROOT/src/utils/send.sh
 ```
 
 #### Model -> local
 
 ```
+source src/utils/init.sh
 $MOBILE_ROBOT_HL_ROOT/src/utils/recv.sh
 ```
 
 #### Source -> server
 
 ```
+source src/utils/init.sh
 rsync -avz $MOBILE_ROBOT_HL_ROOT/src/ dlbox3:~/mobile-robot-hl/src
 ```
 

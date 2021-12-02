@@ -19,11 +19,10 @@ class Algorithm(ABC):
 		pass
 
 	@abstractmethod
-	def train_one_epoch(self, stop_flag):
+	def train_one_epoch(self, trainer):
 		'''
 		Train the algorithm for 1 epoch
 
-		:param stop_flag: A flag which indicates to stop the training if raised
 		'''
 		pass
 
@@ -36,7 +35,7 @@ class TD3(Algorithm):
 				dataloader, 
 				device1,
 				device2,
-				logger = None,
+				logger_dict,
 				discount = 0.99,
 				tau = 0.005,
 				noise = 0.5,
@@ -52,7 +51,7 @@ class TD3(Algorithm):
 		critic_optimizer_dict -- the dictionary representation of the optimizer for the actor model *
 		dataloader -- the dataloader to be used to train the models *
 		device -- the device to put the models in *
-		logger -- logger to be used *
+		logger_dict -- dictionary with information about the logger to initialize dict(name, kwargs)
 		discount -- discount factor used to compute the value of a state-action pair (float)
 		tau -- the rate at which the target policies are updated (float)
 		noise -- noise value from 0.0 - 1.0
@@ -86,12 +85,13 @@ class TD3(Algorithm):
 		self.tau = tau
 		self.noise = noise
 		self.actor_update_period = actor_update_period
-		self.logger = None
+
+		self.logger = create_logger_from_dict(logger_dict)
 	
-	def train_one_epoch(self, stop_flag):
+	def train_one_epoch(self, trainer):
 		j = 0
 		for (images, latent, frame_no, rewards) in self.dataloader:
-			if(stop_flag == True):
+			if(trainer.stop == True):
 				return
 
 			print(f"Run No. {j+1}")
@@ -230,7 +230,7 @@ class IL(Algorithm):
 				actor_optimizer_dict,
 				dataloader,
 				device,
-				logger = None):
+				logger_dict):
 		'''
 		IL (Behavior Cloning) Algorithm Implementation.
 
@@ -238,7 +238,7 @@ class IL(Algorithm):
 		actor_optimizer_dict -- dictionary with information about optimizer
 		dataloader -- torch.utils.data.Dataloader
 		device -- device name in strings Eg. "cuda:1"
-		logger -- mobile_robot_hl.logger
+		logger_dict -- dictionary with information about the logger to initialize dict(name, kwargs)
 		'''
 
 		self.device = device
@@ -248,12 +248,12 @@ class IL(Algorithm):
 		self.optimizer = create_optimizer_from_dict(actor_optimizer_dict, self.actor_model.parameters())
 		self.dataloader = dataloader
 
-		self.logger = logger
+		self.logger = create_logger_from_dict(logger_dict)
 
-	def train_one_epoch(self, stop_flag):
+	def train_one_epoch(self, trainer):
 		j = 0
 		for (images, latent, frame_no) in self.dataloader:
-			if(stop_flag == True):
+			if(trainer.stop == True):
 				return
 
 			print(f"Run No. {j+1}")
@@ -263,7 +263,7 @@ class IL(Algorithm):
 			latent = latent.to(self.device)
 
 			actions = latent[:-1,:]
-			initial_action = torch.zeros_like(latent[:,0])
+			initial_action = torch.zeros_like(latent[:,0]).to(self.device)
 			initial_action[3] = 1.0
 			dup_images = torch.cat((images, images), dim = 0)
 			dup_latent = torch.cat((initial_action.unsqueeze(1), latent[:,:], latent[:,:-1]), dim = 1)
@@ -277,9 +277,11 @@ class IL(Algorithm):
 			print("# 2. Compute loss")
 			loss = F.mse_loss(target, output)
 
-			print("# 2. Optimize actor model")
+			print("# 3. Optimize actor model")
 			self.optimizer.zero_grad()
 			loss.backward()
 			self.optimizer.step()
+
+			self.logger.log(data_type = DataType.num, data = loss.item(), key = "loss")
 
 			j += 1

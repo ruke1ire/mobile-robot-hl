@@ -1,5 +1,6 @@
 #!/usr/bin/bash
 
+source src/utils/init.sh
 model="rsync -avz dlbox3:~/mobile-robot-hl/data/model/ $MOBILE_ROBOT_HL_ROOT/data/model"
 
 if [ -z "$1" ]

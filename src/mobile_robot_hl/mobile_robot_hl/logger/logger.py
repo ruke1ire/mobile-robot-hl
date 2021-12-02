@@ -4,7 +4,7 @@ from enum import Enum
 import wandb
 
 class DataType(Enum):
-    int = 0
+    num = 0
     string = 1
     image = 2
     tensor = 3
@@ -38,7 +38,7 @@ class PrintLogger(Logger):
         else:
             key = ''
 
-        if(data_type == DataType.int):
+        if(data_type == DataType.num):
             print(key+str(data))
         elif(data_type == DataType.string):
             print(key+data)
@@ -48,8 +48,8 @@ class PrintLogger(Logger):
             print(key+str(data))
 
 class WandbLogger(Logger):
-    def __init__(self):
-        wandb.init(project="MimeticSNAIL", entity="ruke1ire")
+    def __init__(self, name):
+        wandb.init(project="MimeticSNAIL", entity="ruke1ire", name = name, resume = True)
 
     def config(self, configuration_dict):
         wandb.config = configuration_dict

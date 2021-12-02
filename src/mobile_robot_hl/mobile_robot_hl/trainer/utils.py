@@ -1,6 +1,7 @@
 from enum import Enum
 
 from mobile_robot_hl.utils import ControllerType
+from mobile_robot_hl.logger import *
 
 from torch.utils.data import Dataset
 import torch
@@ -62,7 +63,7 @@ def compute_values(gamma, rewards):
         size = rewards.size
     discounted_mat = create_discounted_matrix(gamma, size)
     if(type(rewards) == torch.Tensor):
-        discounted_mat = torch.tensor(discounted_mat, dtype = torch.float32).to(rewards.device.type)
+        discounted_mat = torch.tensor(discounted_mat, dtype = torch.float32).to(rewards.device)
     values = discounted_mat@rewards
     return values
 
@@ -79,3 +80,12 @@ def create_optimizer_from_dict(optimizer_dict, parameters):
     optimizer = dict(parameters= parameters, optimizer_kwargs = optimizer_kwargs,out=None)
     exec(f"out = torch.optim.{optimizer_name}(parameters, **optimizer_kwargs)", None, optimizer)
     return optimizer['out']
+
+def create_logger_from_dict(logger_dict):
+    if(logger_dict == dict()):
+        logger = EmptyLogger()
+    else:
+        exec_vars = dict(logger_dict = logger_dict, out = None)
+        exec(f"out = {logger_dict['name']}(**logger_dict['kwargs'])", None, exec_vars)
+        logger = exec_vars['out']
+    return logger
