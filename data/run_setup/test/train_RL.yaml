@@ -1,6 +1,6 @@
 start_training__RL:
     training_type: 'RL'
-    save_every: null
+    save_every: 1
     max_epochs: 1
     additional_algorithm_kwargs:
         device1: 'cuda:0'
@@ -8,3 +8,7 @@ start_training__RL:
         discount: 0.9
         tau: 0.005
         noise: 0.5
+        logger_dict:
+            name: 'WandbLogger'
+            kwargs:
+                name: test

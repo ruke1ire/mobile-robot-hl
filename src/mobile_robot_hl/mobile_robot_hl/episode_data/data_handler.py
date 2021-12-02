@@ -161,7 +161,7 @@ class TaskHandler():
 
         episode_copy = EpisodeData(**episode.get())
 
-        task_index = episode_copy.action.controller.get().index(ControllerType.AGENT)
+        task_index = self.demo_handler.get(demo_name, demo_id).length()
         episode_copy.remove(task_index-1, leftwards=True)
 
         dict_data = episode_copy.get()

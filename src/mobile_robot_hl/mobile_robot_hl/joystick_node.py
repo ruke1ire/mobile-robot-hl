@@ -92,6 +92,7 @@ class JoystickNode(Node):
 
             elif(prev_joy_state[InterfaceType.START_PAUSE_TASK.name] == False and joy_state[InterfaceType.START_PAUSE_TASK.name] == True):
                 if(self.supervisor_state in [SupervisorState.STANDBY, SupervisorState.TASK_PAUSED]):
+                    self.call_service(supervisor_prefix+'select_controller', command=ControllerType.AGENT.name)
                     self.call_service(supervisor_prefix+'start', command = 'task')
                 elif(self.supervisor_state == SupervisorState.TASK_RUNNING):
                     if(self.supervisor_controller == ControllerType.AGENT):

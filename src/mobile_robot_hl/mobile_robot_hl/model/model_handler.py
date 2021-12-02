@@ -34,7 +34,7 @@ class ModelHandler():
         else:
             model = m.MimeticSNAILCritic(**model_architecture)
 
-        model.load_state_dict(torch.load(f"{self.path}/{model_type.name.lower()}/{name}/{id_}.pth"))
+        model.load_state_dict(torch.load(f"{self.path}/{model_type.name.lower()}/{name}/{id_}.pth", map_location = 'cpu'))
 
         info_dict['name'] = name
 

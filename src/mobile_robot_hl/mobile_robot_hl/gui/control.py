@@ -79,6 +79,7 @@ class Task():
                 select_data_dict['type'] = select_data_dict['type'].name
                 select_data_str = json.dumps(select_data_dict)
                 self.ros_node.call_service('supervisor/select_data', command = select_data_str)
+            self.ros_node.call_service('supervisor/select_controller', command = 'agent')
             self.ros_node.call_service('supervisor/start', command = 'task')
         elif(self.ros_node.variables.supervisor_state == SupervisorState.TASK_RUNNING):
             if(self.ros_node.variables.supervisor_controller == ControllerType.AGENT):
@@ -109,7 +110,7 @@ class Task():
             self.ros_node.variables.task_names = self.ros_node.task_handler.get_names()
             try:
                 self.ros_node.get_logger().info("Sending files to server")
-                subprocess.run([os.path.join(os.environ['MOBILE_ROBOT_HL_ROOT'], "src", "utils", "send.sh"), "-t"])
+                subprocess.run([os.path.join(os.environ['MOBILE_ROBOT_HL_ROOT'], "send.sh"), "-t"])
                 self.ros_node.get_logger().info("Files sent")
             except Exception as e:
                 self.ros_node.get_logger().warn(f"Failed to send the files: {e}")
@@ -210,7 +211,7 @@ class Demo():
             self.ros_node.variables.demo_names = self.ros_node.demo_handler.get_names()
             try:
                 self.ros_node.get_logger().info("Sending files to server")
-                subprocess.run([os.path.join(os.environ['MOBILE_ROBOT_HL_ROOT'], "src", "utils", "send.sh"), "-d"])
+                subprocess.run([os.path.join(os.environ['MOBILE_ROBOT_HL_ROOT'], "send.sh"), "-d"])
                 self.ros_node.get_logger().info("Files sent")
             except Exception as e:
                 self.ros_node.get_logger().warn(f"Failed to send the files: {e}")

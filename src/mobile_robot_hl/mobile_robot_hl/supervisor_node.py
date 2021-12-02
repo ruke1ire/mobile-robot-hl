@@ -171,6 +171,7 @@ class SupervisorNode(Node):
                         self.episode = self.demo_handler.get(self.selected_data['name'], self.selected_data['id'])
                     else:
                         raise Exception("Invalid data type")
+                    self.controller = ControllerType.AGENT
                 
                 # state == task_paused or task_running
                 elif(self.state in [SupervisorState.TASK_PAUSED, SupervisorState.TASK_RUNNING]):
@@ -180,7 +181,6 @@ class SupervisorNode(Node):
                 else:
                     raise Exception(f"Unable to start task as the current state == {self.state.name}")
 
-                self.controller = ControllerType.AGENT
                 self.state = SupervisorState.TASK_RUNNING
 
             elif(start_type == 'demo'):
@@ -196,13 +196,12 @@ class SupervisorNode(Node):
                             self.episode = self.demo_handler.get(self.selected_data['name'], self.selected_data['id'])
                         except:
                             raise Exception(f"Unable to retrieve episode {self.selected_data}")
-                    self.state = SupervisorState.DEMO_RECORDING
-                    self.controller = ControllerType.USER
                 elif(self.state == SupervisorState.DEMO_PAUSED):
-                    self.state = SupervisorState.DEMO_RECORDING
-                    self.controller = ControllerType.USER
+                    pass
                 else:
                     raise Exception(f"Unable to start demo as the current state == {self.state.name}")
+                self.state = SupervisorState.DEMO_RECORDING
+                self.controller = ControllerType.USER
             else:
                 raise Exception(f"Invalid start type")
 
@@ -281,8 +280,9 @@ class SupervisorNode(Node):
             requestor = ControllerType[request.command.upper()]
 
             if(requestor == ControllerType.AGENT):
-                self.pause()
-                self.stop_vehicle()
+                if(self.controller == ControllerType.AGENT):
+                    self.pause()
+                    self.stop_vehicle()
                 self.agent_output['termination_flag'] = True
             elif(requestor == ControllerType.USER):
                 self.user_output['termination_flag'] = True
@@ -319,7 +319,7 @@ class SupervisorNode(Node):
     def select_controller_callback(self, request, response):
         try:
             self.get_logger().info("<select_controller> service called")
-            if(self.state in [SupervisorState.TASK_PAUSED, SupervisorState.TASK_RUNNING]):
+            if(self.state in [SupervisorState.TASK_PAUSED, SupervisorState.TASK_RUNNING, SupervisorState.STANDBY]):
                 self.controller = ControllerType[request.command.upper()]
             else:
                 raise Exception(f"Unable to select controller as state == {self.state.name}")
@@ -389,6 +389,9 @@ class SupervisorNode(Node):
                         demonstration_flag = False
                     else:
                         raise Exception("Invalid controller when recording demo or running task")
+                    
+                    if(user_output['termination_flag'] == False and agent_output['termination_flag'] == True):
+                        desired_output['termination_flag'] = False
 
                 # get final decision on the controller
                 controller = self.controller
