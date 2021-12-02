@@ -46,21 +46,11 @@ python3 -m mobile_robot_hl.trainer.console
 
 #### Demo, task, run_setup, source -> server
 ```
-source src/utils/init.sh
-$MOBILE_ROBOT_HL_ROOT/src/utils/send.sh
+./send.sh -dtrs
 ```
 
 #### Model -> local
 
 ```
-source src/utils/init.sh
-$MOBILE_ROBOT_HL_ROOT/src/utils/recv.sh
+./recv.sh -m
 ```
-
-#### Source -> server
-
-```
-source src/utils/init.sh
-rsync -avz $MOBILE_ROBOT_HL_ROOT/src/ dlbox3:~/mobile-robot-hl/src
-```
-
