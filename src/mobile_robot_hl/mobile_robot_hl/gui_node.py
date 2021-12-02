@@ -168,7 +168,7 @@ class GUINode(Node):
         self.get_logger().info("Initialized Node")
     
     def episode_frame_callback(self, episode_frame_msg):
-        self.get_logger().info("Receiving episode frame")
+        self.get_logger().debug("Receiving episode frame")
 
         try:
             user_velocity = episode_frame_msg.user_velocity
@@ -207,7 +207,7 @@ class GUINode(Node):
 
             episode_event = dict(function = self.variables.episode.append, kwargs = episode_data)
             self.episode_event_queue.put(episode_event)
-            self.get_logger().info("Received episode frame")
+            self.get_logger().debug("Received episode frame")
         except Exception:
             self.get_logger().warn(str(traceback.format_exc()))
 

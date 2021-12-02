@@ -130,7 +130,7 @@ class SupervisorNode(Node):
         try:
             self.agent_output['velocity'] = {'linear':vel.linear.x, 'angular': vel.angular.z}
             self.received_agent_velocity = True
-            self.get_logger().info("Got agent velocity")
+            self.get_logger().debug("Got agent velocity")
         except Exception:
             self.get_logger().warn(str(traceback.format_exc()))
 
@@ -147,9 +147,9 @@ class SupervisorNode(Node):
 
     def start_callback(self, request, response):
         try:
-            self.get_logger().info("<start> service called")
             # check type of start (task vs demo)
             start_type = request.command
+            self.get_logger().info(f"<start> service called by {start_type}")
             if(start_type == 'task'):
                 self.get_logger().info("Starting task")
                 # state == standby
@@ -158,7 +158,7 @@ class SupervisorNode(Node):
                     if(self.selected_data['name'] == None or self.selected_data['id'] == None):
                         raise Exception("Episode not yet selected")
                     # call agent service to select demo
-                    self.get_logger().info("Calling agent/select_data")
+                    self.get_logger().debug("Calling agent/select_data")
                     selected_data = copy.deepcopy(self.selected_data)
                     selected_data['type'] = selected_data['type'].name
                     select_data_response = self.call_service('agent/select_data', json.dumps(selected_data))
@@ -191,7 +191,7 @@ class SupervisorNode(Node):
                         raise Exception("Demo name not yet selected")
                     # if the ID is selected, then set self.episode
                     if(self.selected_data['id'] not in [None, '']):
-                        self.get_logger().info("Retrieving episode")
+                        self.get_logger().debug("Retrieving episode")
                         try:
                             self.episode = self.demo_handler.get(self.selected_data['name'], self.selected_data['id'])
                         except:
@@ -255,12 +255,12 @@ class SupervisorNode(Node):
             if(self.episode.length() != 0):
                 if(self.state in [SupervisorState.TASK_RUNNING, SupervisorState.TASK_PAUSED]):
                     self.state = SupervisorState.TASK_PAUSED
-                    self.get_logger().info("Saving task episode")
+                    self.get_logger().debug("Saving task episode")
                     self.task_handler.save(self.episode, self.selected_data['name'], self.selected_data['id'])
                 
                 elif(self.state in [SupervisorState.DEMO_PAUSED, SupervisorState.DEMO_RECORDING]):
                     self.state = SupervisorState.DEMO_PAUSED
-                    self.get_logger().info("Saving demo episode")
+                    self.get_logger().debug("Saving demo episode")
                     self.demo_handler.save(self.episode, self.selected_data['name'])
             else:
                 raise Exception(f"Unable to save episode as episode is empty")
@@ -276,8 +276,8 @@ class SupervisorNode(Node):
 
     def termination_flag_callback(self, request, response):
         try:
-            self.get_logger().info("<termination_flag> service called")
             requestor = ControllerType[request.command.upper()]
+            self.get_logger().info(f"<termination_flag> service called by {requestor.name}")
 
             if(requestor == ControllerType.AGENT):
                 if(self.controller == ControllerType.AGENT):
@@ -353,7 +353,8 @@ class SupervisorNode(Node):
 
                 # publish image and wait for agent output
                 if(self.received_agent_velocity == False):
-                    self.get_logger().info("Publishing task_image and frame_no")
+                    self.get_logger().info("=========Started a control frame=========")
+                    self.get_logger().debug("Publishing task_image and frame_no")
                     self.task_image_msg = self.image_raw_msg
                     #self.get_logger().info(str(type(self.task_image_msg)))
                     self.frame_no_publisher.publish(Int32(data=frame_no))
@@ -402,7 +403,7 @@ class SupervisorNode(Node):
                     self.get_logger().warn("Cancelled current frame as the state changed during execution")
                     return
                 else:
-                    self.get_logger().info("Publishing desired actions")
+                    self.get_logger().debug("Publishing desired actions")
                     # publish desired velocity, desired termination flag, and action controller
                     desired_velocity_msg = Twist(linear=Vector3(x=desired_output['velocity']['linear'],y=0.0,z=0.0),angular=Vector3(x=0.0,y=0.0,z=desired_output['velocity']['angular']))
                     self.desired_velocity_publisher.publish(desired_velocity_msg)
