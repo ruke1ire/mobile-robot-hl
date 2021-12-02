@@ -55,7 +55,6 @@ class TD3(Algorithm):
 		discount -- discount factor used to compute the value of a state-action pair (float)
 		tau -- the rate at which the target policies are updated (float)
 		noise -- noise value from 0.0 - 1.0
-		noise_clip -- maximum values for the noise for each action dimension (list len(list) = N)
 		'''
 
 		self.device1 = device1
@@ -148,7 +147,7 @@ class TD3(Algorithm):
 			self.critic_1_optimizer.zero_grad()
 			critic_loss.backward()
 			self.critic_1_optimizer.step()
-			self.logger.log(DataType.num, critic_loss.item(), key = "critic1 loss")
+			self.logger.log(DataType.num, critic_loss.item(), key = "td3/loss/critic1")
 
 			del q1, critic_loss
 			torch.cuda.empty_cache() 
@@ -163,7 +162,7 @@ class TD3(Algorithm):
 			self.critic_2_optimizer.zero_grad()
 			critic_loss.backward()
 			self.critic_2_optimizer.step()
-			self.logger.log(DataType.num, critic_loss.item(), key = "critic2 loss")
+			self.logger.log(DataType.num, critic_loss.item(), key = "td3/loss/critic2")
 
 			del q2, critic_loss
 			del target_q
@@ -184,6 +183,7 @@ class TD3(Algorithm):
 				self.actor_optimizer.zero_grad()
 				actor_loss.backward()
 				self.actor_optimizer.step()
+				self.logger.log(DataType.num, actor_loss.item(), key = "td3/loss/actor")
 
 				del actor_loss, dummy_critic
 				torch.cuda.empty_cache() 
@@ -261,6 +261,6 @@ class IL(Algorithm):
 			loss.backward()
 			self.optimizer.step()
 
-			self.logger.log(data_type = DataType.num, data = loss.item(), key = "loss")
+			self.logger.log(data_type = DataType.num, data = loss.item(), key = "il/loss/actor")
 
 			j += 1

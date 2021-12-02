@@ -4,10 +4,6 @@ The todo list is written to this file.
 
 ## In Progress
 
-- [ ] Can we natively use python interpreter instead of using input()
-- [ ] Create some script which will run a command whenever a new data is received?
-    - create events
-    - if this event then run those
 - [ ] Record demonstrations
     - about 20 path following tasks
 - [ ] Supervisor
