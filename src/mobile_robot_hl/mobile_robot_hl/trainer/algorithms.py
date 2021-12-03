@@ -119,6 +119,7 @@ class TD3(Algorithm):
 
 				print("# 3. Use smaller Q-value as the Q-value target")
 				target_q = torch.min(target_q1, target_q2)
+				self.logger.log(DataType.num, target_q.mean().item(), "td3/avg-value")
 
 				del target_q1, target_q2
 
