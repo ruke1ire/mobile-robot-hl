@@ -189,14 +189,13 @@ class EpisodeData(Node):
         controller = self.action.controller.get()
         agent_linear_vel = self.action.agent.velocity.linear.get()
         agent_angular_vel = self.action.agent.velocity.angular.get()
-        agent_termination_flag = self.action.agent.termination_flag.get()
         user_linear_vel = self.action.user.velocity.linear.get()
         user_angular_vel = self.action.user.velocity.angular.get()
         user_termination_flag = self.action.user.termination_flag.get()
 
         desired_linear_vel = torch.tensor([user if cont == ControllerType.USER else agent for (user, agent, cont) in zip(user_linear_vel, agent_linear_vel, controller)])
         desired_angular_vel = torch.tensor([user if cont == ControllerType.USER else agent for (user, agent, cont) in zip(user_angular_vel, agent_angular_vel, controller)])
-        desired_termination_flag = torch.tensor([user if cont == ControllerType.USER else agent for (user, agent, cont) in zip(user_termination_flag, agent_termination_flag, controller)], dtype = torch.float32)
+        desired_termination_flag = torch.tensor(user_termination_flag, dtype=torch.float32)
         demonstration_flag = torch.tensor([True if cont == ControllerType.USER else False for cont in controller], dtype = torch.float32)
 
         latent_tensor = torch.stack([desired_linear_vel, desired_angular_vel, desired_termination_flag, demonstration_flag])

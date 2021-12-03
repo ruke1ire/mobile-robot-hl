@@ -89,7 +89,7 @@ class TD3(Algorithm):
 	
 	def train_one_epoch(self, trainer):
 		j = 0
-		for (images, latent, frame_no, rewards) in self.dataloader:
+		for (images, latent, frame_no, rewards_velocity, rewards_termination_flag) in self.dataloader:
 			if(trainer.stop == True):
 				return
 
@@ -98,7 +98,8 @@ class TD3(Algorithm):
 
 			images = images.to(self.device1)
 			latent = latent.to(self.device1)
-			rewards = rewards.to(self.device1)
+			rewards_velocity = rewards_velocity.to(self.device1)
+			rewards_termination_flag = rewards_termination_flag.to(self.device1)
 
 			actions = latent[:-1,:]
 			demo_flag = latent[-1,:]
@@ -107,33 +108,29 @@ class TD3(Algorithm):
 			prev_latent = torch.cat((initial_action.unsqueeze(1), latent[:,:-1]), dim = 1)
 
 			with torch.no_grad():
-				# 1. Compute target actions from target actor P'(s(t+1))
 				print("# 1. Compute target actions from target actor P'(s(t+1))")
 				target_actions = self.actor_model_target(input = images, input_latent = prev_latent, noise = self.noise).permute((1,0)) 
-				#time.sleep(5.0)
-				# 3. Compute Q-value of next state using the  target critics Q'(s(t+1), P'(s(t+1)))
+
 				print("# 2. Compute Q-value of next state using the  target critics Q'(s(t+1), P'(s(t+1)))")
 				target_q1 = self.critic_model_1_target(input = images, input_latent = prev_latent, pre_output_latent = target_actions).squeeze(1)
 				target_q2 = self.critic_model_2_target(input = images, input_latent = prev_latent, pre_output_latent = target_actions).squeeze(1)
 
 				del target_actions
-				#time.sleep(5.0)
 
-				# 4. Use smaller Q-value as the Q-value target
 				print("# 3. Use smaller Q-value as the Q-value target")
 				target_q = torch.min(target_q1, target_q2)
 
 				del target_q1, target_q2
 
-				episode_values = compute_values(self.discount, rewards)
-				target_q[rewards == 0] = episode_values[rewards == 0]
+				episode_values = compute_values(self.discount, rewards_velocity)
+				target_q[demo_flag == 0,0] = episode_values[demo_flag == 0]
 
 				del episode_values
-				#time.sleep(5.0)
-				# 5. Compute current Q-value with the reward
+
 				print("# 4. Compute current Q-value with the reward")
-				target_q_next = torch.cat((target_q[1:],torch.zeros(1).to(self.device1)), dim = 0)
-				target_q = rewards + self.discount * target_q_next
+				target_q_next = torch.cat((target_q[1:,0],torch.zeros(1).to(self.device1)), dim = 0)
+				target_q[:,0] = rewards_velocity + self.discount * target_q_next
+				target_q[:,1] = rewards_termination_flag
 
 				del target_q_next
 

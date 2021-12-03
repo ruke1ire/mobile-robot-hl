@@ -46,7 +46,7 @@ create_model__critic:
             - module_type: Linear
               module_kwargs:
                   in_features: 287
-                  out_features: 1
+                  out_features: 2 # one for predicting values from velocity, other for predicting value from termination flag, because they have different discount factors
 
 save_model__actor:
     model_type: 'ACTOR'
