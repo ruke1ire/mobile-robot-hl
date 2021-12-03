@@ -379,9 +379,6 @@ class SupervisorNode(Node):
                     desired_output = user_output
                     demonstration_flag = True
                 else:
-                    if(user_output['termination_flag'] == True and agent_output['termination_flag'] == False):
-                        self.controller = ControllerType.USER
-
                     if(self.controller == ControllerType.USER):
                         desired_output = copy.deepcopy(user_output)
                         demonstration_flag = True
@@ -391,8 +388,7 @@ class SupervisorNode(Node):
                     else:
                         raise Exception("Invalid controller when recording demo or running task")
                     
-                    if(user_output['termination_flag'] == False and agent_output['termination_flag'] == True):
-                        desired_output['termination_flag'] = False
+                    desired_output['termination_flag'] = copy.deepcopy(user_output['termination_flag'])
 
                 # get final decision on the controller
                 controller = self.controller
