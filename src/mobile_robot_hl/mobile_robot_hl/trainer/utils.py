@@ -22,6 +22,12 @@ class TrainingType(Enum):
     RL = 1
 
 def compute_rewards(demonstration_flag, user_termination_flag, agent_termination_flag):
+    '''
+    reward function rules:
+    - 0 reward for every demonstrated timesteps
+    - timestep before supervisor take-over gets a negative reward corresponding to the time that the take-over took place + 1
+    - -1 reward for incorrect usage of termination flag 
+    '''
     if(type(demonstration_flag) == np.ndarray):
         reward_velocity = np.ones((demonstration_flag.shape[0]))
         reward_velocity[demonstration_flag == 1] = 0

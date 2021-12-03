@@ -123,7 +123,7 @@ class TD3(Algorithm):
 				del target_q1, target_q2
 
 				episode_values = compute_values(self.discount, rewards_velocity)
-				target_q[demo_flag == 0,0] = episode_values[demo_flag == 0]
+				target_q[demo_flag == 0,0] = 0
 
 				del episode_values
 
