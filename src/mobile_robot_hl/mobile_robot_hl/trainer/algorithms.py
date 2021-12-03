@@ -171,7 +171,10 @@ class TD3(Algorithm):
 				actor_actions = self.actor_model(input = images, input_latent = prev_latent).permute((1,0))
 				print("# 10. Compute the negative critic values using the real critic")
 				dummy_critic = self.critic_model_1.to(self.device2)
-				actor_loss = -dummy_critic(input = images.to(self.device2), input_latent = prev_latent.to(self.device2), pre_output_latent = actor_actions.to(self.device2)).mean()
+				actor_loss = -dummy_critic(
+					input = images.to(self.device2), 
+					input_latent = prev_latent.to(self.device2), 
+					pre_output_latent = actor_actions.to(self.device2))[demo_flag == 0.0].mean()
 
 				actor_actions.detach()
 				del actor_actions
