@@ -112,8 +112,8 @@ class TD3(Algorithm):
 				target_actions = self.actor_model_target(input = images, input_latent = prev_latent, noise = self.noise).permute((1,0)) 
 
 				print("# 2. Compute Q-value of next state using the  target critics Q'(s(t+1), P'(s(t+1)))")
-				target_q1 = self.critic_model_1_target(input = images, input_latent = prev_latent, pre_output_latent = target_actions).squeeze(1)
-				target_q2 = self.critic_model_2_target(input = images, input_latent = prev_latent, pre_output_latent = target_actions).squeeze(1)
+				target_q1 = self.critic_model_1_target(input = images, input_latent = prev_latent, pre_output_latent = target_actions)
+				target_q2 = self.critic_model_2_target(input = images, input_latent = prev_latent, pre_output_latent = target_actions)
 
 				del target_actions
 
@@ -135,7 +135,7 @@ class TD3(Algorithm):
 				del target_q_next
 
 			print("# 5.1 Compute Q-value from critics Q(s_t, a_t)")
-			q1 = self.critic_model_1(input = images, input_latent = prev_latent, pre_output_latent = actions).squeeze(1)
+			q1 = self.critic_model_1(input = images, input_latent = prev_latent, pre_output_latent = actions)
 
 			print("# 6.1 Compute MSE loss for the critics")
 			critic_loss = F.mse_loss(q1[demo_flag == 0.0], target_q[demo_flag == 0.0])
@@ -150,7 +150,7 @@ class TD3(Algorithm):
 			torch.cuda.empty_cache() 
 
 			print("# 5.2 Compute Q-value from critics Q(s_t, a_t)")
-			q2 = self.critic_model_2(input = images, input_latent = prev_latent, pre_output_latent = actions).squeeze(1)
+			q2 = self.critic_model_2(input = images, input_latent = prev_latent, pre_output_latent = actions)
 
 			print("# 6.2 Compute MSE loss for the critics")
 			critic_loss = F.mse_loss(q2[demo_flag == 0.0], target_q[demo_flag == 0.0])
