@@ -1,0 +1,10 @@
+start_training__IL:
+    training_type: 'IL'
+    save_every: 10
+    max_epochs: 10
+    additional_algorithm_kwargs:
+        device: 'cuda:2'
+        logger_dict:
+            name: 'WandbLogger'
+            kwargs:
+                name: test1

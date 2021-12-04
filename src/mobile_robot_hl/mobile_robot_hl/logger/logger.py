@@ -49,7 +49,8 @@ class PrintLogger(Logger):
 
 class WandbLogger(Logger):
     def __init__(self, name):
-        wandb.init(project="MimeticSNAIL", entity="ruke1ire", name = name, resume = True)
+        id = (name+'-'*8)[:8]
+        wandb.init(project="MimeticSNAIL", entity="ruke1ire", name = name, resume = "allow", id = id)
 
     def config(self, configuration_dict):
         wandb.config = configuration_dict

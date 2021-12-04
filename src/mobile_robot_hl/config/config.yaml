@@ -2,13 +2,13 @@ agent:
     ros__parameters:
         device: 'cpu'
 
-gui:
-    ros__parameters:
+#gui:
+#    ros__parameters:
 
 supervisor:
     ros__parameters:
         frequency: 1.0
         max_episode_length: 30
 
-joystick:
-    ros__parameters:
+#joystick:
+#    ros__parameters:

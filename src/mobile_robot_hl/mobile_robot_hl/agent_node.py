@@ -14,6 +14,7 @@ import os
 import numpy as np
 import traceback
 import json
+import gc
 
 import ros2_numpy as rnp
 
@@ -199,6 +200,7 @@ class AgentNode(Node):
             # reset model and prev_actions
             self.model.reset()
             self.reset_variables()
+            gc.collect()
             # get data from demo handler or task handler
             self.get_logger().debug("Retrieving data")
             selected_data = json.loads(request.command)
@@ -318,6 +320,9 @@ class AgentNode(Node):
     def select_model(self, name, id_):
         self.get_logger().info("Selecting model")
         self.model, model_info = self.model_handler.get(ModelType.ACTOR, name, id_)
+        for param in self.model.parameters():
+            param.requires_grad = False
+        self.model = self.model.eval()
         self.model = self.model.to(self.device)
         self.get_logger().info("Selected model")
 

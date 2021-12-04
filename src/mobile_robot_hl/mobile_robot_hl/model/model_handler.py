@@ -16,13 +16,8 @@ class ModelHandler():
         '''
         returns a nn.Module object of the specified name and ID
         '''
-        if id_ == "latest" or id_ == None:
-            list_ids = self.get_ids(model_type, name)
-            if len(list_ids) == 0:
-                raise Exception("Model selection failed, there are no models in this directory")
-            datetime_list = [datetime.strptime(datetime_str, "%Y-%m-%d_%H:%M") for datetime_str in list_ids]
-            latest_time = max(datetime_list)
-            id_ = latest_time.strftime("%Y-%m-%d_%H:%M")
+        if id_ == None:
+            id_ = "latest"
 
         with open(f"{self.path}/{model_type.name.lower()}/{name}/{ModelHandler.MODEL_INFO_FILE}", "r") as stream:
             info_dict = yaml.safe_load(stream)
@@ -62,6 +57,7 @@ class ModelHandler():
 
         current_date_time_str = datetime.now().strftime("%Y-%m-%d_%H:%M")
         torch.save(model.state_dict(), f"{self.path}/{model_type.name.lower()}/{name}/{current_date_time_str}.pth")
+        torch.save(model.state_dict(), f"{self.path}/{model_type.name.lower()}/{name}/latest.pth")
 
         info_dict = dict(architecture=model_architecture)
 

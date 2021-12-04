@@ -41,8 +41,8 @@ class Trainer():
             try:
                 if(self.actor_optimizer_dict is not None):
                     self.actor_state = TrainerState.STANDBY
-            except:
-                print("Unable to select model")
+            except Exception as e:
+                print(f"Unable to select model: {e}")
                 self.actor_model = None
                 self.actor_model_info = None
                 self.actor_state = TrainerState.SLEEPING
@@ -53,8 +53,8 @@ class Trainer():
                 self.critic_model, self.critic_model_info = self.model_handler.get(ModelType.CRITIC, model_name, model_id)
                 if(self.critic_optimizer_dict is not None):
                     self.critic_state = TrainerState.STANDBY
-            except:
-                print("Unable to select model")
+            except Exception as e:
+                print(f"Unable to select model: {e}")
                 self.critic_model = None
                 self.critic_model_info = None
                 self.critic_state = TrainerState.SLEEPING

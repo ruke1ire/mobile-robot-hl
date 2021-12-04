@@ -3,6 +3,7 @@ from mobile_robot_hl.trainer.utils import *
 
 from torch.utils.data import Dataset
 import numpy as np
+import copy
 
 class DemoDataset(Dataset):
     def __init__(self, demo_handler):
@@ -16,7 +17,7 @@ class DemoDataset(Dataset):
         demo_names = set(self.demo_handler.get_names())
         new_names = demo_names - self.demo_names
         if(len(new_names) > 0):
-            self.demo_names = demo_names
+            self.demo_names = copy.deepcopy(demo_names)
             for name in new_names:
                 self.demo_ids[name] = set()
 
@@ -24,11 +25,10 @@ class DemoDataset(Dataset):
             ids = set(self.demo_handler.get_ids(name))
             new_ids = ids - self.demo_ids[name]
             if(len(new_ids) > 0):
-                self.demo_ids[name] = new_ids
-                for id_ in self.demo_ids[name]:
+                self.demo_ids[name] = copy.deepcopy(ids)
+                for id_ in new_ids:
                     data = self.demo_handler.get(name, id_)
                     image_tensor, latent_tensor, frame_no_tensor = data.get_tensor()
-                    demonstration_flag = latent_tensor[3,:]
                     self.data.append((image_tensor, latent_tensor, frame_no_tensor))
 
     def __len__(self):
@@ -49,7 +49,7 @@ class TaskDataset(Dataset):
         demo_names = set(self.task_handler.get_names())
         new_names = demo_names - self.demo_names
         if(len(new_names) > 0):
-            self.demo_names = demo_names
+            self.demo_names = copy.deepcopy(demo_names)
             for name in new_names:
                 self.task_ids[name] = set()
 
@@ -57,8 +57,8 @@ class TaskDataset(Dataset):
             ids = set(self.task_handler.get_ids(name))
             new_ids = ids - self.task_ids[name]
             if(len(new_ids) > 0):
-                self.task_ids[name] = new_ids
-                for id_ in self.task_ids[name]:
+                self.task_ids[name] = copy.deepcopy(ids)
+                for id_ in new_ids:
                     data = self.task_handler.get(name, id_)
                     image_tensor, latent_tensor, frame_no_tensor = data.get_tensor()
                     demonstration_flag = latent_tensor[3,:]

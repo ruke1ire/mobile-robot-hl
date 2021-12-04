@@ -34,8 +34,6 @@ class GUINode(Node):
         demo_path = os.environ['MOBILE_ROBOT_HL_DEMO_PATH']
         task_path = os.environ['MOBILE_ROBOT_HL_TASK_PATH']
         model_path = os.environ['MOBILE_ROBOT_HL_MODEL_PATH']
-        self.constants.max_linear_vel = float(os.environ['MOBILE_ROBOT_HL_MAX_LINEAR_VEL'])
-        self.constants.max_angular_vel = float(os.environ['MOBILE_ROBOT_HL_MAX_ANGULAR_VEL'])
         
         try:
             image_raw_topic_name = os.environ['MOBILE_ROBOT_HL_IMAGE_RAW_TOPIC']
@@ -50,6 +48,8 @@ class GUINode(Node):
         self.init_variables()
         self.constants = GUIConstant()
         self.conditioned_episode = False
+        self.constants.max_linear_vel = float(os.environ['MOBILE_ROBOT_HL_MAX_LINEAR_VEL'])
+        self.constants.max_angular_vel = float(os.environ['MOBILE_ROBOT_HL_MAX_ANGULAR_VEL'])
 
         self.get_logger().info("Initializing Node")
 
