@@ -88,17 +88,20 @@ class TD3(Algorithm):
 	
 	def train_one_epoch(self, trainer):
 		j = 0
-		for (images, latent, frame_no, rewards_agent, rewards_user) in self.dataloader:
+		for (images, latent, frame_no, rewards_agent, rewards_user, rewards_termination_flag) in self.dataloader:
 			if(trainer.stop == True):
 				return
 
 			print(f"Run No. {j+1}")
 			print(f"Episode Length = {frame_no.shape[0]}")
 
+			task_start_index = (frame_no == 1).nonzero()[1].item()
+
 			images = images.to(self.device1)
 			latent = latent.to(self.device1)
 			rewards_agent = rewards_agent.to(self.device1)
 			rewards_user = rewards_user.to(self.device1)
+			rewards_termination_flag = rewards_termination_flag.to(self.device1)
 
 			actions = latent[:-1,:]
 			demo_flag = latent[-1,:]
@@ -128,37 +131,53 @@ class TD3(Algorithm):
 				target_q_next = torch.cat((target_q[1:,0],torch.zeros(1).to(self.device1)), dim = 0)
 				target_q[:,0] = rewards_agent + self.discount * target_q_next
 				target_q[:,1] = rewards_user
+				target_q[:,2] = rewards_termination_flag
+				target_q = target_q[task_start_index:]
 
 				del target_q_next
 
 			print("# 5.1 Compute Q-value from critics Q(s_t, a_t)")
 			q1 = self.critic_model_1(input = images, input_latent = prev_latent, pre_output_latent = actions)
+			q1 = q1[task_start_index:]
 
 			print("# 6.1 Compute MSE loss for the critics")
-			critic_loss = F.mse_loss(q1[demo_flag == 0.0], target_q[demo_flag == 0.0])
+			critic_loss_agent = F.mse_loss(q1[demo_flag[task_start_index:] == 0.0,0], target_q[demo_flag[task_start_index:] == 0.0,0])
+			critic_loss_user = F.mse_loss(q1[demo_flag[task_start_index:] == 1.0,1], target_q[demo_flag[task_start_index:] == 1.0,1])
+			critic_loss_termination_flag = F.mse_loss(q1[:,2], target_q[:,2])
+			critic_loss = critic_loss_agent + critic_loss_user + critic_loss_termination_flag
+			self.logger.log(DataType.num, critic_loss_agent.item(), key = "td3/loss/critic1_agent")
+			self.logger.log(DataType.num, critic_loss_user.item(), key = "td3/loss/critic1_user")
+			self.logger.log(DataType.num, critic_loss_termination_flag.item(), key = "td3/loss/critic1_termination_flag")
+			self.logger.log(DataType.num, critic_loss.item(), key = "td3/loss/critic1_total")
 
 			print("# 7.1 Optimize critic")
 			self.critic_1_optimizer.zero_grad()
 			critic_loss.backward()
 			self.critic_1_optimizer.step()
-			self.logger.log(DataType.num, critic_loss.item(), key = "td3/loss/critic1")
 
-			del q1, critic_loss
+			del q1, critic_loss, critic_loss_user, critic_loss_agent, critic_loss_termination_flag
 			torch.cuda.empty_cache() 
 
 			print("# 5.2 Compute Q-value from critics Q(s_t, a_t)")
 			q2 = self.critic_model_2(input = images, input_latent = prev_latent, pre_output_latent = actions)
+			q2 = q2[task_start_index:]
 
 			print("# 6.2 Compute MSE loss for the critics")
-			critic_loss = F.mse_loss(q2[demo_flag == 0.0], target_q[demo_flag == 0.0])
+			critic_loss_agent = F.mse_loss(q2[demo_flag[task_start_index:] == 0.0,0], target_q[demo_flag[task_start_index:] == 0.0,0])
+			critic_loss_user = F.mse_loss(q2[demo_flag[task_start_index:] == 1.0,1], target_q[demo_flag[task_start_index:] == 1.0,1])
+			critic_loss_termination_flag = F.mse_loss(q2[:,2], target_q[:,2])
+			critic_loss = critic_loss_agent + critic_loss_user + critic_loss_termination_flag
+			self.logger.log(DataType.num, critic_loss_agent.item(), key = "td3/loss/critic2_agent")
+			self.logger.log(DataType.num, critic_loss_user.item(), key = "td3/loss/critic2_user")
+			self.logger.log(DataType.num, critic_loss_termination_flag.item(), key = "td3/loss/critic2_termination_flag")
+			self.logger.log(DataType.num, critic_loss.item(), key = "td3/loss/critic2_total")
 
 			print("# 7.2 Optimize critic")
 			self.critic_2_optimizer.zero_grad()
 			critic_loss.backward()
 			self.critic_2_optimizer.step()
-			self.logger.log(DataType.num, critic_loss.item(), key = "td3/loss/critic2")
 
-			del q2, critic_loss
+			del q2, critic_loss, critic_loss_agent, critic_loss_user, critic_loss_termination_flag
 			del target_q
 			torch.cuda.empty_cache() 
 

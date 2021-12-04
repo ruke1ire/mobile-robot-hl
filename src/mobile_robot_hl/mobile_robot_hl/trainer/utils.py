@@ -39,8 +39,9 @@ def compute_rewards(
             - 0 reward for every demonstrated timesteps
             - timestep before supervisor take-over gets a negative reward corresponding to the time that the take-over took place + 1
         - Rewards for user controlled variables (Imitate)
-            - -1 reward for incorrect usage of termination flag 
             - [0, 1] reward corresponding to the similarity of the user and agent's desired velocity
+        - Rewards for termination flag usage
+            - -1 reward for incorrect usage of termination flag 
 
     '''
     if(type(demonstration_flag) == np.ndarray):
@@ -59,10 +60,12 @@ def compute_rewards(
             next_r = r
 
         reward_user = np.zeros_like(reward_agent)
-        reward_user[user_termination_flag != agent_termination_flag] -= 1.0
         reward_user += ((
             compute_similarity(user_linear_velocity, agent_linear_velocity, 2*MAX_LINEAR_VELOCITY)**2 + \
             compute_similarity(user_angular_velocity, agent_angular_velocity, 2*MAX_ANGULAR_VELOCITY)**2)/2)**0.5
+        
+        reward_termination_flag = np.zeros_like(reward_agent)
+        reward_termination_flag[user_termination_flag != agent_termination_flag] -= 1.0
 
     elif(type(demonstration_flag) == torch.Tensor):
         reward_agent = torch.ones((demonstration_flag.shape[0]), dtype = torch.float32)
@@ -83,9 +86,13 @@ def compute_rewards(
         reward_user += ((
             compute_similarity(user_linear_velocity, agent_linear_velocity, 2*MAX_LINEAR_VELOCITY)**2 + \
             compute_similarity(user_angular_velocity, agent_angular_velocity, 2*MAX_ANGULAR_VELOCITY)**2)/2)**0.5
+
+        reward_termination_flag = torch.zeros_like(reward_agent)
+        reward_termination_flag[user_termination_flag != agent_termination_flag] -= 1.0
+
     else:
         raise Exception("Invalid type to compute rewards")
-    return reward_agent, reward_user
+    return reward_agent, reward_user, reward_termination_flag
 
 def compute_similarity(tensor1, tensor2, range):
     similarity = 1 - abs(tensor1-tensor2)/range
