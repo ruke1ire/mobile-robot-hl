@@ -142,8 +142,7 @@ class Trainer():
     def stop_training(self):
         self.stop = True
         self.actor_state = TrainerState.SLEEPING
-        if(self.critic_state == TrainerState.RUNNING):
-            self.critic_state = TrainerState.SLEEPING
+        self.critic_state = TrainerState.SLEEPING
         self.actor_model = None
         self.critic_model = None
         self.algorithm = None
