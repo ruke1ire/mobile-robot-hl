@@ -31,6 +31,8 @@ class SupervisorNode(Node):
 
         demo_path = os.environ['MOBILE_ROBOT_HL_DEMO_PATH']
         task_path = os.environ['MOBILE_ROBOT_HL_TASK_PATH']
+        self.max_linear_velocity = float(os.environ['MOBILE_ROBOT_HL_MAX_LINEAR_VEL'])
+        self.max_angular_velocity = float(os.environ['MOBILE_ROBOT_HL_MAX_ANGULAR_VEL'])
         try:
             desired_velocity_topic_name = os.environ['MOBILE_ROBOT_HL_DESIRED_VELOCITY_TOPIC']
         except:
@@ -61,18 +63,13 @@ class SupervisorNode(Node):
             parameters=[
                 ('frequency', 0.3),
                 ('max_episode_length', 100),
-                ('max_linear_velocity', 1.0),
-                ('max_angular_velocity', 1.0),
             ])
 
         self.frequency = self.get_parameter('frequency').get_parameter_value().double_value
         self.max_episode_length = self.get_parameter('max_episode_length').get_parameter_value().integer_value
-        self.max_linear_velocity = self.get_parameter('max_linear_velocity').get_parameter_value().double_value
-        self.max_angular_velocity = self.get_parameter('max_angular_velocity').get_parameter_value().double_value
 
         self.get_logger().info(f"Parameter <frequency> = {self.frequency}")
-        self.get_logger().info(f"Parameter <max_linear_velocity> = {self.max_linear_velocity}")
-        self.get_logger().info(f"Parameter <max_angular_velocity> = {self.max_angular_velocity}")
+        self.get_logger().info(f"Parameter <max_episode_length> = {self.max_episode_length}")
 
         reliable_qos = QoSProfile(history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST, 
                                         depth=10, 

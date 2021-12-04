@@ -2,9 +2,13 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 import math
+import os
 
 from .module import *
 from .utils import *
+
+MAX_LINEAR_VELOCITY = float(os.environ['MOBILE_ROBOT_HL_MAX_LINEAR_VEL'])
+MAX_ANGULAR_VELOCITY = float(os.environ['MOBILE_ROBOT_HL_MAX_ANGULAR_VEL'])
 
 class Snail(nn.Module):
     def __init__(self, input_size, seq_length, architecture: list):
@@ -62,7 +66,7 @@ class Snail(nn.Module):
             model.reset()
     
 class MimeticSNAILActor(nn.Module):
-    def __init__(self, base_net_name, latent_vector_size, snail_kwargs, out_net_architecture, max_linear_velocity, max_angular_velocity):
+    def __init__(self, base_net_name, latent_vector_size, snail_kwargs, out_net_architecture):
         '''
         MimeticSNAIL Actor Neural Network Model
 
@@ -88,7 +92,7 @@ class MimeticSNAILActor(nn.Module):
             exec(f"out_net_modules.append(nn.{module_information['module_type']}(**{module_information['module_kwargs']}))")
         
         self.out_net = nn.Sequential(*out_net_modules)
-        self.output_processor = OutputProcessor(max_linear_velocity, max_angular_velocity)
+        self.output_processor = OutputProcessor()
     
     def forward(self, input, input_latent=None, pre_output_latent=None, frame_no = None, noise = 0.0, inference_mode = InferenceMode.NONE):
         shape_len = input.dim()
@@ -210,10 +214,10 @@ class MimeticSNAILCritic(nn.Module):
         self.snail_net.reset()
 
 class OutputProcessor(nn.Module):
-    def __init__(self, max_linear_vel, max_angular_vel):
+    def __init__(self):
         super().__init__()
-        self.max_linear_vel = max_linear_vel
-        self.max_angular_vel = max_angular_vel
+        self.max_linear_vel = MAX_LINEAR_VELOCITY
+        self.max_angular_vel = MAX_ANGULAR_VELOCITY
 
     def forward(self, actor_output, noise = 0.0):
         device = actor_output.device

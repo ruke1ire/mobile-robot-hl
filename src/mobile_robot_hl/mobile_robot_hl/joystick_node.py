@@ -13,6 +13,7 @@ from std_msgs.msg import String
 from threading import Thread
 import time
 import json
+import os
 
 from .joystick import *
 from mobile_robot_hl.utils import *
@@ -23,6 +24,9 @@ class JoystickNode(Node):
     def __init__(self):
         super().__init__('joystick')
 
+        self.max_linear_velocity = float(os.environ['MOBILE_ROBOT_HL_MAX_LINEAR_VEL'])
+        self.max_angular_velocity = float(os.environ['MOBILE_ROBOT_HL_MAX_ANGULAR_VEL'])
+
         best_effort_qos = QoSProfile(history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST, 
                                         depth=1, 
                                         reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
@@ -32,20 +36,8 @@ class JoystickNode(Node):
 
         self.get_logger().info("Initializing Node")
 
-        self.declare_parameters(
-            namespace='',
-            parameters=[
-                ('max_linear_velocity', 1.0),
-                ('max_angular_velocity', 1.0),
-            ])
-
-        self.max_linear_velocity = self.get_parameter('max_linear_velocity').get_parameter_value().double_value
-        self.max_angular_velocity = self.get_parameter('max_angular_velocity').get_parameter_value().double_value
 
         self.joy_handler = JoyHandler(max_linear_vel=self.max_linear_velocity, max_angular_vel=self.max_angular_velocity)
-
-        self.get_logger().info(f"Parameter <max_linear_velocity> = {self.max_linear_velocity}")
-        self.get_logger().info(f"Parameter <max_angular_velocity> = {self.max_angular_velocity}")
 
         self.user_velocity_publisher = self.create_publisher(Twist, 'user_velocity', best_effort_qos, callback_group=ReentrantCallbackGroup())
         self.supervisor_state_subscriber = self.create_subscription(String, 'supervisor_state', self.supervisor_state_callback, best_effort_qos, callback_group=ReentrantCallbackGroup())

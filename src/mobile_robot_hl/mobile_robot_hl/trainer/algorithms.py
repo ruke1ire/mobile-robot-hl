@@ -46,7 +46,6 @@ class TD3(Algorithm):
 		Keyword arguments:
 		actor_model -- the actor model to be trained *
 		critic_model -- the critic model to be trained *
-		output_processor -- actor's output processor
 		actor_optimizer_dict -- the dictionary representation of the optimizer for the actor model *
 		critic_optimizer_dict -- the dictionary representation of the optimizer for the actor model *
 		dataloader -- the dataloader to be used to train the models *
@@ -89,7 +88,7 @@ class TD3(Algorithm):
 	
 	def train_one_epoch(self, trainer):
 		j = 0
-		for (images, latent, frame_no, rewards_velocity, rewards_termination_flag) in self.dataloader:
+		for (images, latent, frame_no, rewards_agent, rewards_user) in self.dataloader:
 			if(trainer.stop == True):
 				return
 
@@ -98,8 +97,8 @@ class TD3(Algorithm):
 
 			images = images.to(self.device1)
 			latent = latent.to(self.device1)
-			rewards_velocity = rewards_velocity.to(self.device1)
-			rewards_termination_flag = rewards_termination_flag.to(self.device1)
+			rewards_agent = rewards_agent.to(self.device1)
+			rewards_user = rewards_user.to(self.device1)
 
 			actions = latent[:-1,:]
 			demo_flag = latent[-1,:]
@@ -123,15 +122,12 @@ class TD3(Algorithm):
 
 				del target_q1, target_q2
 
-				episode_values = compute_values(self.discount, rewards_velocity)
 				target_q[demo_flag == 0,0] = 0
-
-				del episode_values
 
 				print("# 4. Compute current Q-value with the reward")
 				target_q_next = torch.cat((target_q[1:,0],torch.zeros(1).to(self.device1)), dim = 0)
-				target_q[:,0] = rewards_velocity + self.discount * target_q_next
-				target_q[:,1] = rewards_termination_flag
+				target_q[:,0] = rewards_agent + self.discount * target_q_next
+				target_q[:,1] = rewards_user
 
 				del target_q_next
 

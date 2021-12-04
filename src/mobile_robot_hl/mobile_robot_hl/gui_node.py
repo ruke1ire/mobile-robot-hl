@@ -34,6 +34,8 @@ class GUINode(Node):
         demo_path = os.environ['MOBILE_ROBOT_HL_DEMO_PATH']
         task_path = os.environ['MOBILE_ROBOT_HL_TASK_PATH']
         model_path = os.environ['MOBILE_ROBOT_HL_MODEL_PATH']
+        self.constants.max_linear_vel = float(os.environ['MOBILE_ROBOT_HL_MAX_LINEAR_VEL'])
+        self.constants.max_angular_vel = float(os.environ['MOBILE_ROBOT_HL_MAX_ANGULAR_VEL'])
         
         try:
             image_raw_topic_name = os.environ['MOBILE_ROBOT_HL_IMAGE_RAW_TOPIC']
@@ -50,18 +52,6 @@ class GUINode(Node):
         self.conditioned_episode = False
 
         self.get_logger().info("Initializing Node")
-
-        self.declare_parameters(
-            namespace='',
-            parameters=[
-                ('max_linear_velocity', None),
-                ('max_angular_velocity', None),
-            ])
-
-        self.constants.max_linear_vel = self.get_parameter('max_linear_velocity').get_parameter_value().double_value
-        self.constants.max_angular_vel = self.get_parameter('max_angular_velocity').get_parameter_value().double_value
-        self.get_logger().info(f"Parameter <max_linear_velocity> = {self.constants.max_linear_vel}")
-        self.get_logger().info(f"Parameter <max_angular_velocity> = {self.constants.max_angular_vel}")
 
         self.episode_event_queue = Queue()
 

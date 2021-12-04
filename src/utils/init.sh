@@ -6,3 +6,6 @@ export MOBILE_ROBOT_HL_RUN_SETUP_PATH=$PWD/data/run_setup
 
 export MOBILE_ROBOT_HL_DESIRED_VELOCITY_TOPIC=/diffbot_base_controller/cmd_vel_unstamped
 export MOBILE_ROBOT_HL_IMAGE_RAW_TOPIC=image_raw/uncompressed
+
+export MOBILE_ROBOT_HL_MAX_LINEAR_VEL=0.1
+export MOBILE_ROBOT_HL_MAX_ANGULAR_VEL=0.4

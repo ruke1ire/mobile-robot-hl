@@ -4,7 +4,7 @@ The todo list is written to this file.
 
 ## In Progress
 
-- record a test demo and check to see if the rewards/value computed for it are correct
+- [ ] add similarity reward
 - [ ] Record demonstrations
     - 1. Record demonstrations around me and rit's room
     - 2. Train IL

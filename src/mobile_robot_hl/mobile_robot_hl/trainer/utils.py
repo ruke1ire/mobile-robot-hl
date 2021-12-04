@@ -7,6 +7,10 @@ from torch.utils.data import Dataset
 import torch
 import torch.nn as nn
 import numpy as np
+import os
+
+MAX_LINEAR_VELOCITY = float(os.environ['MOBILE_ROBOT_HL_MAX_LINEAR_VEL'])
+MAX_ANGULAR_VELOCITY = float(os.environ['MOBILE_ROBOT_HL_MAX_ANGULAR_VEL'])
 
 class TrainerState(Enum):
     SLEEPING = 0 # when model hasn't been selected
@@ -21,48 +25,71 @@ class TrainingType(Enum):
     IL = 0
     RL = 1
 
-def compute_rewards(demonstration_flag, user_termination_flag, agent_termination_flag):
+def compute_rewards(
+    demonstration_flag, 
+    user_termination_flag, 
+    agent_termination_flag, 
+    user_linear_velocity, 
+    agent_linear_velocity, 
+    user_angular_velocity, 
+    agent_angular_velocity):
     '''
     reward function rules:
-    - 0 reward for every demonstrated timesteps
-    - timestep before supervisor take-over gets a negative reward corresponding to the time that the take-over took place + 1
-    - -1 reward for incorrect usage of termination flag 
+        - Rewards when agent is controlling (Minimize supervisor correction)
+            - 0 reward for every demonstrated timesteps
+            - timestep before supervisor take-over gets a negative reward corresponding to the time that the take-over took place + 1
+        - Rewards for user controlled variables (Imitate)
+            - -1 reward for incorrect usage of termination flag 
+            - [0, 1] reward corresponding to the similarity of the user and agent's desired velocity
+
     '''
     if(type(demonstration_flag) == np.ndarray):
-        reward_velocity = np.ones((demonstration_flag.shape[0]))
-        reward_velocity[demonstration_flag == 1] = 0
+        reward_agent = np.ones((demonstration_flag.shape[0]))
+        reward_agent[demonstration_flag == 1] = 0
         next_r = 1
         count = 0
-        for i in reversed(range(reward_velocity.shape[0])):
-            r = reward_velocity[i]
+        for i in reversed(range(reward_agent.shape[0])):
+            r = reward_agent[i]
             if(r == 1):
                 if(next_r == 0):
-                    reward_velocity[i] = count-1
+                    reward_agent[i] = count-1
                     count = 0
             elif(r == 0):
                 count -= 1
             next_r = r
-        reward_termination_flag = np.zeros_like(reward_velocity)
-        reward_termination_flag[user_termination_flag != agent_termination_flag] -= 1.0
+
+        reward_user = np.zeros_like(reward_agent)
+        reward_user[user_termination_flag != agent_termination_flag] -= 1.0
+        reward_user += ((
+            compute_similarity(user_linear_velocity, agent_linear_velocity, 2*MAX_LINEAR_VELOCITY)**2 + \
+            compute_similarity(user_angular_velocity, agent_angular_velocity, 2*MAX_ANGULAR_VELOCITY)**2)/2)**0.5
+
     elif(type(demonstration_flag) == torch.Tensor):
-        reward_velocity = torch.ones((demonstration_flag.shape[0]), dtype = torch.float32)
-        reward_velocity[demonstration_flag == 1] = 0
+        reward_agent = torch.ones((demonstration_flag.shape[0]), dtype = torch.float32)
+        reward_agent[demonstration_flag == 1] = 0
         next_r = 1
         count = 0
-        for i in reversed(range(reward_velocity.shape[0])):
-            r = reward_velocity[i]
+        for i in reversed(range(reward_agent.shape[0])):
+            r = reward_agent[i]
             if(r == 1):
                 if(next_r == 0):
-                    reward_velocity[i] = count-1
+                    reward_agent[i] = count-1
                     count = 0
             elif(r == 0):
                 count -= 1
             next_r = r
-        reward_termination_flag = torch.zeros_like(reward_velocity)
-        reward_termination_flag[user_termination_flag != agent_termination_flag] -= 1.0
+        reward_user = torch.zeros_like(reward_agent)
+        reward_user[user_termination_flag != agent_termination_flag] -= 1.0
+        reward_user += ((
+            compute_similarity(user_linear_velocity, agent_linear_velocity, 2*MAX_LINEAR_VELOCITY)**2 + \
+            compute_similarity(user_angular_velocity, agent_angular_velocity, 2*MAX_ANGULAR_VELOCITY)**2)/2)**0.5
     else:
         raise Exception("Invalid type to compute rewards")
-    return reward_velocity, reward_termination_flag
+    return reward_agent, reward_user
+
+def compute_similarity(tensor1, tensor2, range):
+    similarity = 1 - abs(tensor1-tensor2)/range
+    return similarity
             
 def compute_values(gamma, rewards_velocity):
     if(type(rewards_velocity) == torch.Tensor):
