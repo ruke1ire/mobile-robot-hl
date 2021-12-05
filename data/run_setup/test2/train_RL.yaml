@@ -1,14 +1,14 @@
 start_training__RL:
     training_type: 'RL'
     save_every: 1
-    max_epochs: 1
+    max_epochs: 10
     additional_algorithm_kwargs:
+        run_name: test2
+        run_id: 0
+        checkpoint_every: 10
         device1: 'cuda:0'
         device2: 'cuda:1'
         discount: 0.99
         tau: 0.005
-        noise: 0.5
-        logger_dict:
-            name: 'WandbLogger'
-            kwargs:
-                name: test1
+        noise: 0.3
+        logger_name: 'WandbLogger'

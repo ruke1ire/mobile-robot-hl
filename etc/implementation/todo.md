@@ -4,7 +4,6 @@ The todo list is written to this file.
 
 ## In Progress
 
-- [ ] add similarity reward
 - [ ] Record demonstrations
     - 1. Record demonstrations around me and rit's room
     - 2. Train IL

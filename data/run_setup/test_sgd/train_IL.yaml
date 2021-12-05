@@ -3,8 +3,8 @@ start_training__IL:
     save_every: 10
     max_epochs: 10
     additional_algorithm_kwargs:
+        run_name: test_sgd
+        run_id: 0
+        checkpoint_every: 10
         device: 'cuda:2'
-        logger_dict:
-            name: 'WandbLogger'
-            kwargs:
-                name: test1
+        logger_name: 'WandbLogger'

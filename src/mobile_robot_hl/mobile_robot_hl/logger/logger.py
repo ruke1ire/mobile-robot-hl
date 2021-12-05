@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
+import hashlib
 
 import wandb
 
@@ -26,12 +27,18 @@ class Logger(ABC):
 
         '''
         pass
-
+    
 class EmptyLogger(Logger):
+    def __init__(self, name, id, config_dict):
+        pass
+
     def log(self, data_type, data, key = None):
         return
 
 class PrintLogger(Logger):
+    def __init__(self, name, id, config_dict):
+        pass
+
     def log(self, data_type, data, key = None):
         if key is not None:
             key = str(key)+': '
@@ -48,12 +55,10 @@ class PrintLogger(Logger):
             print(key+str(data))
 
 class WandbLogger(Logger):
-    def __init__(self, name):
-        id = (name+'-'*8)[:8]
-        wandb.init(project="MimeticSNAIL", entity="ruke1ire", name = name, resume = "allow", id = id)
-
-    def config(self, configuration_dict):
-        wandb.config = configuration_dict
+    def __init__(self, name, id, config_dict):
+        s = name+str(id)
+        hash_id = hashlib.md5(s.encode()).hexdigest()[-8:]
+        wandb.init(project="MimeticSNAIL", entity="ruke1ire", name = name, resume = "allow", id = hash_id, config = config_dict)
 
     def log(self, data_type, data, key):
         dictionary = dict()

@@ -172,9 +172,6 @@ class Trainer():
         self.model_handler.save(model, architecture, ModelType[model_type], name)
     
     def training_loop(self, max_epochs = None, save_every = None):
-        if(self.actor_state == TrainerState.SLEEPING):
-            return
-        self.actor_state = TrainerState.RUNNING
         if(max_epochs == None):
             max_epochs = -1
 

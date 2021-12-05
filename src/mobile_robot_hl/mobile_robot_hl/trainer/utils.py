@@ -123,11 +123,11 @@ def create_optimizer_from_dict(optimizer_dict, parameters):
     exec(f"out = torch.optim.{optimizer_name}(parameters, **optimizer_kwargs)", None, optimizer)
     return optimizer['out']
 
-def create_logger_from_dict(logger_dict):
-    if(logger_dict == dict()):
-        logger = EmptyLogger()
+def create_logger(run_name, run_id, config_dict, logger_name = None):
+    if(logger_name == None):
+        logger = EmptyLogger(run_name, run_id, config_dict)
     else:
-        exec_vars = dict(logger_dict = logger_dict, out = None)
-        exec(f"out = {logger_dict['name']}(**logger_dict['kwargs'])", None, exec_vars)
+        exec_vars = dict(out = None, config_dict = config_dict)
+        exec(f"out = {logger_name}('{run_name}', '{run_id}', config_dict)", None, exec_vars)
         logger = exec_vars['out']
     return logger

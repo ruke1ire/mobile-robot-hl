@@ -3,7 +3,7 @@ start_training__IL:
     save_every: 10
     max_epochs: 10
     additional_algorithm_kwargs:
-        run_name: 'test'
+        run_name: 'sgd_2'
         run_id: 0
         checkpoint_every: 10
         device: 'cuda:2'
