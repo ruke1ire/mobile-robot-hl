@@ -1,6 +1,6 @@
 select_model__actor:
     model_type: 'ACTOR'
-    model_name: 'test2'
+    model_name: 'baseline'
     model_id: 'latest'
 
 set_optimizer__actor:
