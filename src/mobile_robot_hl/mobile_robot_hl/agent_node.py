@@ -124,10 +124,12 @@ class AgentNode(Node):
                 # 2. Convert information to tensor
                 self.get_logger().debug("Converting information to tensors")
                 image_tensor, latent_tensor, frame_no_tensor = self.convert_to_model_input(self.task_image, prev_vel, prev_termination_flag, prev_action_controller, frame_no)
+                self.get_logger().info(f"latent tensor = {str(latent_tensor)}")
                 
                 # 3. Inference and processing
                 self.get_logger().debug(f"Computing model output with noise = {self.noise}")
                 output_tensor = self.model(input = image_tensor, input_latent = latent_tensor, frame_no = frame_no_tensor, noise = self.noise, inference_mode = InferenceMode.STORE)
+                self.get_logger().info(f"ouptut tensor = {str(output_tensor)}")
 
                 # 4. Run model post processing to convert model output to appropriate values
                 agent_linear_vel = output_tensor[0].item()
@@ -220,6 +222,8 @@ class AgentNode(Node):
             initial_action = torch.zeros_like(latent_tensor[:,0])
             initial_action[3] = 1.0
             prev_latent = torch.cat((initial_action.unsqueeze(1), latent_tensor[:,:-1]), dim = 1)
+
+            self.get_logger().info(f"latent_tensor init = {str(prev_latent)}")
             self.model(input = image_tensor, input_latent = prev_latent, frame_no = frame_no_tensor, inference_mode = InferenceMode.STORE)
 
             self.desired_vel = dict(linear = latent_tensor[0,-1].item(), angular = latent_tensor[1,-1].item())
@@ -322,7 +326,7 @@ class AgentNode(Node):
         self.model, model_info = self.model_handler.get(ModelType.ACTOR, name, id_)
         for param in self.model.parameters():
             param.requires_grad = False
-        self.model = self.model.eval()
+        #self.model = self.model.eval()
         self.model = self.model.to(self.device)
         self.get_logger().info("Selected model")
 

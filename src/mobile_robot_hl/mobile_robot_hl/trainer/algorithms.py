@@ -336,12 +336,17 @@ class IL(Algorithm):
             initial_action[3] = 1.0
             dup_images = torch.cat((images, images), dim = 0)
             dup_latent = torch.cat((initial_action.unsqueeze(1), latent[:,:], latent[:,:-1]), dim = 1)
+            dup_latent[-1,frame_no.shape[0]+1:] = 0.0
 
             print("# 1. Compute actor output")
             actor_output = self.actor_model(dup_images, dup_latent)
 
             target = actions.T
             output = actor_output[frame_no.shape[0]:]
+            print("=======target")
+            print(target)
+            print("=======output")
+            print(output)
 
             print("# 2. Compute loss")
             loss = F.mse_loss(target, output)

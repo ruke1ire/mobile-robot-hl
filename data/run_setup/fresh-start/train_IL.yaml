@@ -1,0 +1,10 @@
+start_training__IL:
+    training_type: 'IL'
+    save_every: 10
+    max_epochs: 100
+    additional_algorithm_kwargs:
+        run_name: 'fresh-start'
+        run_id: 2
+        checkpoint_every: 10
+        device: 'cuda:2'
+        logger_name: 'WandbLogger'

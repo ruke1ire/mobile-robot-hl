@@ -111,7 +111,6 @@ class AttentionBlock(nn.Module):
         self.key_layer = nn.Linear(input_size, key_size)
         self.query_layer = nn.Linear(input_size, key_size)
         self.value_layer = nn.Linear(input_size, value_size)
-        self.softmax = nn.Softmax(dim=1)
 
     def forward(self, input_tuple = (None, InferenceMode.NONE)):
         input = input_tuple[0]
@@ -150,13 +149,14 @@ class AttentionBlock(nn.Module):
             values = self.values
             keys = self.keys
 
+        # 2 x Time = 2 X Key @ Key x Time
         dot_product = query@keys.transpose(1,2)
         scores = dot_product / math.sqrt(self.key_size)
 
         mask = subsequent_mask(seq_length, input.device)
         scores = scores.masked_fill(mask[:,-scores.shape[1]:,:] == 0, -float('inf'))
 
-        probs = self.softmax(scores)
+        probs = torch.softmax(scores, dim = 2)
         activation = probs.matmul(values).transpose(1,2) # Batch x ValueSize x Time
 
         output = torch.cat((input, activation), dim=1)

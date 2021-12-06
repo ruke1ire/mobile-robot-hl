@@ -30,8 +30,11 @@ class Trainer():
 
         self.task_dataset = TaskDataset(self.task_handler)
         self.demo_dataset = DemoDataset(self.demo_handler)
-        self.task_dataloader = DataLoader(self.task_dataset, batch_size = None, shuffle = True)
-        self.demo_dataloader = DataLoader(self.demo_dataset, batch_size = None, shuffle = True)
+        try:
+            self.task_dataloader = DataLoader(self.task_dataset, batch_size = None, shuffle = True)
+            self.demo_dataloader = DataLoader(self.demo_dataset, batch_size = None, shuffle = True)
+        except:
+            pass
 
     def select_model(self, model_type, model_name, model_id = None):
         if(model_type == ModelType.ACTOR.name):
