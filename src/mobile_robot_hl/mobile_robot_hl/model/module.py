@@ -23,9 +23,10 @@ class DenseBlock(nn.Module):
         self.tanh = nn.Tanh()
         self.sigmoid = nn.Sigmoid()
 
-    def forward(self, input_tuple = (None, InferenceMode.NONE)):
+    def forward(self, input_tuple = (None, None, InferenceMode.NONE)):
         input = input_tuple[0]
-        inference_mode = input_tuple[1]
+        frame_no = input_tuple[1]
+        inference_mode = input_tuple[2]
         assert input is not None, "Input is None"
 
         shape_len = input.dim()
@@ -52,7 +53,7 @@ class DenseBlock(nn.Module):
         if(shape_len == 2):
             output = output.squeeze(0)
 
-        return output, inference_mode
+        return output, frame_no, inference_mode
     
     def reset(self):
         self.input = None
@@ -70,9 +71,10 @@ class TCBlock(nn.Module):
         self.model = nn.Sequential(*modules)
         self.output_size = input_size + filter_size*self.no_layer
 
-    def forward(self, input_tuple = (None, InferenceMode.NONE)):
+    def forward(self, input_tuple = (None, None, InferenceMode.NONE)):
         input = input_tuple[0]
-        inference_mode = input_tuple[1]
+        frame_no = input_tuple[1]
+        inference_mode = input_tuple[2]
         assert input is not None, "Input is None"
 
         shape_len = input.dim()
@@ -87,12 +89,12 @@ class TCBlock(nn.Module):
 
         input_ = input
 
-        output, inference_mode = self.model((input_, inference_mode))
+        output, frame_no, inference_mode = self.model((input_, frame_no, inference_mode))
 
         if(shape_len == 2):
             output = output.squeeze(0)
 
-        return output, inference_mode
+        return output, frame_no, inference_mode
     
     def reset(self):
         for model in self.model:
@@ -112,10 +114,18 @@ class AttentionBlock(nn.Module):
         self.query_layer = nn.Linear(input_size, key_size)
         self.value_layer = nn.Linear(input_size, value_size)
 
-    def forward(self, input_tuple = (None, InferenceMode.NONE)):
+        alibi_var = torch.tensor(1.0, dtype=torch.float32, requires_grad=True)
+        self.alibi_param = torch.nn.Parameter(alibi_var) 
+
+    def forward(self, input_tuple = (None, None, InferenceMode.NONE)):
         input = input_tuple[0]
-        inference_mode = input_tuple[1]
+        frame_no = input_tuple[1]
+        inference_mode = input_tuple[2]
         assert input is not None, "Input is None"
+        if(type(frame_no) == int):
+            frame_no = torch.tensor(frame_no, dtype = torch.float32)
+        if(frame_no.dim() == 0):
+            frame_no = frame_no.unsqueeze(0)
 
         shape_len = input.dim()
         assert (shape_len in [2,3]), "Invalid number of dimensions, should be in [2,3]"
@@ -129,6 +139,7 @@ class AttentionBlock(nn.Module):
             values = self.value_layer(input_) # Batch x Time x ValueSize
             keys = self.key_layer(input_)  # Batch x Time x KeySize
             query = self.query_layer(input_)  # Batch x Time x QuerySize
+            fn = frame_no
         else:
             assert (input.shape[0] == 1), "Input batch size should == 1"
 
@@ -140,14 +151,17 @@ class AttentionBlock(nn.Module):
             if(self.values is not None):
                 self.values = torch.cat((self.values, value), dim=1) # 1 x Time x ValueSize
                 self.keys = torch.cat((self.keys, key), dim = 1) # 1 x Time x KeySize
+                self.frame_no = torch.cat((self.frame_no, frame_no))
             else:
                 self.values = value
                 self.keys = key
+                self.frame_no = frame_no
 
             seq_length = self.values.shape[1]
 
             values = self.values
             keys = self.keys
+            fn = self.frame_no
 
         # 2 x Time = 2 X Key @ Key x Time
         dot_product = query@keys.transpose(1,2)
@@ -155,6 +169,8 @@ class AttentionBlock(nn.Module):
 
         mask = subsequent_mask(seq_length, input.device)
         scores = scores.masked_fill(mask[:,-scores.shape[1]:,:] == 0, -float('inf'))
+        alibi_mask = -abs(fn.unsqueeze(1).T - fn.unsqueeze(1))[-scores.shape[1]:,:]
+        scores += self.alibi_param*alibi_mask[-scores.shape[1]:,:]
 
         probs = torch.softmax(scores, dim = 2)
         activation = probs.matmul(values).transpose(1,2) # Batch x ValueSize x Time
@@ -164,7 +180,7 @@ class AttentionBlock(nn.Module):
         if(shape_len == 2):
             output = output.squeeze(0)
 
-        return output, inference_mode
+        return output, frame_no, inference_mode
     
     def reset(self):
         self.values = None

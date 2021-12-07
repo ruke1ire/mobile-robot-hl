@@ -85,7 +85,8 @@ class Trainer():
                 self.critic_model_info = dict(architecture = model_architecture, name = model_name)
                 if(self.critic_optimizer_dict is not None):
                     self.critic_state = TrainerState.STANDBY
-            except:
+            except Exception as e:
+                print(f"Failed creating model: {e}")
                 self.critic_model = None
                 self.critic_model_info = None
                 self.critic_state = TrainerState.SLEEPING
@@ -114,7 +115,7 @@ class Trainer():
                     )
                 if(additional_algorithm_kwargs is not None):
                     algorithm_kwargs = {**algorithm_kwargs, **additional_algorithm_kwargs}
-                self.algorithm = TD3(**algorithm_kwargs)
+                self.algorithm = MC(**algorithm_kwargs)
 
                 Thread(target = self.training_loop, args = (max_epochs, save_every,)).start()
                 #self.training_loop(max_epochs, save_every)

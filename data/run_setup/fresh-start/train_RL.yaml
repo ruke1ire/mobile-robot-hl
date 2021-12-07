@@ -1,14 +1,14 @@
 start_training__RL:
     training_type: 'RL'
     save_every: 1
-    max_epochs: 1
+    max_epochs: 100
     additional_algorithm_kwargs:
-        run_name: fresh_start
-        run_id: 2
+        run_name: fresh-start
+        run_id: 15
         checkpoint_every: 10
         device1: 'cuda:0'
         device2: 'cuda:1'
-        discount: 0.99
+        discount: 0.9
         tau: 0.05
         noise: 0.3
         logger_name: 'WandbLogger'

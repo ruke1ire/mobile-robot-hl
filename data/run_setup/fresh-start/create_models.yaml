@@ -6,7 +6,7 @@ create_model__actor:
         latent_vector_size: 100
         snail_kwargs:
             input_size: 104
-            seq_length: 8
+            seq_length: 16
             architecture:
                 - module_type: 'TC'
                   module_kwargs:
@@ -21,7 +21,7 @@ create_model__actor:
         out_net_architecture:
             - module_type: 'Linear'
               module_kwargs:
-                  in_features: 300
+                  in_features: 360
                   out_features: 3
 
 create_model__critic:
@@ -31,20 +31,30 @@ create_model__critic:
         base_net_name: 'efficientnet_b0'
         latent_vector_size: 100
         snail_kwargs:
-            input_size: 104
-            seq_length: 8
+            input_size: 103
+            seq_length: 16
             architecture:
                 - module_type: 'TC'
                   module_kwargs:
                       filter_size: 30
+                - module_type: 'ATTENTION'
+                  module_kwargs:
+                      key_size: 16
+                      value_size: 16
                 - module_type: 'TC'
                   module_kwargs:
                       filter_size: 30
         out_net_architecture:
-            - module_type: Linear
+            - module_type: 'Linear'
               module_kwargs:
-                  in_features: 287
-                  out_features: 3 # critics for velocity when agent is controlling and user is controller, and another critic for termination flag usage
+                  in_features: 362
+                  out_features: 50
+            - module_type: 'ReLU'
+              module_kwargs: {}
+            - module_type: 'Linear'
+              module_kwargs:
+                  in_features: 50
+                  out_features: 3
 
 save_model__actor:
     model_type: 'ACTOR'

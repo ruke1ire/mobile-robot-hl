@@ -4,7 +4,7 @@ start_training__IL:
     max_epochs: 100
     additional_algorithm_kwargs:
         run_name: 'fresh-start'
-        run_id: 2
+        run_id: 15
         checkpoint_every: 10
         device: 'cuda:2'
         logger_name: 'WandbLogger'

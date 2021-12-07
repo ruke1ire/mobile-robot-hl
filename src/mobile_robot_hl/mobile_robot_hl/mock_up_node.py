@@ -33,7 +33,7 @@ class AgentNode(Node):
         self.get_logger().info("Initialized Node")
     
     def loop(self):
-        img_tmp = np.zeros([240,320,3],dtype=np.uint8)
+        img_tmp = np.zeros([30,40,3],dtype=np.uint8)
         plus = True
         i = 0
         while True:

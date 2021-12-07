@@ -17,9 +17,10 @@ dh = DemoHandler(demo_path)
 th = TaskHandler(task_path, dh)
 mh = ModelHandler(model_path)
 
-dummy_observations = torch.zeros((40, 3, 240, 320))
+dummy_observations = torch.zeros((40, 3, 30, 40))
 dummy_input_latent = torch.zeros((4, 40))
 dummy_actions = torch.zeros((3, 40))
+frame_no = torch.tensor(list(range(1,21))+list(range(1,21)))
 
 trainer = Trainer(mh, dh, th)
 
