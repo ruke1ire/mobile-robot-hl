@@ -94,7 +94,7 @@ class Episode():
             self.plot_full_ax.set_ylim([-max(self.max_linear_vel,self.max_angular_vel)*1.2,max(self.max_linear_vel,self.max_angular_vel)*1.2])
         self.plot_full_ax.margins(x=0)
         self.plot_full_ax.grid(True)
-        self.plot_full_ax.tick_params(labelsize=5)
+        self.plot_full_ax.tick_params(labelsize=7)
         self.plot_full_plot = FigureCanvasTkAgg(self.plot_full_fig, self.plot_full_frame)
         self.plot_full = self.plot_full_plot.get_tk_widget()
 
@@ -202,6 +202,7 @@ class Episode():
             self.action_plot_user_vel_line_angular.pop(0).remove()
             self.action_plot_agent_vel_line_linear.pop(0).remove()
             self.action_plot_agent_vel_line_angular.pop(0).remove()
+            self.action_plot_termination_flag.remove()
         except:
             pass
 
@@ -214,7 +215,10 @@ class Episode():
         desired_vel_angular = [user_vel if(controller == ControllerType.USER) else agent_vel for (user_vel, agent_vel, controller) in zip(episode.action.user.velocity.angular.get(), episode.action.agent.velocity.angular.get(), episode.action.controller.get())]
         desired_vel = {'linear':desired_vel_linear, 'angular': desired_vel_angular}
 
+        termination_flag = [None if(data == False) else 0 for data in episode.action.user.termination_flag.get()]
+
         try:
+            self.action_plot_termination_flag = self.plot_full_ax.scatter(list_range,termination_flag,c = 'crimson', alpha = 1.0, marker='D', s = 200)
             self.action_plot_desired_vel_line_linear = self.plot_full_ax.plot(list_range, desired_vel['linear'], c = 'tab:blue', label="desired linear velocity", alpha=1.0, marker='x', linewidth=8, markersize=10)
             self.action_plot_desired_vel_line_angular = self.plot_full_ax.plot(list_range, desired_vel['angular'], c = 'tab:cyan', label="desired angular velocity", alpha=1.0, marker = 'x', linewidth=8, markersize=10)
             self.action_plot_user_vel_line_linear =  self.plot_full_ax.plot(list_range, episode.action.user.velocity.linear.get(),c = 'tab:orange', label="user linear velocity", alpha=1.0, marker='o', linewidth = 3, markersize = 7)
@@ -226,8 +230,8 @@ class Episode():
             self.plot_full_ax.legend(loc='lower left', prop={'size': 8})
 
             self.plot_full_plot.draw_idle()
-        except:
-            pass
+        except Exception:
+            self.ros_node.get_logger().warn(str(traceback.format_exc()))
 
         self.update_plot_full_lock = False
 
