@@ -114,7 +114,7 @@ class AttentionBlock(nn.Module):
         self.query_layer = nn.Linear(input_size, key_size)
         self.value_layer = nn.Linear(input_size, value_size)
 
-        alibi_var = torch.tensor(1.0, dtype=torch.float32, requires_grad=True)
+        alibi_var = torch.tensor(0.0, dtype=torch.float32, requires_grad=True)
         self.alibi_param = torch.nn.Parameter(alibi_var) 
 
     def forward(self, input_tuple = (None, None, InferenceMode.NONE)):
@@ -170,7 +170,7 @@ class AttentionBlock(nn.Module):
         mask = subsequent_mask(seq_length, input.device)
         scores = scores.masked_fill(mask[:,-scores.shape[1]:,:] == 0, -float('inf'))
         alibi_mask = -abs(fn.unsqueeze(1).T - fn.unsqueeze(1))[-scores.shape[1]:,:]
-        scores += self.alibi_param*alibi_mask[-scores.shape[1]:,:]
+        scores += torch.sigmoid(self.alibi_param)*alibi_mask[-scores.shape[1]:,:]
 
         probs = torch.softmax(scores, dim = 2)
         activation = probs.matmul(values).transpose(1,2) # Batch x ValueSize x Time
