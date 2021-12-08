@@ -66,7 +66,7 @@ class Snail(nn.Module):
             model.reset()
     
 class MimeticSNAILActor(nn.Module):
-    def __init__(self, base_net_name, latent_vector_size, snail_kwargs, out_net_architecture):
+    def __init__(self, base_net_architecture, snail_kwargs, out_net_architecture):
         '''
         MimeticSNAIL Actor Neural Network Model
 
@@ -78,11 +78,12 @@ class MimeticSNAILActor(nn.Module):
         max_angular_velocity = maximum angular velocity
         '''
         super().__init__()
-        exec(f'self.base_net = models.{base_net_name}()')
-        # reset weights of last linear layer
-        self.base_net.classifier = torch.nn.Sequential(
-            nn.Dropout(p=0.2, inplace=True), 
-            nn.Linear(in_features=1280, out_features=latent_vector_size, bias=True))
+
+        base_modules = []
+
+        for module_information in base_net_architecture:
+            exec(f"base_modules.append(nn.{module_information['module_type']}(**{module_information['module_kwargs']}))")
+        self.base_net = nn.Sequential(*base_modules)
 
         self.snail_net = Snail(**snail_kwargs)
 
@@ -142,7 +143,7 @@ class MimeticSNAILActor(nn.Module):
         self.snail_net.reset()
 
 class MimeticSNAILCritic(nn.Module):
-    def __init__(self, base_net_name, latent_vector_size, snail_kwargs, agent_value, user_value, termination_flag_value):
+    def __init__(self, base_net_architecture, snail_kwargs, agent_value, user_value, termination_flag_value):
         '''
         MimeticSNAIL Critic Neural Network Model
 
@@ -154,11 +155,12 @@ class MimeticSNAILCritic(nn.Module):
         termination_flag_value: output network architecture for computing the termination_flag value
         '''
         super().__init__()
-        exec(f'self.base_net = models.{base_net_name}()')
-        # reset weights of last linear layer
-        self.base_net.classifier = torch.nn.Sequential(
-            nn.Dropout(p=0.2, inplace=True), 
-            nn.Linear(in_features=1280, out_features=latent_vector_size, bias=True))
+
+        base_modules = []
+
+        for module_information in base_net_architecture:
+            exec(f"base_modules.append(nn.{module_information['module_type']}(**{module_information['module_kwargs']}))")
+        self.base_net = nn.Sequential(*base_modules)
 
         self.snail_net = Snail(**snail_kwargs)
 
@@ -192,8 +194,10 @@ class MimeticSNAILCritic(nn.Module):
                 latent_vec = torch.cat((latent_vec, input_latent), dim = 0)
 
             snail_out = self.snail_net(latent_vec, frame_no, inference_mode)
-            snail_out_act = torch.cat((snail_out, pre_output_latent[:-1].unsqueeze(1)), dim = 0)
-            snail_out_term = torch.cat((snail_out, pre_output_latent[-1].unsqueeze(1)), dim = 0)
+            if(pre_output_latent.dim() == 1):
+                pre_output_latent = pre_output_latent.unsqueeze(1)
+            snail_out_act = torch.cat((snail_out, pre_output_latent[:-1]), dim = 0)
+            snail_out_term = torch.cat((snail_out, pre_output_latent[-1].unsqueeze(0)), dim = 0)
 
             snail_out_act = snail_out_act.T
             snail_out_term = snail_out_term.T
