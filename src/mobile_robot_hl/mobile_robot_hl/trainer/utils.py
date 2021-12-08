@@ -61,8 +61,8 @@ def compute_rewards(
 
         reward_user = compute_similarity(user_linear_velocity, user_angular_velocity, agent_linear_velocity, agent_angular_velocity)
 
-        reward_termination_flag = torch.zeros_like(reward_agent)
-        reward_termination_flag[user_termination_flag == agent_termination_flag] = 1.0
+        reward_termination_flag = torch.ones_like(reward_agent)
+        reward_termination_flag[user_termination_flag != agent_termination_flag] = -1.0
 
     else:
         raise Exception("Invalid type to compute rewards")
@@ -74,8 +74,6 @@ def compute_similarity(user_linear, user_angular, agent_linear, agent_angular):
     dot = torch.sum(user_vel*agent_vel, dim = 1)
     user_mag = (torch.sum(user_vel**2, dim = 1))**0.5
     agent_mag = (torch.sum(agent_vel**2, dim = 1))**0.5
-    print(dot.shape)
-    print(user_mag.shape)
     similarity = dot/(torch.max(user_mag,agent_mag)**2)
     return similarity
             
