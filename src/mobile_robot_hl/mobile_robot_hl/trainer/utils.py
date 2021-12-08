@@ -47,11 +47,22 @@ def compute_rewards(
     if(type(demonstration_flag) == torch.Tensor):
         reward_agent = torch.ones((demonstration_flag.shape[0]), dtype = torch.float32)
         reward_agent[demonstration_flag == 1.0] = 0.0
+        next_flag = 0
+        count = 0
+        for i in reversed(range(reward_agent.shape[0])):
+            flag = demonstration_flag[i]
+            if(flag == 0):
+                if(next_flag == 1):
+                    reward_agent[i] = count-1
+                    count = 0
+            elif(flag == 1):
+                count -= 1
+            next_flag = flag
 
         reward_user = compute_similarity(user_linear_velocity, user_angular_velocity, agent_linear_velocity, agent_angular_velocity)
 
         reward_termination_flag = torch.zeros_like(reward_agent)
-        reward_termination_flag[user_termination_flag == agent_termination_flag] == 1.0
+        reward_termination_flag[user_termination_flag == agent_termination_flag] = 1.0
 
     else:
         raise Exception("Invalid type to compute rewards")
@@ -60,10 +71,12 @@ def compute_rewards(
 def compute_similarity(user_linear, user_angular, agent_linear, agent_angular):
     user_vel = torch.cat((user_linear.unsqueeze(1), user_angular.unsqueeze(1)), dim = 1)
     agent_vel = torch.cat((agent_linear.unsqueeze(1), agent_angular.unsqueeze(1)), dim = 1)
-    dot = (user_vel@agent_vel)/(torch.max(user_vel, agent_vel))
+    dot = torch.sum(user_vel*agent_vel, dim = 1)
     user_mag = (torch.sum(user_vel**2, dim = 1))**0.5
     agent_mag = (torch.sum(agent_vel**2, dim = 1))**0.5
-    similarity = dot/torch.max(user_mag, agent_mag)
+    print(dot.shape)
+    print(user_mag.shape)
+    similarity = dot/(torch.max(user_mag,agent_mag)**2)
     return similarity
             
 def compute_values(gamma, rewards_velocity):
