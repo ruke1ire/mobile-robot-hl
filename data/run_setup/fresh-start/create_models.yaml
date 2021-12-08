@@ -44,17 +44,43 @@ create_model__critic:
                 - module_type: 'TC'
                   module_kwargs:
                       filter_size: 30
-        out_net_architecture:
+        agent_value:
             - module_type: 'Linear'
               module_kwargs:
-                  in_features: 362
+                  in_features: 361
                   out_features: 50
             - module_type: 'ReLU'
               module_kwargs: {}
             - module_type: 'Linear'
               module_kwargs:
                   in_features: 50
-                  out_features: 3
+                  out_features: 1
+        user_value:
+            - module_type: 'Linear'
+              module_kwargs:
+                  in_features: 361
+                  out_features: 50
+            - module_type: 'ReLU'
+              module_kwargs: {}
+            - module_type: 'Linear'
+              module_kwargs:
+                  in_features: 50
+                  out_features: 1
+            - module_type: 'Sigmoid'
+              module_kwargs: {}
+        termination_flag_value:
+            - module_type: 'Linear'
+              module_kwargs:
+                  in_features: 360
+                  out_features: 50
+            - module_type: 'ReLU'
+              module_kwargs: {}
+            - module_type: 'Linear'
+              module_kwargs:
+                  in_features: 50
+                  out_features: 1
+            - module_type: 'Sigmoid'
+              module_kwargs: {}
 
 save_model__actor:
     model_type: 'ACTOR'

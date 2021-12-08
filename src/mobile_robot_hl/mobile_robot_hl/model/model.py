@@ -142,14 +142,16 @@ class MimeticSNAILActor(nn.Module):
         self.snail_net.reset()
 
 class MimeticSNAILCritic(nn.Module):
-    def __init__(self, base_net_name, latent_vector_size, snail_kwargs, out_net_architecture):
+    def __init__(self, base_net_name, latent_vector_size, snail_kwargs, agent_value, user_value, termination_flag_value):
         '''
         MimeticSNAIL Critic Neural Network Model
 
         base_net_name: name of the pre-trained neural network found in https://pytorch.org/vision/stable/models.html
         latent_vector_size: size of the latent vector computed by the base_net
         snail_kwargs: keyword arguments to pass to the SNAIL model
-        out_net: output neural network which may differ depending on whether it is a actor or a critic
+        agent_value: output network architecture for computing the agent value 
+        user_value: output network architecture for computing the user value
+        termination_flag_value: output network architecture for computing the termination_flag value
         '''
         super().__init__()
         exec(f'self.base_net = models.{base_net_name}()')
@@ -160,15 +162,23 @@ class MimeticSNAILCritic(nn.Module):
 
         self.snail_net = Snail(**snail_kwargs)
 
-        out_net_modules = []
+        agent_value_modules = []
+        user_value_modules = []
+        termination_flag_value_modules = []
 
-        for module_information in out_net_architecture:
-            exec(f"out_net_modules.append(nn.{module_information['module_type']}(**{module_information['module_kwargs']}))")
-        
-        self.out_net = nn.Sequential(*out_net_modules)
-        self.output_processor = OutputProcessorCritic()
+        for module_information in agent_value:
+            exec(f"agent_value_modules.append(nn.{module_information['module_type']}(**{module_information['module_kwargs']}))")
+        self.agent_value_net = nn.Sequential(*agent_value_modules)
+
+        for module_information in user_value:
+            exec(f"user_value_modules.append(nn.{module_information['module_type']}(**{module_information['module_kwargs']}))")
+        self.user_value_net = nn.Sequential(*user_value_modules)
+
+        for module_information in termination_flag_value:
+            exec(f"termination_flag_value_modules.append(nn.{module_information['module_type']}(**{module_information['module_kwargs']}))")
+        self.termination_flag_value_net = nn.Sequential(*termination_flag_value_modules)
     
-    def forward(self, input, input_latent=None, pre_output_latent=None, frame_no = None, inference_mode = InferenceMode.NONE):
+    def forward(self, input, input_latent, pre_output_latent, frame_no, inference_mode = InferenceMode.NONE):
         shape_len = input.dim()
 
         if(shape_len in [3,4]):
@@ -180,36 +190,23 @@ class MimeticSNAILCritic(nn.Module):
                 if(input_latent.dim() == 1):
                     input_latent = input_latent.unsqueeze(1)
                 latent_vec = torch.cat((latent_vec, input_latent), dim = 0)
+
             snail_out = self.snail_net(latent_vec, frame_no, inference_mode)
-            if(pre_output_latent is not None):
-                if(pre_output_latent.dim() == 1):
-                    pre_output_latent = pre_output_latent.unsqueeze(1)
-                snail_out = torch.cat((snail_out, pre_output_latent), dim = 0)
-            if(shape_len == 3):
-                snail_out = snail_out.squeeze(1)
-            else:
-                snail_out = snail_out.permute((1,0))
+            snail_out_act = torch.cat((snail_out, pre_output_latent[:-1].unsqueeze(1)), dim = 0)
+            snail_out_term = torch.cat((snail_out, pre_output_latent[-1].unsqueeze(1)), dim = 0)
 
-            output = self.out_net(snail_out)
+            snail_out_act = snail_out_act.T
+            snail_out_term = snail_out_term.T
 
-        elif(shape_len == 5):
-            output_list = []
-            for input_ in input:
-                latent_vec = self.base_net(input_)
-                latent_vec = latent_vec.permute((1,0))
-                if(input_latent is not None):
-                    latent_vec = torch.cat((latent_vec, input_latent), dim = 0)
-                snail_out = self.snail_net(latent_vec, frame_no, inference_mode)
-                if(pre_output_latent is not None):
-                    snail_out = torch.cat((snail_out, pre_output_latent), dim = 0)
-                snail_out = snail_out.permute((1,0))
-                output = self.out_net(snail_out)
-                output_list.append(output)
-            output = torch.stack(output_list)
+            agent_value = self.agent_value_net(snail_out_act)
+            user_value = self.user_value_net(snail_out_act)
+            termination_flag_value = self.termination_flag_value_net(snail_out_term)
+
+            output = torch.cat((agent_value, user_value, termination_flag_value), dim = 1)
+
         else:
             raise Exception("Invalid input shape")
 
-        output = self.output_processor(output)
         return output
 
     def reset(self):
@@ -230,80 +227,3 @@ class OutputProcessor(nn.Module):
         actor_output = noise*noise_tensor + (1-noise)*actor_output
         actor_output += adder
         return actor_output
-
-class OutputProcessorCritic(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, critic_output):
-        critic_output[:,1] = torch.sigmoid(critic_output[:,1])
-        critic_output[:,2] = torch.sigmoid(critic_output[:,2])
-        return critic_output
-
-if __name__ == "__main__":
-    architecture = [
-            dict(
-                module_type = ModuleType.TC.name,
-                module_kwargs = dict(
-                    filter_size = 30
-                )
-            ),
-            dict(
-                module_type = ModuleType.ATTENTION.name,
-                module_kwargs = dict(
-                    key_size = 16,
-                    value_size = 16
-                )
-            ),
-            dict(
-                module_type = ModuleType.TC.name,
-                module_kwargs = dict(
-                    filter_size = 30
-                )
-            ),
-        ]
-
-    snail_kwargs = dict(input_size = 105, seq_length= 100, architecture=architecture)
-
-    actor_architecture = [
-        dict(
-            module_type = "Linear",
-            module_kwargs = dict(
-                in_features = 546,
-                out_features = 3
-            )
-        )
-    ]
-
-    msnail = MimeticSNAILCritic(
-        base_net_name='efficientnet_b0', 
-        latent_vector_size=100, 
-        snail_kwargs=snail_kwargs, 
-        out_net_architecture = actor_architecture)
-
-    print("Model:", msnail)
-
-    actions_across_time = torch.ones((5, 10))
-    actions_across_time2 = torch.ones((5, 10))
-    image_across_time = torch.ones((10, 3, 240, 320))
-
-    single_image = torch.ones((3, 320, 460))
-    action_single = torch.ones(5)
-    action_single2 = torch.ones(5)
-
-    print("Image across time size:", image_across_time.shape)
-    print("Image across time output size:", msnail(image_across_time, input_latent = actions_across_time, pre_output_latent = actions_across_time2, inference_mode = InferenceMode.NONE).shape)
-
-    print("Image across time input size:", image_across_time.shape)
-    print("Image across time output size:", msnail(image_across_time, input_latent = actions_across_time, pre_output_latent = actions_across_time2, inference_mode = InferenceMode.STORE).shape)
-    print(msnail.snail_net.model[0].model[0].input.shape)
-
-    print("Image across time input size:", image_across_time.shape)
-    print("Image across time output size:", msnail(image_across_time, input_latent = actions_across_time, pre_output_latent = actions_across_time2, inference_mode = InferenceMode.STORE).shape)
-    print(msnail.snail_net.model[0].model[0].input.shape)
-
-    print("Single image size:", single_image.shape)
-    print("Single image output size:", msnail(single_image, input_latent = action_single, pre_output_latent = action_single2, inference_mode = InferenceMode.NONE).shape)
-
-    print("Single image size:", single_image.shape)
-    print("Single image output size:", msnail(single_image, input_latent = action_single, pre_output_latent = action_single2, inference_mode = InferenceMode.STORE).shape)
