@@ -115,7 +115,7 @@ class Trainer():
                     )
                 if(additional_algorithm_kwargs is not None):
                     algorithm_kwargs = {**algorithm_kwargs, **additional_algorithm_kwargs}
-                self.algorithm = MC(**algorithm_kwargs)
+                self.algorithm = TD3(**algorithm_kwargs)
 
                 Thread(target = self.training_loop, args = (max_epochs, save_every,)).start()
                 #self.training_loop(max_epochs, save_every)
