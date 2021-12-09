@@ -152,7 +152,6 @@ class AttentionBlock(nn.Module):
         if(shape_len == 2):
             input = input.unsqueeze(0)
 
-        print(input.shape)
         if(inference_mode == InferenceMode.NONE):
             self.reset()
             seq_length = input.shape[2]
