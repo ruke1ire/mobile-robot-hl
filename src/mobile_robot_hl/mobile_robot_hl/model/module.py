@@ -34,21 +34,41 @@ class DenseBlock(nn.Module):
         if(shape_len == 2):
             input = input.unsqueeze(0)
         
-        if(inference_mode == InferenceMode.NONE):
-            self.reset()
-            input_ = self.initial_padding(input)
+        start_indices = (frame_no == 1).nonzero(as_tuple = True)[0]
+        if(start_indices.shape[0] > 0 and start_indices[0] == 0):
+            end_indices = torch.cat((start_indices[1:], torch.tensor(frame_no.shape[0]).unsqueeze(0)))
+            input_split = torch.split(input, (end_indices - start_indices).tolist(), dim = 2)
+            init_split = [True]*len(input_split)
+        elif(start_indices.shape[0] > 0 and start_indices[0] != 0):
+            start_indices = torch.cat((torch.zeros(1, dtype = torch.int64), start_indices))
+            end_indices = torch.cat((start_indices[1:], torch.tensor(frame_no.shape[0]).unsqueeze(0)))
+            input_split = torch.split(input, (end_indices - start_indices).tolist(), dim = 2)
+            init_split = [False] + [True]*(len(input_split)-1)
         else:
-            assert (input.shape[0] == 1), "Input batch size should == 1"
+            input_split = [input]
+            init_split = [False]
 
-            if(self.input is not None):
-                self.input = torch.cat((self.input, input), dim=2)
+        output = []
+        for i, init in zip(input_split, init_split):
+            if(inference_mode == InferenceMode.NONE):
+                self.reset()
+                input_ = self.initial_padding(i)
             else:
-                self.input = self.initial_padding(input)
-            input_ = self.input[:,:,-(self.dilation+input.shape[2]):]
+                assert (i.shape[0] == 1), "Input batch size should == 1"
 
-        xf, xg = self.causal_conv1(input_), self.causal_conv2(input_)
-        activations = self.tanh(xf) * self.sigmoid(xg)
-        output = torch.cat((input, activations), dim = 1)
+                if(init == True):
+                    if(self.input is not None):
+                        self.input = torch.cat((self.input, self.initial_padding(i)), dim=2)
+                    else:
+                        self.input = self.initial_padding(i)
+                else:
+                    self.input = torch.cat((self.input, i), dim=2)
+                input_ = self.input[:,:,-(self.dilation+i.shape[2]):]
+
+            xf, xg = self.causal_conv1(input_), self.causal_conv2(input_)
+            activations = self.tanh(xf) * self.sigmoid(xg)
+            output.append(torch.cat((i, activations), dim = 1))
+        output = torch.cat(output, dim = 2)
 
         if(shape_len == 2):
             output = output.squeeze(0)
@@ -132,6 +152,7 @@ class AttentionBlock(nn.Module):
         if(shape_len == 2):
             input = input.unsqueeze(0)
 
+        print(input.shape)
         if(inference_mode == InferenceMode.NONE):
             self.reset()
             seq_length = input.shape[2]
