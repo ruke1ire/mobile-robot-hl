@@ -64,9 +64,9 @@ class JoystickNode(Node):
             state = self.joy_handler.get_state()
             linear_vel = state[InterfaceType.LINEAR_VELOCITY.name]
             angular_vel = state[InterfaceType.ANGULAR_VELOCITY.name]
-            if(abs(linear_vel) < 0.001):
+            if(abs(linear_vel) < 0.01):
                 linear_vel = 0.0
-            if(abs(angular_vel) < 0.001):
+            if(abs(angular_vel) < 0.01):
                 angular_vel = 0.0
             if(self.supervisor_state == SupervisorState.STANDBY):
                 linear_vel = 2*linear_vel
