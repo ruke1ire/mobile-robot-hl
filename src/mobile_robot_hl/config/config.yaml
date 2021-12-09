@@ -7,8 +7,8 @@ agent:
 
 supervisor:
     ros__parameters:
-        frequency: 1.0
-        max_episode_length: 30
+        frequency: 2.0
+        max_episode_length: 50
 
 #joystick:
 #    ros__parameters:
