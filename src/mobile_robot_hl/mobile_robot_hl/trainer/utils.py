@@ -25,14 +25,7 @@ class TrainingType(Enum):
     IL = 0
     RL = 1
 
-def compute_rewards(
-    demonstration_flag, 
-    user_termination_flag, 
-    agent_termination_flag, 
-    user_linear_velocity, 
-    agent_linear_velocity, 
-    user_angular_velocity, 
-    agent_angular_velocity):
+def compute_rewards(demonstration_flag):
     '''
     reward function rules:
         - Rewards when agent is controlling (Minimize supervisor correction)
@@ -59,23 +52,15 @@ def compute_rewards(
                 count -= 1
             next_flag = flag
 
-        reward_user = compute_similarity(user_linear_velocity, user_angular_velocity, agent_linear_velocity, agent_angular_velocity)
-
-        reward_termination_flag = torch.ones_like(reward_agent)
-        reward_termination_flag[user_termination_flag != agent_termination_flag] = -1.0
-
     else:
         raise Exception("Invalid type to compute rewards")
-    return reward_agent, reward_user, reward_termination_flag
+    return reward_agent
 
 def compute_similarity(user_linear, user_angular, agent_linear, agent_angular):
     user_vel = torch.cat((user_linear.unsqueeze(1), user_angular.unsqueeze(1)), dim = 1)
     agent_vel = torch.cat((agent_linear.unsqueeze(1), agent_angular.unsqueeze(1)), dim = 1)
-    dot = torch.sum(user_vel*agent_vel, dim = 1)
-    user_mag = (torch.sum(user_vel**2, dim = 1))**0.5
-    agent_mag = (torch.sum(agent_vel**2, dim = 1))**0.5
-    similarity = dot/(torch.max(user_mag,agent_mag)**2)
-    return similarity
+    e_dist = torch.sum((user_vel - agent_vel)**2, dim = 1)**0.5
+    return -e_dist
             
 def compute_values(gamma, rewards_velocity):
     if(type(rewards_velocity) == torch.Tensor):

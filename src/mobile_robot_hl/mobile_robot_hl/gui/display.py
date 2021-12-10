@@ -233,6 +233,7 @@ class Episode():
         except Exception:
             self.ros_node.get_logger().warn(str(traceback.format_exc()))
 
+        time.sleep(1.0)
         self.update_plot_full_lock = False
 
 class Current():

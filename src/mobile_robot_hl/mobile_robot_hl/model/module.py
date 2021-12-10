@@ -36,12 +36,12 @@ class DenseBlock(nn.Module):
         
         start_indices = (frame_no == 1).nonzero(as_tuple = True)[0]
         if(start_indices.shape[0] > 0 and start_indices[0] == 0):
-            end_indices = torch.cat((start_indices[1:], torch.tensor(frame_no.shape[0]).unsqueeze(0)))
+            end_indices = torch.cat((start_indices[1:], torch.tensor(frame_no.shape[0],device=input.device).unsqueeze(0)))
             input_split = torch.split(input, (end_indices - start_indices).tolist(), dim = 2)
             init_split = [True]*len(input_split)
         elif(start_indices.shape[0] > 0 and start_indices[0] != 0):
             start_indices = torch.cat((torch.zeros(1, dtype = torch.int64), start_indices))
-            end_indices = torch.cat((start_indices[1:], torch.tensor(frame_no.shape[0]).unsqueeze(0)))
+            end_indices = torch.cat((start_indices[1:], torch.tensor(frame_no.shape[0], device=input.device).unsqueeze(0)))
             input_split = torch.split(input, (end_indices - start_indices).tolist(), dim = 2)
             init_split = [False] + [True]*(len(input_split)-1)
         else:
@@ -143,7 +143,7 @@ class AttentionBlock(nn.Module):
         inference_mode = input_tuple[2]
         assert input is not None, "Input is None"
         if(type(frame_no) == int):
-            frame_no = torch.tensor(frame_no, dtype = torch.float32)
+            frame_no = torch.tensor(frame_no, dtype = torch.float32, device=input.device)
         if(frame_no.dim() == 0):
             frame_no = frame_no.unsqueeze(0)
 

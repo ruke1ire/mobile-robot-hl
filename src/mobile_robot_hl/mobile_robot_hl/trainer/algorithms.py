@@ -125,9 +125,9 @@ class TD3(Algorithm):
     
     def train_one_epoch(self, trainer):
         j = 0
-        for (images, latent, frame_no, rewards_agent, rewards_user, rewards_termination_flag) in self.dataloader:
+        for (images, latent, frame_no, rewards_agent, desired_termination_flag, user_linear_vel, user_angular_vel) in self.dataloader:
             if(trainer.stop == True):
-                return
+                break
 
             print(f"Run No. {j+1}")
             print(f"Episode Length = {frame_no.shape[0]}")
@@ -137,8 +137,9 @@ class TD3(Algorithm):
             images = images.to(self.device1)
             latent = latent.to(self.device1)
             rewards_agent = rewards_agent.to(self.device1)
-            rewards_user = rewards_user.to(self.device1)
-            rewards_termination_flag = rewards_termination_flag.to(self.device1)
+            desired_termination_flag = desired_termination_flag.to(self.device1)
+            user_linear_vel = user_linear_vel.to(self.device1)
+            user_angular_vel = user_angular_vel.to(self.device1)
             frame_no = frame_no.to(self.device1)
 
             actions = latent[:-1,:]
@@ -150,133 +151,117 @@ class TD3(Algorithm):
             with torch.no_grad():
                 print("# 1. Compute target actions from target actor P'(s(t+1))")
                 target_actions = self.actor_model_target(input = images, input_latent = prev_latent, frame_no = frame_no, noise = self.noise).permute((1,0)) 
-                print("target_actions", target_actions)
 
                 print("# 2. Compute Q-value of next state using the  target critics Q'(s(t+1), P'(s(t+1)))")
                 target_q1 = self.critic_model_1_target(input = images, input_latent = prev_latent[:-1,:], pre_output_latent = target_actions, frame_no = frame_no)
                 target_q2 = self.critic_model_2_target(input = images, input_latent = prev_latent[:-1,:], pre_output_latent = target_actions, frame_no = frame_no)
 
-                del target_actions
-
                 print("# 3. Use smaller Q-value as the Q-value target")
                 target_q = torch.min(target_q1, target_q2)
                 self.logger.log(DataType.num, target_q.mean().item(), "avg-value")
 
-                del target_q1, target_q2
-
-                target_q[demo_flag == 1,0] = 0
-
-                print("action",actions)
-                print("rewards user", rewards_user)
-                print("rewards agent", rewards_agent)
+                target_q[demo_flag == 1] = 0
 
                 print("# 4. Compute current Q-value with the reward")
-                target_q_next = torch.cat((target_q[1:,0],torch.zeros(1).to(self.device1)), dim = 0)
-                target_q[:,0] = rewards_agent + self.discount * target_q_next
-                target_q[:,1] = rewards_user
-                target_q[:,2] = rewards_termination_flag
+                target_q_next = torch.cat((target_q[1:],torch.zeros(1).to(self.device1)), dim = 0)
+                target_q = rewards_agent + self.discount * target_q_next
                 target_q = target_q[task_start_index:]
-                print("target_q", target_q)
-
-                del target_q_next
 
             print("# 5.1 Compute Q-value from critics Q(s_t, a_t)")
             q1 = self.critic_model_1(input = images, input_latent = prev_latent[:-1,:], pre_output_latent = actions, frame_no = frame_no)
             q1 = q1[task_start_index:]
 
             print("# 6.1 Compute MSE loss for the critics")
-            critic_loss_agent = F.mse_loss(q1[demo_flag[task_start_index:] == 0.0,0], target_q[demo_flag[task_start_index:] == 0.0,0])
-            critic_loss_user = F.binary_cross_entropy(q1[demo_flag[task_start_index:] == 1.0,1]/2+0.5, target_q[demo_flag[task_start_index:] == 1.0,1]/2+0.5)
-            critic_loss_termination_flag = F.binary_cross_entropy(q1[:,2], target_q[:,2])
-            critic_loss = critic_loss_agent + critic_loss_user + critic_loss_termination_flag
-            self.logger.log(DataType.num, critic_loss_agent.item(), key = "loss/critic1_agent")
-            self.logger.log(DataType.num, critic_loss_user.item(), key = "loss/critic1_user")
-            self.logger.log(DataType.num, critic_loss_termination_flag.item(), key = "loss/critic1_termination_flag")
-            self.logger.log(DataType.num, critic_loss.item(), key = "loss/critic1_total")
+            critic_1_loss = F.mse_loss(q1[demo_flag[task_start_index:] == 0.0], target_q[demo_flag[task_start_index:] == 0.0])
+            self.logger.log(DataType.num, critic_1_loss.item(), key = "loss/critic1")
 
             print("# 7.1 Optimize critic")
             self.critic_1_optimizer.zero_grad(set_to_none = True)
-            critic_loss.backward()
+            critic_1_loss.backward()
             self.critic_1_optimizer.step()
 
-            del q1, critic_loss, critic_loss_user, critic_loss_agent, critic_loss_termination_flag
-            torch.cuda.empty_cache() 
+#            del q1, critic_1_loss
+#            torch.cuda.empty_cache() 
 
             print("# 5.2 Compute Q-value from critics Q(s_t, a_t)")
             q2 = self.critic_model_2(input = images, input_latent = prev_latent[:-1,:], pre_output_latent = actions, frame_no = frame_no)
             q2 = q2[task_start_index:]
 
             print("# 6.2 Compute MSE loss for the critics")
-            critic_loss_agent = F.mse_loss(q2[demo_flag[task_start_index:] == 0.0,0], target_q[demo_flag[task_start_index:] == 0.0,0])
-            critic_loss_user = F.binary_cross_entropy(q2[demo_flag[task_start_index:] == 1.0,1]/2+0.5, target_q[demo_flag[task_start_index:] == 1.0,1]/2+0.5)
-            critic_loss_termination_flag = F.binary_cross_entropy(q2[:,2], target_q[:,2])
-            critic_loss = critic_loss_agent + critic_loss_user + critic_loss_termination_flag
-            self.logger.log(DataType.num, critic_loss_agent.item(), key = "loss/critic2_agent")
-            self.logger.log(DataType.num, critic_loss_user.item(), key = "loss/critic2_user")
-            self.logger.log(DataType.num, critic_loss_termination_flag.item(), key = "loss/critic2_termination_flag")
-            self.logger.log(DataType.num, critic_loss.item(), key = "loss/critic2_total")
+            critic_2_loss = F.mse_loss(q2[demo_flag[task_start_index:] == 0.0], target_q[demo_flag[task_start_index:] == 0.0])
+            self.logger.log(DataType.num, critic_2_loss.item(), key = "loss/critic2")
 
             print("# 7.2 Optimize critic")
             self.critic_2_optimizer.zero_grad(set_to_none = True)
-            critic_loss.backward()
+            critic_2_loss.backward()
             self.critic_2_optimizer.step()
 
-            del q2, critic_loss, critic_loss_agent, critic_loss_user, critic_loss_termination_flag
-            del target_q
-            torch.cuda.empty_cache() 
+#            del q2, critic_loss, critic_loss_agent, critic_loss_user, critic_loss_termination_flag
+#            del target_q
+#            torch.cuda.empty_cache() 
 
-            print("# 8. Check whether to update the actor and the target policies")
+            print("# 8. Compute actor actions")
+            actor_actions = self.actor_model(input = images, input_latent = prev_latent, frame_no = frame_no)
+            print("actor actions", actor_actions)
+            actor_linear_vel = actor_actions[:,0]
+            actor_angular_vel = actor_actions[:,1]
+            actor_termination_flag = actor_actions[:,2]
+
+            print("# 9. Compute actor loss")
+            velocity_loss = -compute_similarity(user_linear_vel, user_angular_vel, actor_linear_vel, actor_angular_vel)[task_start_index:]
+            velocity_loss = velocity_loss[demo_flag[task_start_index:] == 1.0].mean()
+            termination_flag_loss = F.binary_cross_entropy(actor_termination_flag, desired_termination_flag)
+            actor_loss = velocity_loss + termination_flag_loss
+            self.logger.log(DataType.num, velocity_loss.item(), key = "loss/actor_velocity")
+            self.logger.log(DataType.num, termination_flag_loss.item(), key = "loss/actor_termination_flag")
+
             if(j % self.actor_update_period == (self.actor_update_period - 1)):
-                print("# 9. Compute the actor's action using the real actor")
-                actor_actions = self.actor_model(input = images, input_latent = prev_latent, frame_no = frame_no).permute((1,0))
                 print("# 10. Compute the negative critic values using the real critic")
-                dummy_critic = self.critic_model_1.to(self.device2)
-                actor_losses = -dummy_critic(
-                    input = images.to(self.device2), 
-                    input_latent = prev_latent[:-1,:].to(self.device2), 
-                    pre_output_latent = actor_actions.to(self.device2),
-                    frame_no = frame_no.to(self.device2))[task_start_index:]
-                actor_loss_agent = actor_losses[demo_flag[task_start_index:] == 0.0, 0].mean()
-                actor_loss_user = actor_losses[demo_flag[task_start_index:] == 1.0, 1].mean()
-                actor_loss_termination_flag = actor_losses[:, 2].mean()
-                actor_loss = actor_loss_agent + actor_loss_user + actor_loss_termination_flag
+                negative_value = -self.critic_model_1(
+                                    input = images,
+                                    input_latent = prev_latent[:-1,:],
+                                    pre_output_latent = actor_actions.T,
+                                    frame_no = frame_no)[task_start_index:]
+                negative_value = negative_value[demo_flag[task_start_index:] == 0.0].mean()
+                self.logger.log(DataType.num, termination_flag_loss.item(), key = "loss/actor_neg_value")
+                actor_loss += negative_value
 
-                actor_actions.detach()
-                del actor_actions
+            print("# 11. Optimize actor")
+            self.actor_optimizer.zero_grad(set_to_none = True)
+            actor_loss.backward()
+            self.actor_optimizer.step()
 
-                print("# 11. Optimize actor")
-                self.actor_optimizer.zero_grad(set_to_none = True)
-                actor_loss.backward()
-                self.actor_optimizer.step()
-                self.logger.log(DataType.num, actor_loss.item(), key = "loss/actor")
+            print("# 12. Update target networks")
+            for param, target_param in zip(self.critic_model_1.to(self.device1).parameters(), self.critic_model_1_target.parameters()):
+                target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
-                print("# 12. Update target networks")
-                for param, target_param in zip(self.critic_model_1.to(self.device1).parameters(), self.critic_model_1_target.parameters()):
-                    target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
+            for param, target_param in zip(self.critic_model_2.parameters(), self.critic_model_2_target.parameters()):
+                target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
-                for param, target_param in zip(self.critic_model_2.parameters(), self.critic_model_2_target.parameters()):
-                    target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
-
-                for param, target_param in zip(self.actor_model.parameters(), self.actor_model_target.parameters()):
-                    target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)	
-                
-                del param, target_param
+            for param, target_param in zip(self.actor_model.parameters(), self.actor_model_target.parameters()):
+                target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)	
+            
+            del param, target_param
 
             if(j % self.checkpoint_every == self.checkpoint_every-1):
-                print("Saving checkpoint")
-                torch.save({
-                            'actor_state_dict': self.actor_model.state_dict(),
-                            'actor_target_state_dict': self.actor_model_target.state_dict(),
-                            'critic_1_state_dict': self.critic_model_1.state_dict(),
-                            'critic_2_state_dict': self.critic_model_2.state_dict(),
-                            'critic_1_target_state_dict': self.critic_model_1_target.state_dict(),
-                            'critic_2_target_state_dict': self.critic_model_2_target.state_dict(),
-                            'actor_optimizer_state_dict': self.actor_optimizer.state_dict(),
-                            'critic_1_optimizer_state_dict': self.critic_1_optimizer.state_dict(),
-                            'critic_2_optimizer_state_dict': self.critic_2_optimizer.state_dict(),
-                            }, self.checkpoint_path)
+                self.checkpoint()
 
             j += 1
+        self.checkpoint()
+    
+    def checkpoint(self):
+        print("Saving checkpoint")
+        torch.save({
+                    'actor_state_dict': self.actor_model.state_dict(),
+                    'actor_target_state_dict': self.actor_model_target.state_dict(),
+                    'critic_1_state_dict': self.critic_model_1.state_dict(),
+                    'critic_2_state_dict': self.critic_model_2.state_dict(),
+                    'critic_1_target_state_dict': self.critic_model_1_target.state_dict(),
+                    'critic_2_target_state_dict': self.critic_model_2_target.state_dict(),
+                    'actor_optimizer_state_dict': self.actor_optimizer.state_dict(),
+                    'critic_1_optimizer_state_dict': self.critic_1_optimizer.state_dict(),
+                    'critic_2_optimizer_state_dict': self.critic_2_optimizer.state_dict(),
+                    }, self.checkpoint_path)
 
 class IL(Algorithm):
     def __init__(self,

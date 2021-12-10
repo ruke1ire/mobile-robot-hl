@@ -143,7 +143,7 @@ class MimeticSNAILActor(nn.Module):
         self.snail_net.reset()
 
 class MimeticSNAILCritic(nn.Module):
-    def __init__(self, base_net_architecture, snail_kwargs, agent_value, user_value, termination_flag_value):
+    def __init__(self, base_net_architecture, snail_kwargs, agent_value):
         '''
         MimeticSNAIL Critic Neural Network Model
 
@@ -165,21 +165,11 @@ class MimeticSNAILCritic(nn.Module):
         self.snail_net = Snail(**snail_kwargs)
 
         agent_value_modules = []
-        user_value_modules = []
-        termination_flag_value_modules = []
 
         for module_information in agent_value:
             exec(f"agent_value_modules.append(nn.{module_information['module_type']}(**{module_information['module_kwargs']}))")
         self.agent_value_net = nn.Sequential(*agent_value_modules)
 
-        for module_information in user_value:
-            exec(f"user_value_modules.append(nn.{module_information['module_type']}(**{module_information['module_kwargs']}))")
-        self.user_value_net = nn.Sequential(*user_value_modules)
-
-        for module_information in termination_flag_value:
-            exec(f"termination_flag_value_modules.append(nn.{module_information['module_type']}(**{module_information['module_kwargs']}))")
-        self.termination_flag_value_net = nn.Sequential(*termination_flag_value_modules)
-    
     def forward(self, input, input_latent, pre_output_latent, frame_no, inference_mode = InferenceMode.NONE):
         shape_len = input.dim()
 
@@ -196,17 +186,15 @@ class MimeticSNAILCritic(nn.Module):
             snail_out = self.snail_net(latent_vec, frame_no, inference_mode)
             if(pre_output_latent.dim() == 1):
                 pre_output_latent = pre_output_latent.unsqueeze(1)
-            snail_out_act = torch.cat((snail_out, pre_output_latent[:-1]), dim = 0)
-            snail_out_term = torch.cat((snail_out, pre_output_latent[-1].unsqueeze(0)), dim = 0)
+            snail_out = torch.cat((snail_out, pre_output_latent[:-1]), dim = 0)
 
-            snail_out_act = snail_out_act.T
-            snail_out_term = snail_out_term.T
+            if(shape_len == 3):
+                snail_out = snail_out.squeeze(1)
+            else:
+                snail_out = snail_out.permute((1,0))
 
-            agent_value = self.agent_value_net(snail_out_act)
-            user_value = self.user_value_net(snail_out_act)
-            termination_flag_value = self.termination_flag_value_net(snail_out_term)
-
-            output = torch.cat((agent_value, user_value, termination_flag_value), dim = 1)
+            output = self.agent_value_net(snail_out)
+            output = output.squeeze(1)
 
         else:
             raise Exception("Invalid input shape")
