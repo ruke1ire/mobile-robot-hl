@@ -223,7 +223,7 @@ class TD3(Algorithm):
                                     pre_output_latent = actor_actions.T,
                                     frame_no = frame_no)[task_start_index:]
                 negative_value = negative_value[demo_flag[task_start_index:] == 0.0].mean()
-                self.logger.log(DataType.num, termination_flag_loss.item(), key = "loss/actor_neg_value")
+                self.logger.log(DataType.num, negative_value.item(), key = "loss/actor_neg_value")
                 actor_loss += negative_value
 
             print("# 11. Optimize actor")
