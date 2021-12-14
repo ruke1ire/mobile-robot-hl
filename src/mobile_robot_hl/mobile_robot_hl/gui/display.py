@@ -178,7 +178,7 @@ class Episode():
 
                 self.current_action_desired_vel = self.plot_sel_ax.scatter(desired_vel['angular'], desired_vel['linear'],s = 100, c = 'tab:blue', label="desired velocity", alpha=1.0, marker='x')
                 self.current_action_user_vel = self.plot_sel_ax.scatter(episode_frame.action.user.velocity.angular.get(0), episode_frame.action.user.velocity.linear.get(0), s = 50, c = 'tab:orange', label="user velocity", alpha=1.0, marker='o')
-                self.current_action_agent_vel = self.plot_sel_ax.scatter(episode_frame.action.agent.velocity.angular.get(0), episode_frame.action.agent.velocity.linear.get(0), s = 20, c = 'tab:green', label="agent velocity", alpha = 1.0, marker='^')
+                self.current_action_agent_vel = self.plot_sel_ax.scatter(episode_frame.action.agent.velocity.angular.get(0), episode_frame.action.agent.velocity.linear.get(0), s = 20, c = 'indigo', label="agent velocity", alpha = 1.0, marker='^')
                 self.plot_sel_ax.legend(loc='upper right', prop={'size': 8})
 
                 self.plot_sel_plot.draw_idle()
@@ -203,6 +203,7 @@ class Episode():
             self.action_plot_agent_vel_line_linear.pop(0).remove()
             self.action_plot_agent_vel_line_angular.pop(0).remove()
             self.action_plot_termination_flag.remove()
+            self.plot_fill.remove()
         except:
             pass
 
@@ -223,8 +224,15 @@ class Episode():
             self.action_plot_desired_vel_line_angular = self.plot_full_ax.plot(list_range, desired_vel['angular'], c = 'tab:cyan', label="desired angular velocity", alpha=1.0, marker = 'x', linewidth=8, markersize=10)
             self.action_plot_user_vel_line_linear =  self.plot_full_ax.plot(list_range, episode.action.user.velocity.linear.get(),c = 'tab:orange', label="user linear velocity", alpha=1.0, marker='o', linewidth = 3, markersize = 7)
             self.action_plot_user_vel_line_angular =  self.plot_full_ax.plot(list_range,episode.action.user.velocity.angular.get(),c = 'tab:brown', label="user angular velocity", alpha=1.0, marker='o', linewidth = 3, markersize = 7)
-            self.action_plot_agent_vel_line_linear = self.plot_full_ax.plot(list_range, episode.action.agent.velocity.linear.get(),c = 'tab:green', label="agent linear velocity", alpha = 1.0, marker='^', linewidth = 1, markersize = 4)
-            self.action_plot_agent_vel_line_angular = self.plot_full_ax.plot(list_range,episode.action.agent.velocity.angular.get(),c = 'olive', label="agent angular velocity", alpha = 1.0, marker='^', linewidth = 1, markersize = 4)
+            self.action_plot_agent_vel_line_linear = self.plot_full_ax.plot(list_range, episode.action.agent.velocity.linear.get(),c = 'indigo', label="agent linear velocity", alpha = 1.0, marker='^', linewidth = 1, markersize = 4)
+            self.action_plot_agent_vel_line_angular = self.plot_full_ax.plot(list_range,episode.action.agent.velocity.angular.get(),c = 'magenta', label="agent angular velocity", alpha = 1.0, marker='^', linewidth = 1, markersize = 4)
+            self.plot_fill = self.plot_full_ax.fill_between(
+                                                            list_range, 
+                                                            -max(self.max_linear_vel, self.max_angular_vel)*1.3, 
+                                                            max(self.max_linear_vel, self.max_angular_vel)*1.3, 
+                                                            where=[True if (controller == ControllerType.USER) else False for controller in episode.action.controller.get()], 
+                                                            alpha = 0.3,
+                                                            facecolor='gold')
 
             self.plot_full_ax.set_xlim([0.5,max(episode.length(),1)+0.5])
             self.plot_full_ax.legend(loc='lower left', prop={'size': 8})

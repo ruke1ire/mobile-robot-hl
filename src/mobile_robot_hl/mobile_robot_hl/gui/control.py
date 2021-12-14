@@ -361,7 +361,9 @@ class Selection():
     def demo_box_trigger(self, event):
         demo_name = self.demo_box.get(tkinter.ANCHOR)
         try:
-            self.ros_node.variables.ids = self.ros_node.demo_handler.get_ids(demo_name)
+            ids = self.ros_node.demo_handler.get_ids(demo_name)
+            ids.sort()
+            self.ros_node.variables.ids = ids
         except:
             self.ros_node.variables.ids = []
         self.selected_type = InformationType.DEMO
@@ -370,7 +372,9 @@ class Selection():
     def task_box_trigger(self, event):
         task_name = self.task_box.get(tkinter.ANCHOR)
         try:
-            self.ros_node.variables.ids = self.ros_node.task_handler.get_ids(task_name)
+            ids = self.ros_node.task_handler.get_ids(task_name)
+            ids.sort()
+            self.ros_node.variables.ids = ids
         except:
             self.ros_node.variables.ids = []
         self.selected_type = InformationType.TASK_EPISODE
@@ -422,18 +426,21 @@ class Selection():
 
     def update_id(self):
         self.id_box.delete(0,tkinter.END)
-        for id_ in self.ros_node.variables.ids:
+        ids = self.ros_node.variables.ids
+        for id_ in ids:
             self.id_box.insert(tkinter.END, id_)
         self.updating_id = False
 
     def update_demo(self):
         self.demo_box.delete(0,tkinter.END)
-        for id_ in self.ros_node.variables.demo_names:
+        names = self.ros_node.variables.demo_names
+        for id_ in names:
             self.demo_box.insert(tkinter.END, id_)
 
     def update_task(self):
         self.task_box.delete(0,tkinter.END)
-        for id_ in self.ros_node.variables.task_names:
+        names = self.ros_node.variables.task_names
+        for id_ in names:
             self.task_box.insert(tkinter.END, id_)
     
     def update_queue(self):
