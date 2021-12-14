@@ -1,0 +1,145 @@
+create_model__actor:
+    model_type: 'ACTOR'
+    model_name: 'sl'
+    model_architecture:
+        base_net_architecture:
+            - module_type: 'Conv2d'
+              module_kwargs:
+                in_channels: 3
+                out_channels: 16
+                kernel_size: 4
+                stride: 2
+                padding: 0
+            - module_type: 'ReLU'
+              module_kwargs: {}
+            - module_type: 'BatchNorm2d'
+              module_kwargs:
+                num_features: 16
+            - module_type: 'Dropout'
+              module_kwargs:
+                p: 0.2
+            - module_type: 'Conv2d'
+              module_kwargs:
+                in_channels: 16
+                out_channels: 32
+                kernel_size: 4
+                stride: 2
+                padding: 0
+            - module_type: 'ReLU'
+              module_kwargs: {}
+            - module_type: 'BatchNorm2d'
+              module_kwargs:
+                num_features: 32
+            - module_type: 'Dropout'
+              module_kwargs:
+                p: 0.2
+            - module_type: 'Flatten'
+              module_kwargs: {}
+            - module_type: 'Linear'
+              module_kwargs:
+                  in_features: 1536
+                  out_features: 500
+            - module_type: 'ReLU'
+              module_kwargs: {}
+            - module_type: 'Linear'
+              module_kwargs:
+                  in_features: 500
+                  out_features: 100
+        snail_kwargs:
+            input_size: 104
+            seq_length: 16
+            architecture:
+                - module_type: 'TC'
+                  module_kwargs:
+                      filter_size: 30
+                - module_type: 'ATTENTION'
+                  module_kwargs:
+                      key_size: 16
+                      value_size: 16
+                - module_type: 'TC'
+                  module_kwargs:
+                      filter_size: 30
+        out_net_architecture:
+            - module_type: 'Linear'
+              module_kwargs:
+                  in_features: 360
+                  out_features: 3
+
+create_model__critic:
+    model_type: 'CRITIC'
+    model_name: 'sl'
+    model_architecture:
+        base_net_architecture:
+            - module_type: 'Conv2d'
+              module_kwargs:
+                in_channels: 3
+                out_channels: 16
+                kernel_size: 4
+                stride: 2
+                padding: 0
+            - module_type: 'ReLU'
+              module_kwargs: {}
+            - module_type: 'BatchNorm2d'
+              module_kwargs:
+                num_features: 16
+            - module_type: 'Dropout'
+              module_kwargs:
+                p: 0.2
+            - module_type: 'Conv2d'
+              module_kwargs:
+                in_channels: 16
+                out_channels: 32
+                kernel_size: 4
+                stride: 2
+                padding: 0
+            - module_type: 'ReLU'
+              module_kwargs: {}
+            - module_type: 'BatchNorm2d'
+              module_kwargs:
+                num_features: 32
+            - module_type: 'Dropout'
+              module_kwargs:
+                p: 0.2
+            - module_type: 'Flatten'
+              module_kwargs: {}
+            - module_type: 'Linear'
+              module_kwargs:
+                  in_features: 1536
+                  out_features: 500
+            - module_type: 'ReLU'
+              module_kwargs: {}
+            - module_type: 'Linear'
+              module_kwargs:
+                  in_features: 500
+                  out_features: 100
+        snail_kwargs:
+            input_size: 103
+            seq_length: 16
+            architecture:
+                - module_type: 'TC'
+                  module_kwargs:
+                      filter_size: 30
+                - module_type: 'ATTENTION'
+                  module_kwargs:
+                      key_size: 16
+                      value_size: 16
+                - module_type: 'TC'
+                  module_kwargs:
+                      filter_size: 30
+        agent_value:
+            - module_type: 'Linear'
+              module_kwargs:
+                  in_features: 361
+                  out_features: 50
+            - module_type: 'ReLU'
+              module_kwargs: {}
+            - module_type: 'Linear'
+              module_kwargs:
+                  in_features: 50
+                  out_features: 1
+
+save_model__actor:
+    model_type: 'ACTOR'
+
+save_model__critic:
+    model_type: 'CRITIC'

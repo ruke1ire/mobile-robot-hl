@@ -128,12 +128,12 @@ class Trainer():
                 algorithm_kwargs = dict(
                     actor_model = self.actor_model,
                     actor_optimizer_dict = self.actor_optimizer_dict, 
-                    dataloader = self.demo_dataloader,
+                    dataloader = self.task_dataloader,
                     )
                 if(additional_algorithm_kwargs is not None):
                     algorithm_kwargs = {**algorithm_kwargs, **additional_algorithm_kwargs}
 
-                self.algorithm = IL(**algorithm_kwargs)
+                self.algorithm = SL(**algorithm_kwargs)
                 Thread(target = self.training_loop, args = (max_epochs, save_every,)).start()
                 self.actor_state = TrainerState.RUNNING
 

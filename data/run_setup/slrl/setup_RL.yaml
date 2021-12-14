@@ -1,0 +1,25 @@
+select_model__actor:
+    model_type: 'ACTOR'
+    model_name: 'slrl'
+    model_id: 'latest'
+
+select_model__critic:
+    model_type: 'CRITIC'
+    model_name: 'slrl'
+    model_id: 'latest'
+
+set_optimizer__actor:
+    model_type: 'ACTOR'
+    optimizer_dict:
+        optimizer_name: 'Adam'
+        optimizer_kwargs:
+            lr: 0.001
+            weight_decay: 0.001
+
+set_optimizer__critic:
+    model_type: 'CRITIC'
+    optimizer_dict:
+        optimizer_name: 'Adam'
+        optimizer_kwargs:
+            lr: 0.001
+            weight_decay: 0.001
