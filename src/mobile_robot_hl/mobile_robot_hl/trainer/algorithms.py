@@ -612,8 +612,8 @@ class SL(Algorithm):
             actor_termination_flag = actor_actions[:,2]
 
             print("# 9. Compute actor loss")
-            velocity_loss = -compute_similarity(user_linear_vel, user_angular_vel, actor_linear_vel, actor_angular_vel)[task_start_index:]
-            velocity_loss = velocity_loss[demo_flag[task_start_index:] == 1.0].mean()
+            velocity_loss = -compute_similarity(user_linear_vel, user_angular_vel, actor_linear_vel, actor_angular_vel)[task_start_index:].mean()
+            #velocity_loss = velocity_loss[demo_flag[task_start_index:] == 1.0].mean()
             termination_flag_loss = F.binary_cross_entropy(actor_termination_flag, desired_termination_flag)
             actor_loss = velocity_loss + termination_flag_loss
             self.logger.log(DataType.num, velocity_loss.item(), key = "loss/actor_velocity")
