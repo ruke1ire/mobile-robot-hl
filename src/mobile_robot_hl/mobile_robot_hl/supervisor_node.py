@@ -368,7 +368,7 @@ class SupervisorNode(Node):
                 image = PImage.fromarray(rnp.numpify(self.task_image_msg))
 
                 # get user output
-                user_output = self.user_output
+                user_output = copy.deepcopy(self.user_output)
                 
                 # set desired_output based on self.state and termination flags
                 if(self.state == SupervisorState.DEMO_RECORDING):

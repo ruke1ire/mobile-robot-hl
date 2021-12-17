@@ -362,7 +362,7 @@ class Selection():
         demo_name = self.demo_box.get(tkinter.ANCHOR)
         try:
             ids = self.ros_node.demo_handler.get_ids(demo_name)
-            ids.sort()
+            ids.sort(reverse = True)
             self.ros_node.variables.ids = ids
         except:
             self.ros_node.variables.ids = []
@@ -373,7 +373,7 @@ class Selection():
         task_name = self.task_box.get(tkinter.ANCHOR)
         try:
             ids = self.ros_node.task_handler.get_ids(task_name)
-            ids.sort()
+            ids.sort(reverse = True)
             self.ros_node.variables.ids = ids
         except:
             self.ros_node.variables.ids = []

@@ -166,6 +166,7 @@ class TD3(Algorithm):
                 target_q_next = torch.cat((target_q[1:],torch.zeros(1).to(self.device1)), dim = 0)
                 target_q = rewards_agent + self.discount * target_q_next
                 target_q = target_q[task_start_index:]
+                print("target_q", target_q)
 
             print("# 5.1 Compute Q-value from critics Q(s_t, a_t)")
             q1 = self.critic_model_1(input = images, input_latent = prev_latent[:-1,:], pre_output_latent = actions, frame_no = frame_no)
