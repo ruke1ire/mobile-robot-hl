@@ -39,6 +39,7 @@ class DemoHandler():
         Get all available demo names
         '''
         demos = [os.path.basename(x) for x in glob.glob(self.path+"/*")]
+        demos.sort()
         return demos
     
     def get_ids(self, name):
@@ -46,6 +47,7 @@ class DemoHandler():
         Get all available demo ids
         '''
         demos = [int(os.path.basename(x)) for x in glob.glob(self.path+"/"+name+"/*") if "yaml" not in os.path.basename(x)]
+        demos.sort()
         return demos
 
     def save(self, demo, name, id_=None):
@@ -124,6 +126,7 @@ class TaskHandler():
         Get all available task names
         '''
         demos = [os.path.basename(x) for x in glob.glob(self.path+"/*")]
+        demos.sort()
         return demos
     
     def get_ids(self, name):
@@ -131,6 +134,7 @@ class TaskHandler():
         Get all available task ids
         '''
         task_episodes = [int(os.path.basename(x)) for x in glob.glob(self.path+"/"+name+"/*") if "yaml" not in os.path.basename(x)]
+        task_episodes.sort()
         return task_episodes
 
     def save(self, episode, demo_name, demo_id, task_id = None):

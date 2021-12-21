@@ -3,6 +3,7 @@ from threading import Thread
 
 import torch
 from torch.utils.data import Dataset, DataLoader
+from mobile_robot_hl.episode_data.utils import InformationType
 
 from mobile_robot_hl.model.utils import *
 import mobile_robot_hl.model.model as m
@@ -35,6 +36,18 @@ class Trainer():
             self.demo_dataloader = DataLoader(self.demo_dataset, batch_size = None, shuffle = True)
         except:
             pass
+
+    def select_data(self, data_type, list_of_names):
+        if(data_type == InformationType.DEMO.name):
+            self.demo_dataset = DemoDataset(self.task_handler, list_of_names = list_of_names)
+        else:
+            self.task_dataset = TaskDataset(self.task_handler, list_of_names = list_of_names)
+
+    def setup_dataloader(self, data_type, shuffle):
+        if(data_type == InformationType.DEMO.name):
+            self.demo_dataloader = DataLoader(self.demo_dataset, batch_size = None, shuffle = shuffle)
+        else:
+            self.task_dataloader = DataLoader(self.task_dataset, batch_size = None, shuffle = shuffle)
 
     def select_model(self, model_type, model_name, model_id = None):
         if(model_type == ModelType.ACTOR.name):
@@ -101,7 +114,7 @@ class Trainer():
             if(self.critic_model is not None):
                 self.critic_state = TrainerState.STANDBY
     
-    def start_training(self, training_type, save_every = None, max_epochs = None, additional_algorithm_kwargs = None):
+    def start_training(self, training_type, algorithm_name, save_every = None, max_epochs = None, additional_algorithm_kwargs = None):
         if(training_type == TrainingType.RL.name):
             if(self.actor_state == TrainerState.STANDBY and self.critic_state == TrainerState.STANDBY):
                 self.stop = False
@@ -115,7 +128,11 @@ class Trainer():
                     )
                 if(additional_algorithm_kwargs is not None):
                     algorithm_kwargs = {**algorithm_kwargs, **additional_algorithm_kwargs}
-                self.algorithm = TD3(**algorithm_kwargs)
+
+                tmp = dict(algorithm_kwargs= algorithm_kwargs, out = None)
+                exec(f"out = {algorithm_name}(**algorithm_kwargs)", None, tmp)
+                self.algorithm = tmp['out']
+                #self.algorithm = TD3(**algorithm_kwargs)
 
                 Thread(target = self.training_loop, args = (max_epochs, save_every,)).start()
                 #self.training_loop(max_epochs, save_every)
@@ -133,7 +150,10 @@ class Trainer():
                 if(additional_algorithm_kwargs is not None):
                     algorithm_kwargs = {**algorithm_kwargs, **additional_algorithm_kwargs}
 
-                self.algorithm = SL(**algorithm_kwargs)
+                #self.algorithm = SL(**algorithm_kwargs)
+                tmp = dict(algorithm_kwargs= algorithm_kwargs, out = None)
+                exec(f"out = {algorithm_name}(**algorithm_kwargs)", None, tmp)
+                self.algorithm = tmp['out']
                 Thread(target = self.training_loop, args = (max_epochs, save_every,)).start()
                 self.actor_state = TrainerState.RUNNING
 

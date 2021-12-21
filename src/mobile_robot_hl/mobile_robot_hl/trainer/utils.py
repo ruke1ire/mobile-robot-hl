@@ -26,17 +26,6 @@ class TrainingType(Enum):
     RL = 1
 
 def compute_rewards(demonstration_flag):
-    '''
-    reward function rules:
-        - Rewards when agent is controlling (Minimize supervisor correction)
-            - 0 reward for every demonstrated timesteps
-            - timestep before supervisor take-over gets a negative reward corresponding to the time that the take-over took place + 1
-        - Rewards for user controlled variables (Imitate)
-            - [0, 1] reward corresponding to the similarity of the user and agent's desired velocity
-        - Rewards for termination flag usage
-            - -1 reward for incorrect usage of termination flag 
-
-    '''
     if(type(demonstration_flag) == torch.Tensor):
         reward_agent = torch.ones((demonstration_flag.shape[0]), dtype = torch.float32)
         reward_agent[demonstration_flag == 1.0] = 0.0
@@ -62,22 +51,28 @@ def compute_similarity(user_linear, user_angular, agent_linear, agent_angular):
     e_dist = torch.sum((user_vel - agent_vel)**2, dim = 1)**0.5
     return -e_dist
             
-def compute_values(gamma, rewards_velocity):
+def compute_values(gamma, rewards_velocity, demo_flag):
     if(type(rewards_velocity) == torch.Tensor):
         size = rewards_velocity.size()[0]
     elif(type(rewards_velocity) == np.ndarray):
         size = rewards_velocity.size
-    discounted_mat = create_discounted_matrix(gamma, size)
+    discounted_mat = create_discounted_matrix(gamma, size, demo_flag)
     if(type(rewards_velocity) == torch.Tensor):
         discounted_mat = torch.tensor(discounted_mat, dtype = torch.float32).to(rewards_velocity.device)
     values = discounted_mat@rewards_velocity
     return values
 
-def create_discounted_matrix(gamma, size):
+def create_discounted_matrix(gamma, size, demo_flag):
     mat = np.zeros((size,size))
     discout_vec = np.array([gamma**i for i in range(size)])
     for i in range(size):
         mat[i,i:] = discout_vec[:(size-i)]
+        try:
+            idx = (demo_flag[i:] == 1.0).nonzero(as_tuple = True)[0][0].item()
+            mat[i,i+idx:] = 0.0
+        except:
+            pass
+
     return mat
 
 def create_optimizer_from_dict(optimizer_dict, parameters):
