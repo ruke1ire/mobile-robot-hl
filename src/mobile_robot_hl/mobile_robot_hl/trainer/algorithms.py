@@ -800,9 +800,6 @@ class TD3_INTER(Algorithm):
             critic_1_loss.backward()
             self.critic_1_optimizer.step()
 
-#            del q1, critic_1_loss
-#            torch.cuda.empty_cache() 
-
             print("# 5.2 Compute Q-value from critics Q(s_t, a_t)")
             q2 = self.critic_model_2(input = images, input_latent = prev_latent[:-1,:], pre_output_latent = actions, frame_no = frame_no)
             q2 = q2[task_start_index:]
@@ -815,10 +812,6 @@ class TD3_INTER(Algorithm):
             self.critic_2_optimizer.zero_grad(set_to_none = True)
             critic_2_loss.backward()
             self.critic_2_optimizer.step()
-
-#            del q2, critic_loss, critic_loss_agent, critic_loss_user, critic_loss_termination_flag
-#            del target_q
-#            torch.cuda.empty_cache() 
 
             print("# 8. Compute actor actions")
             actor_actions = self.actor_model(input = images, input_latent = prev_latent, frame_no = frame_no)

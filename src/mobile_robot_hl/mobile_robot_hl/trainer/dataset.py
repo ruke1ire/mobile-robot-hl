@@ -18,7 +18,7 @@ class DemoDataset(Dataset):
         if(self.list_of_names == None):
             demo_names = set(self.demo_handler.get_names())
         else:
-            demo_names = self.list_of_names
+            demo_names = set(self.list_of_names)
         new_names = demo_names - self.demo_names
         if(len(new_names) > 0):
             self.demo_names = copy.deepcopy(demo_names)
@@ -54,7 +54,7 @@ class TaskDataset(Dataset):
         if(self.list_of_names == None):
             demo_names = set(self.task_handler.get_names())
         else:
-            demo_names = self.list_of_names
+            demo_names = set(self.list_of_names)
         new_names = demo_names - self.demo_names
         if(len(new_names) > 0):
             self.demo_names = copy.deepcopy(demo_names)
