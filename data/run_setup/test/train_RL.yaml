@@ -12,5 +12,5 @@ start_training__RL:
         discount: 0.98
         tau: 0.01
         noise: 0.4
-        exp_decay_const: 0.1
+        exp_decay_const: 0.01
         logger_name: 'WandbLogger'
