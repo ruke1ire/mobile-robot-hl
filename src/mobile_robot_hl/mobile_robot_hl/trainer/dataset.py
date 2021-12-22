@@ -33,7 +33,7 @@ class DemoDataset(Dataset):
                 for id_ in new_ids:
                     data = self.demo_handler.get(name, id_)
                     image_tensor, latent_tensor, frame_no_tensor = data.get_tensor()
-                    self.data.insert(0,(image_tensor, latent_tensor, frame_no_tensor))
+                    self.data.insert(0,(name, id_, image_tensor, latent_tensor, frame_no_tensor))
 
     def __len__(self):
         return len(self.data)
@@ -76,8 +76,8 @@ class TaskDataset(Dataset):
 #                    agent_angular_vel = torch.tensor(data.action.agent.velocity.angular.get())
                     user_linear_vel = torch.tensor(data.action.user.velocity.linear.get())
                     user_angular_vel = torch.tensor(data.action.user.velocity.angular.get())
-                    rewards_agent = compute_rewards(demonstration_flag)
-                    self.data.insert(0,(image_tensor, latent_tensor, frame_no_tensor, rewards_agent, desired_termination_flag, user_linear_vel, user_angular_vel))
+                    rewards_agent = compute_rewards(demonstration_flag, frame_no_tensor)
+                    self.data.insert(0,(name, id_, image_tensor, latent_tensor, frame_no_tensor, rewards_agent, desired_termination_flag, user_linear_vel, user_angular_vel))
 
     def __len__(self):
         return len(self.data)

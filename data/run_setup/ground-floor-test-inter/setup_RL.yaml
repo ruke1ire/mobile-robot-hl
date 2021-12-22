@@ -1,3 +1,8 @@
+select_data:
+    data_type: 'TASK_EPISODE'
+    list_of_names:
+        - 'ground-floor-test-inter'
+
 setup_dataloader:
     data_type: 'TASK_EPISODE'
     shuffle: False

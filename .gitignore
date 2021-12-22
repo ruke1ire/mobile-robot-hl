@@ -6,3 +6,4 @@ data/*
 !data/run_setup/*
 *.DS_Store
 *pycache*
+*wandb*

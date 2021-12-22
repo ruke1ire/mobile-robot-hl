@@ -126,10 +126,11 @@ class TD3(Algorithm):
     
     def train_one_epoch(self, trainer):
         j = 0
-        for (images, latent, frame_no, rewards_agent, desired_termination_flag, user_linear_vel, user_angular_vel) in self.dataloader:
+        for (name, id_, images, latent, frame_no, rewards_agent, desired_termination_flag, user_linear_vel, user_angular_vel) in self.dataloader:
             if(trainer.stop == True):
                 break
 
+            print(f"Episode Name/ID: {name}/{id_}")
             print(f"Run No. {j+1}")
             print(f"Episode Length = {frame_no.shape[0]}")
 
@@ -316,10 +317,11 @@ class IL(Algorithm):
 
     def train_one_epoch(self, trainer):
         j = 0
-        for (images, latent, frame_no) in self.dataloader:
+        for (name, id_, images, latent, frame_no) in self.dataloader:
             if(trainer.stop == True):
                 return
 
+            print(f"Episode Name/ID: {name}/{id_}")
             print(f"Run No. {j+1}")
             print(f"Episode Length = {frame_no.shape[0]}")
 
@@ -443,10 +445,11 @@ class MC(Algorithm):
     
     def train_one_epoch(self, trainer):
         j = 0
-        for (images, latent, frame_no, rewards_agent, rewards_user, rewards_termination_flag) in self.dataloader:
+        for (name, id_, images, latent, frame_no, rewards_agent, rewards_user, rewards_termination_flag) in self.dataloader:
             if(trainer.stop == True):
                 return
 
+            print(f"Episode Name/ID: {name}/{id_}")
             print(f"Run No. {j+1}")
             print(f"Episode Length = {frame_no.shape[0]}")
 
@@ -584,10 +587,11 @@ class SL(Algorithm):
     
     def train_one_epoch(self, trainer):
         j = 0
-        for (images, latent, frame_no, rewards_agent, desired_termination_flag, user_linear_vel, user_angular_vel) in self.dataloader:
+        for (name, id_, images, latent, frame_no, rewards_agent, desired_termination_flag, user_linear_vel, user_angular_vel) in self.dataloader:
             if(trainer.stop == True):
                 break
 
+            print(f"Episode Name/ID: {name}/{id_}")
             print(f"Run No. {j+1}")
             print(f"Episode Length = {frame_no.shape[0]}")
 
@@ -679,6 +683,7 @@ class TD3_INTER(Algorithm):
         self.checkpoint_path = os.path.join(CHECKPOINT_PATH, self.run_name, self.run_id, "checkpoint.pth")
         self.device1 = device1
         self.device2 = device2
+        self.run_nos = dict()
 
         self.actor_model = actor_model
         self.critic_model_1 = critic_model
@@ -697,6 +702,7 @@ class TD3_INTER(Algorithm):
             self.critic_model_2.load_state_dict(checkpoint['critic_2_state_dict'])
             self.critic_model_1_target.load_state_dict(checkpoint['critic_1_target_state_dict'])
             self.critic_model_2_target.load_state_dict(checkpoint['critic_2_target_state_dict'])
+            self.run_nos = checkpoint['run_nos']
         else:
             os.makedirs(os.path.join(CHECKPOINT_PATH, self.run_name, self.run_id), exist_ok=True)
 
@@ -737,22 +743,30 @@ class TD3_INTER(Algorithm):
     
     def train_one_epoch(self, trainer):
         j = 0
-        for (images, latent, frame_no, rewards_agent, desired_termination_flag, user_linear_vel, user_angular_vel) in self.dataloader:
+        for (name, id_, images, latent, frame_no, rewards_agent, desired_termination_flag, user_linear_vel, user_angular_vel) in self.dataloader:
             if(trainer.stop == True):
                 break
 
+            print(f"Episode Name/ID: {name}/{id_}")
             print(f"Run No. {j+1}")
             print(f"Episode Length = {frame_no.shape[0]}")
+
+            iden = f'{name}.{id_}'
+            if(iden in self.run_nos.keys()):
+                self.run_nos[iden] = j + self.run_nos[iden]
+            else:
+                self.run_nos[iden] = j
 
             task_start_index = (frame_no == 1).nonzero()[1].item()
 
             images = images.to(self.device1)
             latent = latent.to(self.device1)
-            rewards_agent = rewards_agent.to(self.device1)
+            rewards_agent = rewards_agent.to(self.device1)*(1-self.discount)
             desired_termination_flag = desired_termination_flag.to(self.device1)
             user_linear_vel = user_linear_vel.to(self.device1)
             user_angular_vel = user_angular_vel.to(self.device1)
             frame_no = frame_no.to(self.device1)
+            print("reward", rewards_agent[task_start_index:]) 
 
             actions = latent[:-1,:]
             demo_flag = latent[-1,:]
@@ -767,32 +781,33 @@ class TD3_INTER(Algorithm):
                 print("# 2. Compute Q-value of next state using the  target critics Q'(s(t+1), P'(s(t+1)))")
                 target_q1 = self.critic_model_1_target(input = images, input_latent = prev_latent[:-1,:], pre_output_latent = target_actions, frame_no = frame_no)
                 target_q2 = self.critic_model_2_target(input = images, input_latent = prev_latent[:-1,:], pre_output_latent = target_actions, frame_no = frame_no)
+                target_q_episode = compute_values(self.discount, rewards_velocity=rewards_agent, demo_flag = demo_flag)
 
                 print("# 3. Use smaller Q-value as the Q-value target")
                 target_q = torch.min(target_q1, target_q2)
-                target_q[demo_flag == 1] = 0
+                target_q[demo_flag == 1] = target_q_episode[demo_flag == 1]
 
-
-                self.logger.log(DataType.num, target_q.mean().item(), "avg-value")
                 print("# 4. Compute current Q-value with the reward")
                 target_q_next = torch.cat((target_q[1:],torch.zeros(1).to(self.device1)), dim = 0)
                 target_q = rewards_agent + self.discount * target_q_next
-                target_q = target_q[task_start_index:]
-                target_q_episode = compute_values(self.discount, rewards_velocity=rewards_agent, demo_flag = demo_flag)[task_start_index:]
+                target_q = target_q[task_start_index:] 
+                target_q_episode = target_q_episode[task_start_index:]
 
                 print("target_q_critic",target_q)
                 print("target_q_episode",target_q_episode)
 
-                decay = math.exp(-j*self.exp_decay_const)
+                decay = math.exp(-self.run_nos[iden]*self.exp_decay_const)
                 target_q = (1-decay)*target_q + (decay)*target_q_episode
                 print("target_q", target_q)
+
 
             print("# 5.1 Compute Q-value from critics Q(s_t, a_t)")
             q1 = self.critic_model_1(input = images, input_latent = prev_latent[:-1,:], pre_output_latent = actions, frame_no = frame_no)
             q1 = q1[task_start_index:]
+            self.logger.log(DataType.num, q1[demo_flag[task_start_index:] == 0].mean().item(), "avg-value")
 
             print("# 6.1 Compute MSE loss for the critics")
-            critic_1_loss = F.mse_loss(q1[demo_flag[task_start_index:] == 0.0], target_q[demo_flag[task_start_index:] == 0.0])
+            critic_1_loss = 100*F.mse_loss(q1[demo_flag[task_start_index:] == 0.0], target_q[demo_flag[task_start_index:] == 0.0])
             self.logger.log(DataType.num, critic_1_loss.item(), key = "loss/critic1")
 
             print("# 7.1 Optimize critic")
@@ -805,7 +820,7 @@ class TD3_INTER(Algorithm):
             q2 = q2[task_start_index:]
 
             print("# 6.2 Compute MSE loss for the critics")
-            critic_2_loss = F.mse_loss(q2[demo_flag[task_start_index:] == 0.0], target_q[demo_flag[task_start_index:] == 0.0])
+            critic_2_loss = 100*F.mse_loss(q2[demo_flag[task_start_index:] == 0.0], target_q[demo_flag[task_start_index:] == 0.0])
             self.logger.log(DataType.num, critic_2_loss.item(), key = "loss/critic2")
 
             print("# 7.2 Optimize critic")
@@ -874,4 +889,5 @@ class TD3_INTER(Algorithm):
                     'actor_optimizer_state_dict': self.actor_optimizer.state_dict(),
                     'critic_1_optimizer_state_dict': self.critic_1_optimizer.state_dict(),
                     'critic_2_optimizer_state_dict': self.critic_2_optimizer.state_dict(),
+                    'run_nos': self.run_nos
                     }, self.checkpoint_path)
