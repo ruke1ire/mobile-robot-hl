@@ -5,7 +5,7 @@ start_training__RL:
     max_epochs: 1
     additional_algorithm_kwargs:
         run_name: 'test'
-        run_id: 20
+        run_id: 21
         checkpoint_every: 10
         device1: 'cuda:0'
         device2: 'cuda:1'
