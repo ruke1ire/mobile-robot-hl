@@ -683,6 +683,7 @@ class TD3_INTER(Algorithm):
         self.checkpoint_path = os.path.join(CHECKPOINT_PATH, self.run_name, self.run_id, "checkpoint.pth")
         self.device1 = device1
         self.device2 = device2
+        self.run_no = 0
         self.run_nos = dict()
 
         self.actor_model = actor_model
@@ -702,6 +703,7 @@ class TD3_INTER(Algorithm):
             self.critic_model_2.load_state_dict(checkpoint['critic_2_state_dict'])
             self.critic_model_1_target.load_state_dict(checkpoint['critic_1_target_state_dict'])
             self.critic_model_2_target.load_state_dict(checkpoint['critic_2_target_state_dict'])
+            self.run_no = checkpoint['run_no']
             self.run_nos = checkpoint['run_nos']
         else:
             os.makedirs(os.path.join(CHECKPOINT_PATH, self.run_name, self.run_id), exist_ok=True)
@@ -737,7 +739,8 @@ class TD3_INTER(Algorithm):
             discount = self.discount, 
             tau = self.tau, 
             noise = self.noise, 
-            actor_update_period = self.actor_update_period
+            actor_update_period = self.actor_update_period,
+            exp_decay_const = self.exp_decay_const
             )
         self.logger = create_logger(self.run_name, self.run_id, config_dict, logger_name)
     
@@ -752,16 +755,14 @@ class TD3_INTER(Algorithm):
             print(f"Episode Length = {frame_no.shape[0]}")
 
             iden = f'{name}.{id_}'
-            if(iden in self.run_nos.keys()):
-                self.run_nos[iden] = j + self.run_nos[iden]
-            else:
-                self.run_nos[iden] = j
+            if(iden not in self.run_nos.keys()):
+                self.run_nos[iden] = self.run_no - j
 
             task_start_index = (frame_no == 1).nonzero()[1].item()
 
             images = images.to(self.device1)
             latent = latent.to(self.device1)
-            rewards_agent = rewards_agent.to(self.device1)*(1-self.discount)
+            rewards_agent = rewards_agent.to(self.device1)#*(1-self.discount)
             desired_termination_flag = desired_termination_flag.to(self.device1)
             user_linear_vel = user_linear_vel.to(self.device1)
             user_angular_vel = user_angular_vel.to(self.device1)
@@ -785,7 +786,7 @@ class TD3_INTER(Algorithm):
 
                 print("# 3. Use smaller Q-value as the Q-value target")
                 target_q = torch.min(target_q1, target_q2)
-                target_q[demo_flag == 1] = 0.0
+                target_q[demo_flag == 1] = target_q_episode[demo_flag == 1]
 
                 print("# 4. Compute current Q-value with the reward")
                 target_q_next = torch.cat((target_q[1:],torch.zeros(1).to(self.device1)), dim = 0)
@@ -796,10 +797,9 @@ class TD3_INTER(Algorithm):
                 print("target_q_critic",target_q[demo_flag[task_start_index:] == 0])
                 print("target_q_episode",target_q_episode[demo_flag[task_start_index:] == 0])
 
-                decay = math.exp(-self.run_nos[iden]*self.exp_decay_const)
+                decay = math.exp(-(self.run_no-self.run_nos[iden])*self.exp_decay_const)
                 target_q = (1-decay)*target_q + (decay)*target_q_episode
                 print("target_q", target_q[demo_flag[task_start_index:] == 0])
-
 
             print("# 5.1 Compute Q-value from critics Q(s_t, a_t)")
             q1 = self.critic_model_1(input = images, input_latent = prev_latent[:-1,:], pre_output_latent = actions, frame_no = frame_no)
@@ -807,7 +807,11 @@ class TD3_INTER(Algorithm):
             self.logger.log(DataType.num, q1[demo_flag[task_start_index:] == 0].mean().item(), "avg-value")
 
             print("# 6.1 Compute MSE loss for the critics")
-            critic_1_loss = 100*F.mse_loss(q1[demo_flag[task_start_index:] == 0.0], target_q[demo_flag[task_start_index:] == 0.0])
+            critic_1_se = (q1[demo_flag[task_start_index:] == 0.0] - target_q[demo_flag[task_start_index:] == 0.0])**2
+            critic_1_mse = critic_1_se.mean()
+            #critic_1_std = critic_1_se.std()
+            critic_1_loss = critic_1_se[critic_1_se > (critic_1_mse)].mean()
+            #critic_1_loss = 100*F.mse_loss(q1[demo_flag[task_start_index:] == 0.0], target_q[demo_flag[task_start_index:] == 0.0])
             self.logger.log(DataType.num, critic_1_loss.item(), key = "loss/critic1")
 
             print("# 7.1 Optimize critic")
@@ -820,7 +824,11 @@ class TD3_INTER(Algorithm):
             q2 = q2[task_start_index:]
 
             print("# 6.2 Compute MSE loss for the critics")
-            critic_2_loss = 100*F.mse_loss(q2[demo_flag[task_start_index:] == 0.0], target_q[demo_flag[task_start_index:] == 0.0])
+            critic_2_se = (q2[demo_flag[task_start_index:] == 0.0] - target_q[demo_flag[task_start_index:] == 0.0])**2
+            critic_2_mse = critic_2_se.mean()
+            #critic_2_std = critic_2_se.std()
+            critic_2_loss = critic_2_se[critic_2_se > (critic_2_mse)].mean()
+            #critic_2_loss = 100*F.mse_loss(q2[demo_flag[task_start_index:] == 0.0], target_q[demo_flag[task_start_index:] == 0.0])
             self.logger.log(DataType.num, critic_2_loss.item(), key = "loss/critic2")
 
             print("# 7.2 Optimize critic")
@@ -873,6 +881,7 @@ class TD3_INTER(Algorithm):
                 self.checkpoint()
 
             j += 1
+            self.run_no += 1
         self.checkpoint()
     
     def checkpoint(self):
@@ -887,5 +896,6 @@ class TD3_INTER(Algorithm):
                     'actor_optimizer_state_dict': self.actor_optimizer.state_dict(),
                     'critic_1_optimizer_state_dict': self.critic_1_optimizer.state_dict(),
                     'critic_2_optimizer_state_dict': self.critic_2_optimizer.state_dict(),
+                    'run_no': self.run_no,
                     'run_nos': self.run_nos
                     }, self.checkpoint_path)

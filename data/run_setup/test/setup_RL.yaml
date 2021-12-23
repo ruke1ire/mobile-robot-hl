@@ -5,7 +5,7 @@ select_data:
 
 setup_dataloader:
     data_type: 'TASK_EPISODE'
-    shuffle: False
+    shuffle: True
 
 select_model__actor:
     model_type: 'ACTOR'
@@ -23,7 +23,7 @@ set_optimizer__actor:
         optimizer_name: 'Adam'
         optimizer_kwargs:
             lr: 0.001
-            weight_decay: 0.0001
+            weight_decay: 0.001
 
 set_optimizer__critic:
     model_type: 'CRITIC'
@@ -31,4 +31,4 @@ set_optimizer__critic:
         optimizer_name: 'Adam'
         optimizer_kwargs:
             lr: 0.001
-            weight_decay: 0.0001
+            weight_decay: 0.001
