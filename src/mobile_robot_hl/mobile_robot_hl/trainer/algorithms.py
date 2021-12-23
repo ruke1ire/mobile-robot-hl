@@ -785,7 +785,7 @@ class TD3_INTER(Algorithm):
 
                 print("# 3. Use smaller Q-value as the Q-value target")
                 target_q = torch.min(target_q1, target_q2)
-                target_q[demo_flag == 1] = target_q_episode[demo_flag == 1]
+                target_q[demo_flag == 1] = 0.0
 
                 print("# 4. Compute current Q-value with the reward")
                 target_q_next = torch.cat((target_q[1:],torch.zeros(1).to(self.device1)), dim = 0)
@@ -793,12 +793,12 @@ class TD3_INTER(Algorithm):
                 target_q = target_q[task_start_index:] 
                 target_q_episode = target_q_episode[task_start_index:]
 
-                print("target_q_critic",target_q)
-                print("target_q_episode",target_q_episode)
+                print("target_q_critic",target_q[demo_flag[task_start_index:] == 0])
+                print("target_q_episode",target_q_episode[demo_flag[task_start_index:] == 0])
 
                 decay = math.exp(-self.run_nos[iden]*self.exp_decay_const)
                 target_q = (1-decay)*target_q + (decay)*target_q_episode
-                print("target_q", target_q)
+                print("target_q", target_q[demo_flag[task_start_index:] == 0])
 
 
             print("# 5.1 Compute Q-value from critics Q(s_t, a_t)")
@@ -868,8 +868,6 @@ class TD3_INTER(Algorithm):
 
             for param, target_param in zip(self.actor_model.parameters(), self.actor_model_target.parameters()):
                 target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)	
-            
-            del param, target_param
 
             if(j % self.checkpoint_every == self.checkpoint_every-1):
                 self.checkpoint()
