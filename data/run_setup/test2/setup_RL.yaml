@@ -1,0 +1,34 @@
+#select_data:
+#    data_type: 'TASK_EPISODE'
+#    list_of_names:
+#        - 'ground-floor-test'
+#
+#setup_dataloader:
+#    data_type: 'TASK_EPISODE'
+#    shuffle: True
+
+select_model__actor:
+    model_type: 'ACTOR'
+    model_name: 'test2_td3'
+    model_id: 'latest'
+
+select_model__critic:
+    model_type: 'CRITIC'
+    model_name: 'test2_td3'
+    model_id: 'latest'
+
+set_optimizer__actor:
+    model_type: 'ACTOR'
+    optimizer_dict:
+        optimizer_name: 'Adam'
+        optimizer_kwargs:
+            lr: 0.001
+            weight_decay: 0.001
+
+set_optimizer__critic:
+    model_type: 'CRITIC'
+    optimizer_dict:
+        optimizer_name: 'Adam'
+        optimizer_kwargs:
+            lr: 0.001
+            weight_decay: 0.001

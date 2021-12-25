@@ -1,6 +1,6 @@
 create_model__actor:
     model_type: 'ACTOR'
-    model_name: 'test'
+    model_name: 'test2_td3'
     model_architecture:
         base_net_architecture:
             - module_type: 'Conv2d'
@@ -67,7 +67,7 @@ create_model__actor:
 
 create_model__critic:
     model_type: 'CRITIC'
-    model_name: 'test'
+    model_name: 'test2_td3'
     model_architecture:
         base_net_architecture:
             - module_type: 'Conv2d'

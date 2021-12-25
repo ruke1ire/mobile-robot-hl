@@ -155,24 +155,24 @@ class TD3(Algorithm):
                 target_actions = self.actor_model_target(input = images, input_latent = prev_latent, frame_no = frame_no, noise = self.noise).permute((1,0)) 
 
                 print("# 2. Compute Q-value of next state using the  target critics Q'(s(t+1), P'(s(t+1)))")
-                target_q1 = self.critic_model_1_target(input = images, input_latent = prev_latent[:-1,:], pre_output_latent = target_actions, frame_no = frame_no)
-                target_q2 = self.critic_model_2_target(input = images, input_latent = prev_latent[:-1,:], pre_output_latent = target_actions, frame_no = frame_no)
+                target_q1 = self.critic_model_1_target(input = images, input_latent = prev_latent, pre_output_latent = target_actions, frame_no = frame_no)
+                target_q2 = self.critic_model_2_target(input = images, input_latent = prev_latent, pre_output_latent = target_actions, frame_no = frame_no)
+                target_q_episode = compute_values(self.discount, rewards_velocity=rewards_agent, demo_flag = demo_flag)
 
                 print("# 3. Use smaller Q-value as the Q-value target")
                 target_q = torch.min(target_q1, target_q2)
-                self.logger.log(DataType.num, target_q.mean().item(), "avg-value")
-
-                target_q[demo_flag == 1] = 0
+                target_q[demo_flag == 1] = target_q_episode[demo_flag == 1]
 
                 print("# 4. Compute current Q-value with the reward")
                 target_q_next = torch.cat((target_q[1:],torch.zeros(1).to(self.device1)), dim = 0)
                 target_q = rewards_agent + self.discount * target_q_next
-                target_q = target_q[task_start_index:]
-                print("target_q", target_q)
+                target_q = target_q[task_start_index:] 
+                print("target_q", target_q[demo_flag[task_start_index:] == 0])
 
             print("# 5.1 Compute Q-value from critics Q(s_t, a_t)")
-            q1 = self.critic_model_1(input = images, input_latent = prev_latent[:-1,:], pre_output_latent = actions, frame_no = frame_no)
+            q1 = self.critic_model_1(input = images, input_latent = prev_latent, pre_output_latent = actions, frame_no = frame_no)
             q1 = q1[task_start_index:]
+            self.logger.log(DataType.num, q1[demo_flag[task_start_index:] == 0].mean().item(), "avg-value")
 
             print("# 6.1 Compute MSE loss for the critics")
             critic_1_loss = F.mse_loss(q1[demo_flag[task_start_index:] == 0.0], target_q[demo_flag[task_start_index:] == 0.0])
@@ -183,11 +183,8 @@ class TD3(Algorithm):
             critic_1_loss.backward()
             self.critic_1_optimizer.step()
 
-#            del q1, critic_1_loss
-#            torch.cuda.empty_cache() 
-
             print("# 5.2 Compute Q-value from critics Q(s_t, a_t)")
-            q2 = self.critic_model_2(input = images, input_latent = prev_latent[:-1,:], pre_output_latent = actions, frame_no = frame_no)
+            q2 = self.critic_model_2(input = images, input_latent = prev_latent, pre_output_latent = actions, frame_no = frame_no)
             q2 = q2[task_start_index:]
 
             print("# 6.2 Compute MSE loss for the critics")
@@ -198,10 +195,6 @@ class TD3(Algorithm):
             self.critic_2_optimizer.zero_grad(set_to_none = True)
             critic_2_loss.backward()
             self.critic_2_optimizer.step()
-
-#            del q2, critic_loss, critic_loss_agent, critic_loss_user, critic_loss_termination_flag
-#            del target_q
-#            torch.cuda.empty_cache() 
 
             print("# 8. Compute actor actions")
             actor_actions = self.actor_model(input = images, input_latent = prev_latent, frame_no = frame_no)
@@ -222,7 +215,7 @@ class TD3(Algorithm):
                 print("# 10. Compute the negative critic values using the real critic")
                 negative_value = -self.critic_model_1(
                                     input = images,
-                                    input_latent = prev_latent[:-1,:],
+                                    input_latent = prev_latent,
                                     pre_output_latent = actor_actions.T,
                                     frame_no = frame_no)[task_start_index:]
                 negative_value = negative_value[demo_flag[task_start_index:] == 0.0].mean()
@@ -780,8 +773,8 @@ class TD3_INTER(Algorithm):
                 target_actions = self.actor_model_target(input = images, input_latent = prev_latent, frame_no = frame_no, noise = self.noise).permute((1,0)) 
 
                 print("# 2. Compute Q-value of next state using the  target critics Q'(s(t+1), P'(s(t+1)))")
-                target_q1 = self.critic_model_1_target(input = images, input_latent = prev_latent[:-1,:], pre_output_latent = target_actions, frame_no = frame_no)
-                target_q2 = self.critic_model_2_target(input = images, input_latent = prev_latent[:-1,:], pre_output_latent = target_actions, frame_no = frame_no)
+                target_q1 = self.critic_model_1_target(input = images, input_latent = prev_latent, pre_output_latent = target_actions, frame_no = frame_no)
+                target_q2 = self.critic_model_2_target(input = images, input_latent = prev_latent, pre_output_latent = target_actions, frame_no = frame_no)
                 target_q_episode = compute_values(self.discount, rewards_velocity=rewards_agent, demo_flag = demo_flag)
 
                 print("# 3. Use smaller Q-value as the Q-value target")
@@ -802,7 +795,7 @@ class TD3_INTER(Algorithm):
                 print("target_q", target_q[demo_flag[task_start_index:] == 0])
 
             print("# 5.1 Compute Q-value from critics Q(s_t, a_t)")
-            q1 = self.critic_model_1(input = images, input_latent = prev_latent[:-1,:], pre_output_latent = actions, frame_no = frame_no)
+            q1 = self.critic_model_1(input = images, input_latent = prev_latent, pre_output_latent = actions, frame_no = frame_no)
             q1 = q1[task_start_index:]
             self.logger.log(DataType.num, q1[demo_flag[task_start_index:] == 0].mean().item(), "avg-value")
 
@@ -820,7 +813,7 @@ class TD3_INTER(Algorithm):
             self.critic_1_optimizer.step()
 
             print("# 5.2 Compute Q-value from critics Q(s_t, a_t)")
-            q2 = self.critic_model_2(input = images, input_latent = prev_latent[:-1,:], pre_output_latent = actions, frame_no = frame_no)
+            q2 = self.critic_model_2(input = images, input_latent = prev_latent, pre_output_latent = actions, frame_no = frame_no)
             q2 = q2[task_start_index:]
 
             print("# 6.2 Compute MSE loss for the critics")
@@ -855,7 +848,7 @@ class TD3_INTER(Algorithm):
                 print("# 10. Compute the negative critic values using the real critic")
                 negative_value = -self.critic_model_1(
                                     input = images,
-                                    input_latent = prev_latent[:-1,:],
+                                    input_latent = prev_latent,
                                     pre_output_latent = actor_actions.T,
                                     frame_no = frame_no)[task_start_index:]
                 negative_value = negative_value[demo_flag[task_start_index:] == 0.0].mean()
