@@ -175,7 +175,9 @@ class TD3(Algorithm):
             self.logger.log(DataType.num, q1[demo_flag[task_start_index:] == 0].mean().item(), "avg-value")
 
             print("# 6.1 Compute MSE loss for the critics")
-            critic_1_loss = F.mse_loss(q1[demo_flag[task_start_index:] == 0.0], target_q[demo_flag[task_start_index:] == 0.0])
+            critic_1_se = (q1[demo_flag[task_start_index:] == 0.0] - target_q[demo_flag[task_start_index:] == 0.0])**2
+            critic_1_mse = critic_1_se.mean()
+            critic_1_loss = critic_1_se[critic_1_se > (critic_1_mse)].mean()
             self.logger.log(DataType.num, critic_1_loss.item(), key = "loss/critic1")
 
             print("# 7.1 Optimize critic")
@@ -188,7 +190,9 @@ class TD3(Algorithm):
             q2 = q2[task_start_index:]
 
             print("# 6.2 Compute MSE loss for the critics")
-            critic_2_loss = F.mse_loss(q2[demo_flag[task_start_index:] == 0.0], target_q[demo_flag[task_start_index:] == 0.0])
+            critic_2_se = (q2[demo_flag[task_start_index:] == 0.0] - target_q[demo_flag[task_start_index:] == 0.0])**2
+            critic_2_mse = critic_2_se.mean()
+            critic_2_loss = critic_2_se[critic_2_se > (critic_2_mse)].mean()
             self.logger.log(DataType.num, critic_2_loss.item(), key = "loss/critic2")
 
             print("# 7.2 Optimize critic")
