@@ -204,6 +204,102 @@ class MimeticSNAILCritic(nn.Module):
     def reset(self):
         self.snail_net.reset()
 
+class SSActor(nn.Module):
+    def __init__(self, base_architecture, out_architecture):
+        '''
+        Single State Actor Module
+
+        architecture: architecture of SSActor
+        '''
+        super().__init__()
+
+        base_modules = []
+        for module_information in base_architecture:
+            exec(f"base_modules.append(nn.{module_information['module_type']}(**{module_information['module_kwargs']}))")
+        self.base_net = nn.Sequential(*base_modules)
+
+        out_modules = []
+        for module_information in out_architecture:
+            exec(f"out_modules.append(nn.{module_information['module_type']}(**{module_information['module_kwargs']}))")
+        self.out_net = nn.Sequential(*out_modules)
+
+        self.output_processor = OutputProcessor()
+    
+    def forward(self, input, input_latent=None, pre_output_latent=None, frame_no = None, noise = 0.0, inference_mode = InferenceMode.NONE):
+        shape_len = input.dim()
+
+        if(shape_len in [3,4]):
+            if(shape_len == 3):
+                input = input.unsqueeze(0)
+            base_output = self.base_net(input)
+            base_output = torch.cat((base_output, input_latent.T), dim = 1)
+            output = self.out_net(base_output)
+        elif(shape_len == 5):
+            output_list = []
+            for input_ in input:
+                base_output = self.base_net(input_)
+                base_output = torch.cat((base_output, input_latent.T), dim = 1)
+                output = self.out_net(base_output)
+                output_list.append(output)
+            output = torch.stack(output_list)
+        else:
+            raise Exception("Invalid input shape")
+
+        output = self.output_processor(output, noise)
+         
+        return output
+
+    def reset(self):
+        pass
+
+class SSCritic(nn.Module):
+    def __init__(self, base_architecture, out_architecture):
+        '''
+        Single State Actor Module
+
+        architecture: architecture of SSActor
+        '''
+        super().__init__()
+
+        base_modules = []
+        for module_information in base_architecture:
+            exec(f"base_modules.append(nn.{module_information['module_type']}(**{module_information['module_kwargs']}))")
+        self.base_net = nn.Sequential(*base_modules)
+
+        out_modules = []
+        for module_information in out_architecture:
+            exec(f"out_modules.append(nn.{module_information['module_type']}(**{module_information['module_kwargs']}))")
+        self.out_net = nn.Sequential(*out_modules)
+
+        self.output_processor = OutputProcessor()
+    
+    def forward(self, input, input_latent=None, pre_output_latent=None, frame_no = None, noise = 0.0, inference_mode = InferenceMode.NONE):
+        shape_len = input.dim()
+
+        if(shape_len in [3,4]):
+            if(shape_len == 3):
+                input = input.unsqueeze(0)
+            base_output = self.base_net(input)
+            base_output = torch.cat((base_output, input_latent.T, pre_output_latent.T), dim = 1)
+            output = self.out_net(base_output)
+            output = output.squeeze(1)
+        elif(shape_len == 5):
+            output_list = []
+            for input_ in input:
+                base_output = self.base_net(input_)
+                base_output = torch.cat((base_output, input_latent.T, pre_output_latent.T), dim = 1)
+                output = self.out_net(base_output)
+                output = output.squeeze(1)
+                output_list.append(output)
+            output = torch.stack(output_list)
+        else:
+            raise Exception("Invalid input shape")
+         
+        return output
+
+    def reset(self):
+        pass
+
 class OutputProcessor(nn.Module):
     def __init__(self):
         super().__init__()

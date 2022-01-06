@@ -25,9 +25,9 @@ class ModelHandler():
         model_architecture = info_dict['architecture']
 
         if(model_type == ModelType.ACTOR):
-            model = m.MimeticSNAILActor(**model_architecture)
+            model = m.SSActor(**model_architecture)
         else:
-            model = m.MimeticSNAILCritic(**model_architecture)
+            model = m.SSCritic(**model_architecture)
 
         model.load_state_dict(torch.load(f"{self.path}/{model_type.name.lower()}/{name}/{id_}.pth", map_location = 'cpu'))
 
