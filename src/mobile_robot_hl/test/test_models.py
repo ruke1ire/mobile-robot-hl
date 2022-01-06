@@ -53,7 +53,7 @@ actor_kwargs = dict(
             [
                 dict(module_type = 'Linear',
                     module_kwargs = dict(
-                        in_features = 104,
+                        in_features = 100,
                         out_features = 50)),
                 dict(module_type = 'ReLU',
                     module_kwargs = dict()),
@@ -110,7 +110,7 @@ critic_kwargs = dict(
             [
                 dict(module_type = 'Linear',
                     module_kwargs = dict(
-                        in_features = 107,
+                        in_features = 103,
                         out_features = 50)),
                 dict(module_type = 'ReLU',
                     module_kwargs = dict()),

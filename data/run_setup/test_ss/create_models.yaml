@@ -48,7 +48,7 @@ create_model__actor:
         out_architecture:
             - module_type: 'Linear'
               module_kwargs:
-                  in_features: 104
+                  in_features: 100
                   out_features: 50
             - module_type: 'ReLU'
               module_kwargs: {}
@@ -107,7 +107,7 @@ create_model__critic:
         out_architecture:
             - module_type: 'Linear'
               module_kwargs:
-                  in_features: 107
+                  in_features: 103
                   out_features: 50
             - module_type: 'ReLU'
               module_kwargs: {}

@@ -232,13 +232,11 @@ class SSActor(nn.Module):
             if(shape_len == 3):
                 input = input.unsqueeze(0)
             base_output = self.base_net(input)
-            base_output = torch.cat((base_output, input_latent.T), dim = 1)
             output = self.out_net(base_output)
         elif(shape_len == 5):
             output_list = []
             for input_ in input:
                 base_output = self.base_net(input_)
-                base_output = torch.cat((base_output, input_latent.T), dim = 1)
                 output = self.out_net(base_output)
                 output_list.append(output)
             output = torch.stack(output_list)
@@ -280,14 +278,14 @@ class SSCritic(nn.Module):
             if(shape_len == 3):
                 input = input.unsqueeze(0)
             base_output = self.base_net(input)
-            base_output = torch.cat((base_output, input_latent.T, pre_output_latent.T), dim = 1)
+            base_output = torch.cat((base_output, pre_output_latent.T), dim = 1)
             output = self.out_net(base_output)
             output = output.squeeze(1)
         elif(shape_len == 5):
             output_list = []
             for input_ in input:
                 base_output = self.base_net(input_)
-                base_output = torch.cat((base_output, input_latent.T, pre_output_latent.T), dim = 1)
+                base_output = torch.cat((base_output, pre_output_latent.T), dim = 1)
                 output = self.out_net(base_output)
                 output = output.squeeze(1)
                 output_list.append(output)
