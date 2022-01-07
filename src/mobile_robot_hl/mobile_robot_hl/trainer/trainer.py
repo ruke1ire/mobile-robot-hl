@@ -40,8 +40,10 @@ class Trainer():
     def select_data(self, data_type, list_of_names):
         if(data_type == InformationType.DEMO.name):
             self.demo_dataset = DemoDataset(self.task_handler, list_of_names = list_of_names)
+            self.demo_dataloader = DataLoader(self.demo_dataset, batch_size = None, shuffle = True)
         else:
             self.task_dataset = TaskDataset(self.task_handler, list_of_names = list_of_names)
+            self.task_dataloader = DataLoader(self.task_dataset, batch_size = None, shuffle = True)
 
     def setup_dataloader(self, data_type, shuffle):
         if(data_type == InformationType.DEMO.name):
@@ -79,7 +81,7 @@ class Trainer():
         if(model_type == ModelType.ACTOR.name):
             if(self.actor_state in [TrainerState.RUNNING, TrainerState.STANDBY]):
                 return
-            self.actor_model = m.SSActor(**model_architecture)
+            self.actor_model = m.MimeticSNAILActor(**model_architecture)
             self.actor_model_info = dict(architecture = model_architecture, name = model_name)
             try:
                 if(self.actor_optimizer_dict is not None):
@@ -94,7 +96,7 @@ class Trainer():
             if(self.critic_state in [TrainerState.RUNNING, TrainerState.STANDBY]):
                 return
             try:
-                self.critic_model = m.SSCritic(**model_architecture)
+                self.critic_model = m.MimeticSNAILCritic(**model_architecture)
                 self.critic_model_info = dict(architecture = model_architecture, name = model_name)
                 if(self.critic_optimizer_dict is not None):
                     self.critic_state = TrainerState.STANDBY
@@ -174,12 +176,12 @@ class Trainer():
     def restart_model(self, model_type):
         if(model_type == ModelType.ACTOR.name):
             if(self.actor_state == TrainerState.STANDBY):
-                self.actor_model = m.SSActor(**self.actor_model_info['architecture'])
+                self.actor_model = m.MimeticSNAILActor(**self.actor_model_info['architecture'])
             else:
                 return
         else:
             if(self.critic_state == TrainerState.STANDBY):
-                self.critic_model = m.SSCritic(**self.critic_model_info['architecture'])
+                self.critic_model = m.MimeticSNAILCritic(**self.critic_model_info['architecture'])
             else:
                 return
     
