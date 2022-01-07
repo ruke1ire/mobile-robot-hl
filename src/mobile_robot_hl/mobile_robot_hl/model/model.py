@@ -244,6 +244,7 @@ class SSActor(nn.Module):
             raise Exception("Invalid input shape")
 
         output = self.output_processor(output, noise)
+        output = output.squeeze(0)
          
         return output
 

@@ -125,7 +125,7 @@ critic = SSCritic(**critic_kwargs)
 
 print("============TEST ACTOR")
 
-output_actor = actor(dummy_observations, dummy_input_latent, None, frame_no, noise = 0.3)
+output_actor = actor(dummy_observations[0,:,:,:], dummy_input_latent[:,0], None, frame_no, noise = 0.3)
 print("Output =", output_actor)
 print("Size =", output_actor.shape)
 

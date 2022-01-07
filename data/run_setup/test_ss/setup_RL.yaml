@@ -1,8 +1,8 @@
-#select_data:
-#    data_type: 'TASK_EPISODE'
-#    list_of_names:
-#        - 'ground-floor-test'
-#
+select_data:
+    data_type: 'TASK_EPISODE'
+    list_of_names:
+        - 'pf_slrl_1'
+
 #setup_dataloader:
 #    data_type: 'TASK_EPISODE'
 #    shuffle: True

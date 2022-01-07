@@ -1,8 +1,8 @@
 start_training__RL:
     training_type: 'RL'
     algorithm_name: 'TD3'
-    save_every: 100
-    max_epochs: 10000
+    save_every: 1
+    max_epochs: 10
     additional_algorithm_kwargs:
         run_name: 'test2'
         run_id: 1
