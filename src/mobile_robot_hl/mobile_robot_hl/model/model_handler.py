@@ -11,6 +11,10 @@ class ModelHandler():
     MODEL_INFO_FILE = "info.yaml"
     def __init__(self, path):
         self.path = path
+        actor_model_type = os.environ['MOBILE_ROBOT_HL_ACTOR_MODEL_TYPE']
+        critic_model_type = os.environ['MOBILE_ROBOT_HL_CRITIC_MODEL_TYPE']
+        self.actor_model_class = getattr(m, actor_model_type)
+        self.critic_model_class = getattr(m, critic_model_type)
 
     def get(self, model_type, name, id_ = None):
         '''
@@ -25,9 +29,9 @@ class ModelHandler():
         model_architecture = info_dict['architecture']
 
         if(model_type == ModelType.ACTOR):
-            model = m.MimeticSNAILActor(**model_architecture)
+            model = self.actor_model_class(**model_architecture)
         else:
-            model = m.MimeticSNAILCritic(**model_architecture)
+            model = self.critic_model_class(**model_architecture)
 
         model.load_state_dict(torch.load(f"{self.path}/{model_type.name.lower()}/{name}/{id_}.pth", map_location = 'cpu'))
 
