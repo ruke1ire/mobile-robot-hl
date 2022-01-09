@@ -74,10 +74,8 @@ class TaskDataset(Dataset):
 #                    agent_termination_flag = torch.tensor(data.action.agent.termination_flag.get(), dtype=torch.float32)
 #                    agent_linear_vel = torch.tensor(data.action.agent.velocity.linear.get())
 #                    agent_angular_vel = torch.tensor(data.action.agent.velocity.angular.get())
-                    user_linear_vel = torch.tensor(data.action.user.velocity.linear.get())
-                    user_angular_vel = torch.tensor(data.action.user.velocity.angular.get())
                     rewards_agent = compute_rewards(demonstration_flag, frame_no_tensor)
-                    self.data.insert(0,(name, id_, image_tensor, latent_tensor, frame_no_tensor, rewards_agent, desired_termination_flag, user_linear_vel, user_angular_vel))
+                    self.data.insert(0,(name, id_, image_tensor, latent_tensor, frame_no_tensor, rewards_agent, desired_termination_flag))
 
     def __len__(self):
         return len(self.data)
