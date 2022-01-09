@@ -207,7 +207,11 @@ class TD3(Algorithm):
 
             print("# 9. Compute actor loss")
             velocity_loss = -compute_similarity(actions[0,:], actions[1,:], actor_linear_vel, actor_angular_vel)[task_start_index:]
-            velocity_loss = velocity_loss[demo_flag[task_start_index:] == 1.0].mean()
+            velocity_loss = velocity_loss[demo_flag[task_start_index:] == 1.0]
+            if(velocity_loss.shape[0] > 0):
+                velocity_loss = velocity_loss.mean()
+            else:
+                velocity_loss = torch.tensor(0.0).to(self.device)
             termination_flag_loss = F.binary_cross_entropy(actor_termination_flag, desired_termination_flag)
             actor_loss = velocity_loss + termination_flag_loss
             self.logger.log(DataType.num, velocity_loss.item(), key = "loss/actor_velocity")
@@ -461,7 +465,11 @@ class TD3_INTER(Algorithm):
 
             print("# 9. Compute actor loss")
             velocity_loss = -compute_similarity(actions[0,:], actions[1,:], actor_linear_vel, actor_angular_vel)[task_start_index:]
-            velocity_loss = velocity_loss[demo_flag[task_start_index:] == 1.0].mean()
+            velocity_loss = velocity_loss[demo_flag[task_start_index:] == 1.0]
+            if(velocity_loss.shape[0] > 0):
+                velocity_loss = velocity_loss.mean()
+            else:
+                velocity_loss = torch.tensor(0.0).to(self.device)
             termination_flag_loss = F.binary_cross_entropy(actor_termination_flag, desired_termination_flag)
             actor_loss = velocity_loss + termination_flag_loss
             self.logger.log(DataType.num, velocity_loss.item(), key = "loss/actor_velocity")
@@ -825,7 +833,11 @@ class SL(Algorithm):
             print("# 9. Compute actor loss")
             velocity_loss = -compute_similarity(actions[0,:], actions[1,:], actor_linear_vel, actor_angular_vel)[task_start_index:]
             if(self.only_agent == True):
-                velocity_loss = velocity_loss[demo_flag[task_start_index:] == 1.0].mean()
+                velocity_loss = velocity_loss[demo_flag[task_start_index:] == 1.0]
+                if(velocity_loss.shape[0] > 0):
+                    velocity_loss = velocity_loss.mean()
+                else:
+                    velocity_loss = torch.tensor(0.0).to(self.device)
             else:
                 velocity_loss = velocity_loss.mean()
             termination_flag_loss = F.binary_cross_entropy(actor_termination_flag, desired_termination_flag)

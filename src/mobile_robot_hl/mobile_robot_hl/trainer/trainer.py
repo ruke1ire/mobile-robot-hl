@@ -134,10 +134,8 @@ class Trainer():
                 tmp = dict(algorithm_kwargs= algorithm_kwargs, out = None)
                 exec(f"out = {algorithm_name}(**algorithm_kwargs)", None, tmp)
                 self.algorithm = tmp['out']
-                #self.algorithm = TD3(**algorithm_kwargs)
 
                 Thread(target = self.training_loop, args = (max_epochs, save_every,)).start()
-                #self.training_loop(max_epochs, save_every)
                 self.actor_state = TrainerState.RUNNING
                 self.critic_state = TrainerState.RUNNING
         elif(training_type == TrainingType.IL.name):
@@ -152,7 +150,6 @@ class Trainer():
                 if(additional_algorithm_kwargs is not None):
                     algorithm_kwargs = {**algorithm_kwargs, **additional_algorithm_kwargs}
 
-                #self.algorithm = SL(**algorithm_kwargs)
                 tmp = dict(algorithm_kwargs= algorithm_kwargs, out = None)
                 exec(f"out = {algorithm_name}(**algorithm_kwargs)", None, tmp)
                 self.algorithm = tmp['out']
