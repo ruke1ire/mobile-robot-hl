@@ -114,6 +114,18 @@ create_model__critic:
             - module_type: 'Linear'
               module_kwargs:
                   in_features: 50
+                  out_features: 32
+            - module_type: 'ReLU'
+              module_kwargs: {}
+            - module_type: 'Linear'
+              module_kwargs:
+                  in_features: 32
+                  out_features: 16
+            - module_type: 'ReLU'
+              module_kwargs: {}
+            - module_type: 'Linear'
+              module_kwargs:
+                  in_features: 16
                   out_features: 1
 
 save_model__actor:

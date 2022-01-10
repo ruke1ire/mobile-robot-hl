@@ -5,7 +5,7 @@ start_training__RL:
     max_epochs: 100
     additional_algorithm_kwargs:
         run_name: 'test_ss_sl1'
-        run_id: 5
+        run_id: 8
         checkpoint_every: 10
         device: 'cuda:0'
         only_agent: True

@@ -1,11 +1,11 @@
 start_training__RL:
     training_type: 'IL'
     algorithm_name: 'SL'
-    save_every: 10
-    max_epochs: 100
+    save_every: 1
+    max_epochs: 10
     additional_algorithm_kwargs:
         run_name: 'test_ss_sl2'
-        run_id: 1
+        run_id: 4
         checkpoint_every: 10
         device: 'cuda:0'
         only_agent: False

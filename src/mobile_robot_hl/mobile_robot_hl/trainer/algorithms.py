@@ -700,7 +700,9 @@ class TD3_SLRL(Algorithm):
             actor_termination_flag = actor_actions[:,2]
 
             print("# 9. Compute actor loss")
-            velocity_loss = -compute_similarity(actions[0,:], actions[1,:], actor_linear_vel, actor_angular_vel)[task_start_index:].mean()
+            velocity_loss = -compute_similarity(actions[0,:], actions[1,:], actor_linear_vel, actor_angular_vel)[task_start_index:]
+            velocity_loss[demo_flag[task_start_index:] == 0.0] = velocity_loss[demo_flag[task_start_index:] == 0.0]*0.1
+            velocity_loss = velocity_loss.mean()
             termination_flag_loss = F.binary_cross_entropy(actor_termination_flag, desired_termination_flag)
             actor_loss = velocity_loss + termination_flag_loss
             self.logger.log(DataType.num, velocity_loss.item(), key = "loss/actor_velocity")
@@ -839,6 +841,7 @@ class SL(Algorithm):
                 else:
                     velocity_loss = torch.tensor(0.0).to(self.device)
             else:
+                velocity_loss[demo_flag[task_start_index:] == 0.0] = velocity_loss[demo_flag[task_start_index:] == 0.0]*0.1
                 velocity_loss = velocity_loss.mean()
             termination_flag_loss = F.binary_cross_entropy(actor_termination_flag, desired_termination_flag)
             actor_loss = velocity_loss + termination_flag_loss
