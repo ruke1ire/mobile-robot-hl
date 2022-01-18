@@ -653,8 +653,8 @@ class TD3_SLRL(Algorithm):
 
                 print("# 3. Use smaller Q-value as the Q-value target")
                 target_q_min = torch.min(target_q1, target_q2)
-                print(target_q_episode)
-                target_q_min[target_q_episode < 0] == target_q_episode[target_q_episode < 0]
+                change_flag = torch.cat((torch.tensor([0]), demo_flag[1:]-demo_flag[:-1]))
+                target_q_min[change_flag == 1] = 0.0
                 #target_q_min[demo_flag == 1] = target_q_episode[demo_flag == 1]
 
                 print("# 4. Compute current Q-value with the reward")
