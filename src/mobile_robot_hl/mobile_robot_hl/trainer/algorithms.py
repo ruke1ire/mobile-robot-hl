@@ -649,7 +649,7 @@ class TD3_SLRL(Algorithm):
                 print("# 2. Compute Q-value of next state using the  target critics Q'(s(t+1), P'(s(t+1)))")
                 target_q1 = self.critic_model_1_target(input = images, input_latent = prev_latent, pre_output_latent = target_actions, frame_no = frame_no)
                 target_q2 = self.critic_model_2_target(input = images, input_latent = prev_latent, pre_output_latent = target_actions, frame_no = frame_no)
-                target_q_episode = compute_values(self.discount, rewards_velocity=rewards_agent, demo_flag = demo_flag)
+                #target_q_episode = compute_values(self.discount, rewards_velocity=rewards_agent, demo_flag = demo_flag)
 
                 print("# 3. Use smaller Q-value as the Q-value target")
                 target_q_min = torch.min(target_q1, target_q2)
