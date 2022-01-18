@@ -71,7 +71,11 @@ def create_discounted_matrix(gamma, size, demo_flag):
     for i in range(size):
         mat[i,i:] = discout_vec[:(size-i)]
         try:
-            idx = (demo_flag[i:] == 1.0).nonzero(as_tuple = True)[0][0].item()
+            if(demo_flag[i]) == 0.0:
+                idx = (demo_flag[i:] == 1.0).nonzero(as_tuple = True)[0][0].item()
+            else:
+                idx_tmp = (demo_flag[i:] == 0.0).nonzero(as_tuple = True)[0][0].item()
+                idx = (demo_flag[i+idx_tmp:] == 1.0).nonzero(as_tuple = True)[0][0].item()
             #idx2 = (demo_flag[i+idx:] == 0.0).nonzero(as_tuple = True)[0][0].item()
             mat[i,i+idx:] = 0.0
         except:
