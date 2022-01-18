@@ -28,23 +28,21 @@ class TrainingType(Enum):
 def compute_rewards(demonstration_flag, frame_no):
     if(type(demonstration_flag) == torch.Tensor):
         reward_agent = torch.ones((demonstration_flag.shape[0]), dtype = torch.float32)
-        reward_agent[demonstration_flag == 1.0] = -1.0
+        #reward_agent[demonstration_flag == 1.0] = -1.0
 
-#        next_flag = 0
-#        count = 0
-#        for i in reversed(range(reward_agent.shape[0])):
-#            flag = demonstration_flag[i]
-#            if(flag == 0):
-#                if(next_flag == 1):
-#                    reward_agent[i] = count-1
-#                    count = 0
-#            elif(flag == 1):
-#                count -= 1
-#            next_flag = flag
+        next_flag = 0
+        count = 0
+        for i in reversed(range(reward_agent.shape[0])):
+            flag = demonstration_flag[i]
+            if(flag == 0):
+                if(next_flag == 1):
+                    reward_agent[i] = count-1
+                    count = 0
+            elif(flag == 1):
+                count -= 1
+            next_flag = flag
 
-        demo_last_frame_no = frame_no[(frame_no==1.0).nonzero(as_tuple = True)[0][1]-1]
-        frame_no_error = abs((frame_no[-1] - demo_last_frame_no)/demo_last_frame_no)
-        reward_agent = reward_agent-frame_no_error
+        reward_agent[-1] = 100
 
     else:
         raise Exception("Invalid type to compute rewards")
@@ -74,8 +72,8 @@ def create_discounted_matrix(gamma, size, demo_flag):
         mat[i,i:] = discout_vec[:(size-i)]
         try:
             idx = (demo_flag[i:] == 1.0).nonzero(as_tuple = True)[0][0].item()
-            idx2 = (demo_flag[i+idx:] == 0.0).nonzero(as_tuple = True)[0][0].item()
-            mat[i,i+idx+idx2:] = 0.0
+            #idx2 = (demo_flag[i+idx:] == 0.0).nonzero(as_tuple = True)[0][0].item()
+            mat[i,i+idx:] = 0.0
         except:
             pass
 

@@ -74,9 +74,9 @@ class TD3(Algorithm):
         self.critic_model_1 = critic_model
         self.critic_model_2 = pickle.loads(pickle.dumps(self.critic_model_1))
 
-        self.actor_model_target = pickle.loads(pickle.dumps(self.actor_model)).eval()
-        self.critic_model_1_target = pickle.loads(pickle.dumps(self.critic_model_1)).eval()
-        self.critic_model_2_target = pickle.loads(pickle.dumps(self.critic_model_1)).eval()
+        self.actor_model_target = pickle.loads(pickle.dumps(self.actor_model))
+        self.critic_model_1_target = pickle.loads(pickle.dumps(self.critic_model_1))
+        self.critic_model_2_target = pickle.loads(pickle.dumps(self.critic_model_1))
 
         checkpoint = None
         if(os.path.exists(self.checkpoint_path)):
@@ -312,9 +312,9 @@ class TD3_INTER(Algorithm):
         self.critic_model_1 = critic_model
         self.critic_model_2 = pickle.loads(pickle.dumps(self.critic_model_1))
 
-        self.actor_model_target = pickle.loads(pickle.dumps(self.actor_model)).eval()
-        self.critic_model_1_target = pickle.loads(pickle.dumps(self.critic_model_1)).eval()
-        self.critic_model_2_target = pickle.loads(pickle.dumps(self.critic_model_1)).eval()
+        self.actor_model_target = pickle.loads(pickle.dumps(self.actor_model))
+        self.critic_model_1_target = pickle.loads(pickle.dumps(self.critic_model_1))
+        self.critic_model_2_target = pickle.loads(pickle.dumps(self.critic_model_1))
 
         checkpoint = None
         if(os.path.exists(self.checkpoint_path)):
@@ -568,9 +568,9 @@ class TD3_SLRL(Algorithm):
         self.critic_model_1 = critic_model
         self.critic_model_2 = pickle.loads(pickle.dumps(self.critic_model_1))
 
-        self.actor_model_target = pickle.loads(pickle.dumps(self.actor_model)).eval()
-        self.critic_model_1_target = pickle.loads(pickle.dumps(self.critic_model_1)).eval()
-        self.critic_model_2_target = pickle.loads(pickle.dumps(self.critic_model_1)).eval()
+        self.actor_model_target = pickle.loads(pickle.dumps(self.actor_model))
+        self.critic_model_1_target = pickle.loads(pickle.dumps(self.critic_model_1))
+        self.critic_model_2_target = pickle.loads(pickle.dumps(self.critic_model_1))
 
         checkpoint = None
         if(os.path.exists(self.checkpoint_path)):
@@ -652,14 +652,14 @@ class TD3_SLRL(Algorithm):
                 target_q_episode = compute_values(self.discount, rewards_velocity=rewards_agent, demo_flag = demo_flag)
 
                 print("# 3. Use smaller Q-value as the Q-value target")
-                target_q = torch.min(target_q1, target_q2)
-                target_q[demo_flag == 1] = target_q_episode[demo_flag == 1]
+                target_q_min = torch.min(target_q1, target_q2)
+                target_q_min[demo_flag == 1] = target_q_episode[demo_flag == 1]
 
                 print("# 4. Compute current Q-value with the reward")
-                target_q_next = torch.cat((target_q[1:],torch.zeros(1).to(self.device1)), dim = 0)
+                target_q_next = torch.cat((target_q_min[1:],torch.zeros(1).to(self.device1)), dim = 0)
                 target_q = rewards_agent + self.discount * target_q_next
                 target_q = target_q[task_start_index:] 
-                print("target_q", target_q[demo_flag[task_start_index:] == 0])
+                print("target_q", target_q)
 
             print("# 5.1 Compute Q-value from critics Q(s_t, a_t)")
             q1 = self.critic_model_1(input = images, input_latent = prev_latent, pre_output_latent = actions, frame_no = frame_no)
@@ -667,9 +667,10 @@ class TD3_SLRL(Algorithm):
             self.logger.log(DataType.num, q1[demo_flag[task_start_index:] == 0].mean().item(), "avg-value")
 
             print("# 6.1 Compute MSE loss for the critics")
-            critic_1_se = (q1[demo_flag[task_start_index:] == 0.0] - target_q[demo_flag[task_start_index:] == 0.0])**2
-            critic_1_mse = critic_1_se.mean()
-            critic_1_loss = critic_1_se[critic_1_se > (critic_1_mse)].mean()
+            #critic_1_se = (q1[demo_flag[task_start_index:] == 0.0] - target_q[demo_flag[task_start_index:] == 0.0])**2
+            critic_1_se = (q1 - target_q)**2
+            critic_1_loss = critic_1_se.mean()
+            #critic_1_loss = critic_1_se[critic_1_se > (critic_1_mse)].mean()
             self.logger.log(DataType.num, critic_1_loss.item(), key = "loss/critic1")
 
             print("# 7.1 Optimize critic")
@@ -682,9 +683,10 @@ class TD3_SLRL(Algorithm):
             q2 = q2[task_start_index:]
 
             print("# 6.2 Compute MSE loss for the critics")
-            critic_2_se = (q2[demo_flag[task_start_index:] == 0.0] - target_q[demo_flag[task_start_index:] == 0.0])**2
-            critic_2_mse = critic_2_se.mean()
-            critic_2_loss = critic_2_se[critic_2_se > (critic_2_mse)].mean()
+            #critic_2_se = (q2[demo_flag[task_start_index:] == 0.0] - target_q[demo_flag[task_start_index:] == 0.0])**2
+            critic_2_se = (q2 - target_q)**2
+            critic_2_loss = critic_2_se.mean()
+            #critic_2_loss = critic_2_se[critic_2_se > (critic_2_mse)].mean()
             self.logger.log(DataType.num, critic_2_loss.item(), key = "loss/critic2")
 
             print("# 7.2 Optimize critic")
@@ -715,9 +717,9 @@ class TD3_SLRL(Algorithm):
                                     input_latent = prev_latent,
                                     pre_output_latent = actor_actions.T,
                                     frame_no = frame_no)[task_start_index:]
-                negative_value = negative_value[demo_flag[task_start_index:] == 0.0].mean()
+                negative_value = negative_value.mean()
                 self.logger.log(DataType.num, negative_value.item(), key = "loss/actor_neg_value")
-                actor_loss += negative_value
+                actor_loss += negative_value*0.01
 
             print("# 11. Optimize actor")
             self.actor_optimizer.zero_grad(set_to_none = True)
