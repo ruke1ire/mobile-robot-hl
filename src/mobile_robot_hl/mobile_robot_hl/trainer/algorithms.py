@@ -721,7 +721,7 @@ class TD3_SLRL(Algorithm):
                                     frame_no = frame_no)[task_start_index:]
                 negative_value = negative_value.mean()
                 self.logger.log(DataType.num, negative_value.item(), key = "loss/actor_neg_value")
-                actor_loss += negative_value*0.01
+                actor_loss += negative_value*0.1
 
             print("# 11. Optimize actor")
             self.actor_optimizer.zero_grad(set_to_none = True)
