@@ -1,7 +1,9 @@
 select_data:
     data_type: 'TASK_EPISODE'
     list_of_names:
+        - 'obstacle-avoidance3'
         - 'obstacle-avoidance4'
+        - 'obstacle-avoidance5'
 
 select_model__actor:
     model_type: 'ACTOR'

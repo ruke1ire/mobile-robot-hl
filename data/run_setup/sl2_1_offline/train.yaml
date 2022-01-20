@@ -5,7 +5,7 @@ start_training__RL:
     max_epochs: 1000
     additional_algorithm_kwargs:
         run_name: 'sl2_1_offline'
-        run_id: 0
+        run_id: 1
         checkpoint_every: 10
         device: 'cuda:0'
         only_agent: False
