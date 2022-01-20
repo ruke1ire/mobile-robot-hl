@@ -36,7 +36,7 @@ def compute_rewards(demonstration_flag, frame_no):
             flag = demonstration_flag[i]
             if(flag == 0):
                 if(next_flag == 1):
-                    reward_agent[i] = count-1
+                    reward_agent[i] = 0#count-1
                     count = 0
             elif(flag == 1):
                 count -= 1
