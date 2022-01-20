@@ -129,7 +129,7 @@ create_model__critic:
         agent_value:
             - module_type: 'Linear'
               module_kwargs:
-                  in_features: 481
+                  in_features: 482
                   out_features: 50
             - module_type: 'ReLU'
               module_kwargs: {}
