@@ -113,7 +113,7 @@ create_model__critic:
                   in_features: 500
                   out_features: 100
         snail_kwargs:
-            input_size: 103
+            input_size: 104
             seq_length: 50
             architecture:
                 - module_type: 'TC'
