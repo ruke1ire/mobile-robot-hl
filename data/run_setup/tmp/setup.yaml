@@ -21,7 +21,7 @@ set_optimizer__actor:
         optimizer_name: 'Adam'
         optimizer_kwargs:
             lr: 0.0002
-            weight_decay: 0.005
+            weight_decay: 0.001
 
 set_optimizer__critic:
     model_type: 'CRITIC'

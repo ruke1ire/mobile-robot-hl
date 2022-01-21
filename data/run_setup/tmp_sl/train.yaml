@@ -5,9 +5,9 @@ start_training__RL:
     max_epochs: 1000
     additional_algorithm_kwargs:
         run_name: 'tmp_sl'
-        run_id: 0
+        run_id: 2
         checkpoint_every: 10
         device: 'cuda:0'
         only_agent: False
-        run_decay: -0.1
+        run_decay: 0.0
         logger_name: 'WandbLogger'

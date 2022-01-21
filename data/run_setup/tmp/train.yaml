@@ -5,11 +5,11 @@ start_training__RL:
     max_epochs: 1000
     additional_algorithm_kwargs:
         run_name: 'tmp'
-        run_id: 101
+        run_id: 105
         checkpoint_every: 10
         device: 'cuda:0'
         discount: 0.98
         tau: 0.05
         noise: 0.1
-        run_decay: -0.005
+        run_decay: 0.0
         logger_name: 'WandbLogger'
