@@ -2,7 +2,7 @@ create_model__actor:
     model_type: 'ACTOR'
     model_name: 'tmp'
     model_architecture:
-        base_architecture:
+        base_net_architecture:
             - module_type: 'Conv2d'
               module_kwargs:
                 in_channels: 3
@@ -45,23 +45,31 @@ create_model__actor:
               module_kwargs:
                   in_features: 500
                   out_features: 100
-        out_architecture:
+        snail_kwargs:
+            input_size: 104
+            seq_length: 50
+            architecture:
+                - module_type: 'TC'
+                  module_kwargs:
+                      filter_size: 30
+                - module_type: 'ATTENTION'
+                  module_kwargs:
+                      key_size: 16
+                      value_size: 16
+                - module_type: 'TC'
+                  module_kwargs:
+                      filter_size: 30
+        out_net_architecture:
             - module_type: 'Linear'
               module_kwargs:
-                  in_features: 100
-                  out_features: 50
-            - module_type: 'ReLU'
-              module_kwargs: {}
-            - module_type: 'Linear'
-              module_kwargs:
-                  in_features: 50
+                  in_features: 480
                   out_features: 3
 
 create_model__critic:
     model_type: 'CRITIC'
     model_name: 'tmp'
     model_architecture:
-        base_architecture:
+        base_net_architecture:
             - module_type: 'Conv2d'
               module_kwargs:
                 in_channels: 3
@@ -104,28 +112,30 @@ create_model__critic:
               module_kwargs:
                   in_features: 500
                   out_features: 100
-        out_architecture:
+        snail_kwargs:
+            input_size: 104
+            seq_length: 50
+            architecture:
+                - module_type: 'TC'
+                  module_kwargs:
+                      filter_size: 30
+                - module_type: 'ATTENTION'
+                  module_kwargs:
+                      key_size: 16
+                      value_size: 16
+                - module_type: 'TC'
+                  module_kwargs:
+                      filter_size: 30
+        agent_value:
             - module_type: 'Linear'
               module_kwargs:
-                  in_features: 102
+                  in_features: 482
                   out_features: 50
             - module_type: 'ReLU'
               module_kwargs: {}
             - module_type: 'Linear'
               module_kwargs:
                   in_features: 50
-                  out_features: 32
-            - module_type: 'ReLU'
-              module_kwargs: {}
-            - module_type: 'Linear'
-              module_kwargs:
-                  in_features: 32
-                  out_features: 16
-            - module_type: 'ReLU'
-              module_kwargs: {}
-            - module_type: 'Linear'
-              module_kwargs:
-                  in_features: 16
                   out_features: 1
 
 save_model__actor:

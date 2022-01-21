@@ -137,19 +137,22 @@ class TD3_SLRL(Algorithm):
                 break
 
             name_id = f"{name}/{id_}"
+
+            print(f"Episode Name/ID: {name_id}")
+            print(f"Run No. {j+1}")
+            print(f"Episode Length = {frame_no.shape[0]}")
+
             if(self.run_decay != 0.0 or self.run_decay is not None):
                 if(name_id in self.run_no.keys()):
                     run_no = self.run_no[name_id]
                     run_percent = math.exp(self.run_decay*run_no)
                     self.run_no[name_id] = run_no + 1
                     if(random.uniform(0,1) > run_percent):
+                        print("Skipped episode")
+                        j+=1
                         continue
                 else:
                     self.run_no[name_id] = 1
-
-            print(f"Episode Name/ID: {name_id}")
-            print(f"Run No. {j+1}")
-            print(f"Episode Length = {frame_no.shape[0]}")
 
             task_start_index = (frame_no == 1).nonzero()[1].item()
 
@@ -289,6 +292,7 @@ class SL(Algorithm):
                 device,
                 only_agent = False,
                 logger_name = None,
+                run_decay = 0.0
                 ):
         '''
         Supervised Learning (SL) algorithm implementation.
@@ -299,6 +303,8 @@ class SL(Algorithm):
         self.checkpoint_path = os.path.join(CHECKPOINT_PATH, self.run_name, self.run_id, "checkpoint.pth")
         self.device = device
         self.only_agent = only_agent
+        self.run_decay = run_decay
+        self.run_no = dict()
 
         self.actor_model = actor_model
 
@@ -306,6 +312,8 @@ class SL(Algorithm):
         if(os.path.exists(self.checkpoint_path)):
             checkpoint = torch.load(self.checkpoint_path, map_location='cpu')
             self.actor_model.load_state_dict(checkpoint['actor_state_dict'])
+            if('run_no' in checkpoint.keys()):
+                self.run_no = checkpoint['run_no']
         else:
             os.makedirs(os.path.join(CHECKPOINT_PATH, self.run_name, self.run_id), exist_ok=True)
 
@@ -321,6 +329,7 @@ class SL(Algorithm):
         self.checkpoint_every = checkpoint_every
         config_dict = dict(
             actor_optimizer = actor_optimizer_dict,
+            run_decay = self.run_decay
             )
         self.logger = create_logger(self.run_name, self.run_id, config_dict, logger_name)
     
@@ -330,9 +339,23 @@ class SL(Algorithm):
             if(trainer.stop == True):
                 break
 
-            print(f"Episode Name/ID: {name}/{id_}")
+            name_id = f"{name}/{id_}"
+
+            print(f"Episode Name/ID: {name_id}")
             print(f"Run No. {j+1}")
             print(f"Episode Length = {frame_no.shape[0]}")
+
+            if(self.run_decay != 0.0 or self.run_decay is not None):
+                if(name_id in self.run_no.keys()):
+                    run_no = self.run_no[name_id]
+                    run_percent = math.exp(self.run_decay*run_no)
+                    self.run_no[name_id] = run_no + 1
+                    if(random.uniform(0,1) > run_percent):
+                        print("Skipped episode")
+                        j+=1
+                        continue
+                else:
+                    self.run_no[name_id] = 1
 
             task_start_index = (frame_no == 1).nonzero()[1].item()
 
@@ -386,4 +409,5 @@ class SL(Algorithm):
         torch.save({
                     'actor_state_dict': self.actor_model.state_dict(),
                     'actor_optimizer_state_dict': self.actor_optimizer.state_dict(),
+                    'run_no': self.run_no,
                     }, self.checkpoint_path)

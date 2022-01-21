@@ -29,13 +29,17 @@ class Trainer():
         self.critic_optimizer_dict = None
         self.algorithm = None
 
-        self.task_dataset = TaskDataset(self.task_handler)
-        self.demo_dataset = DemoDataset(self.demo_handler)
-        try:
-            self.task_dataloader = DataLoader(self.task_dataset, batch_size = None, shuffle = True)
-            self.demo_dataloader = DataLoader(self.demo_dataset, batch_size = None, shuffle = True)
-        except:
-            pass
+#        self.task_dataset = TaskDataset(self.task_handler)
+#        self.demo_dataset = DemoDataset(self.demo_handler)
+        self.task_dataset = None
+        self.demo_dataset = None
+        self.task_dataloader = None
+        self.demo_dataloader = None
+#        try:
+#            self.task_dataloader = DataLoader(self.task_dataset, batch_size = None, shuffle = True)
+#            self.demo_dataloader = DataLoader(self.demo_dataset, batch_size = None, shuffle = True)
+#        except:
+#            pass
 
     def select_data(self, data_type, list_of_names):
         if(data_type == InformationType.DEMO.name):
