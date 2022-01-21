@@ -1,15 +1,18 @@
 from itertools import count
 from threading import Thread
+import sys
 
 import torch
 from torch.utils.data import Dataset, DataLoader
-from mobile_robot_hl.episode_data.utils import InformationType
 
+from mobile_robot_hl.episode_data.utils import InformationType
 from mobile_robot_hl.model.utils import *
 import mobile_robot_hl.model.model as m
+
 from .utils import *
 from .dataset import *
 from .algorithms import *
+from .tests import *
 
 class Trainer():
     def __init__(self, model_handler, demo_handler, task_handler):
@@ -29,17 +32,16 @@ class Trainer():
         self.critic_optimizer_dict = None
         self.algorithm = None
 
-#        self.task_dataset = TaskDataset(self.task_handler)
-#        self.demo_dataset = DemoDataset(self.demo_handler)
         self.task_dataset = None
         self.demo_dataset = None
+        self.test_dataset = None
         self.task_dataloader = None
         self.demo_dataloader = None
-#        try:
-#            self.task_dataloader = DataLoader(self.task_dataset, batch_size = None, shuffle = True)
-#            self.demo_dataloader = DataLoader(self.demo_dataset, batch_size = None, shuffle = True)
-#        except:
-#            pass
+
+    def compute_test_metric(self, test_type, list_of_names):
+        test_dataset = TestDataset(self.task_handler, list_of_names = list_of_names)
+        test = getattr(sys.modules[__name__], test_type)
+        return test(test_dataset)
 
     def select_data(self, data_type, list_of_names):
         if(data_type == InformationType.DEMO.name):
