@@ -53,6 +53,13 @@ def compute_similarity(user_linear, user_angular, agent_linear, agent_angular):
     agent_vel = torch.cat((agent_linear.unsqueeze(1), agent_angular.unsqueeze(1)), dim = 1)
     e_dist = torch.sum((user_vel - agent_vel)**2, dim = 1)**0.5
     return -e_dist
+
+def compute_similarity_normalized(user_linear, user_angular, agent_linear, agent_angular):
+    max_tensor = torch.tensor([2*MAX_LINEAR_VELOCITY, 2*MAX_ANGULAR_VELOCITY])
+    user_vel = torch.cat((user_linear.unsqueeze(1), user_angular.unsqueeze(1)), dim = 1)/max_tensor
+    agent_vel = torch.cat((agent_linear.unsqueeze(1), agent_angular.unsqueeze(1)), dim = 1)/max_tensor
+    e_dist = torch.sum(0.5*(user_vel - agent_vel)**2, dim = 1)**0.5
+    return -e_dist
             
 def compute_values(gamma, rewards_velocity, demo_flag):
     if(type(rewards_velocity) == torch.Tensor):

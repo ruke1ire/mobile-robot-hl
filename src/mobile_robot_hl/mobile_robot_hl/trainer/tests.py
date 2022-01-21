@@ -24,7 +24,7 @@ def velocity_similarity_test(dataset):
 		agent_linear_vel = agent_linear_vel[task_start_index:]
 		agent_angular_vel = agent_angular_vel[task_start_index:]
 
-		sim = compute_similarity(
+		sim = compute_similarity_normalized(
 			user_linear_vel[demo_flag[task_start_index:] == 0.0], 
 			user_angular_vel[demo_flag[task_start_index:] == 0.0], 
 			agent_linear_vel[demo_flag[task_start_index:] == 0.0], 
