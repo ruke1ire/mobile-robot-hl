@@ -10,7 +10,7 @@ create_model__actor:
                 kernel_size: 4
                 stride: 2
                 padding: 0
-            - module_type: 'ReLU'
+            - module_type: 'SiLU'
               module_kwargs: {}
             - module_type: 'BatchNorm2d'
               module_kwargs:
@@ -25,7 +25,7 @@ create_model__actor:
                 kernel_size: 4
                 stride: 2
                 padding: 0
-            - module_type: 'ReLU'
+            - module_type: 'SiLU'
               module_kwargs: {}
             - module_type: 'BatchNorm2d'
               module_kwargs:
@@ -39,7 +39,7 @@ create_model__actor:
               module_kwargs:
                   in_features: 1536
                   out_features: 500
-            - module_type: 'ReLU'
+            - module_type: 'SiLU'
               module_kwargs: {}
             - module_type: 'Linear'
               module_kwargs:
@@ -50,7 +50,7 @@ create_model__actor:
               module_kwargs:
                   in_features: 100
                   out_features: 50
-            - module_type: 'ReLU'
+            - module_type: 'SiLU'
               module_kwargs: {}
             - module_type: 'Linear'
               module_kwargs:
