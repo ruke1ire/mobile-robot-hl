@@ -4,8 +4,8 @@ start_training__RL:
     save_every: 10
     max_epochs: 1000
     additional_algorithm_kwargs:
-        run_name: 'sl2_1_offline'
-        run_id: 1
+        run_name: 'th_sl_offline_ss'
+        run_id: 0
         checkpoint_every: 10
         device: 'cuda:0'
         only_agent: False

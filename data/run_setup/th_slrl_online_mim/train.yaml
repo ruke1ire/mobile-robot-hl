@@ -4,11 +4,12 @@ start_training__RL:
     save_every: 10
     max_epochs: 1000
     additional_algorithm_kwargs:
-        run_name: 'slrl2_offline_mim'
+        run_name: 'th_slrl_online_mim'
         run_id: 0
         checkpoint_every: 10
         device: 'cuda:0'
         discount: 0.98
         tau: 0.05
         noise: 0.1
+        run_decay: -0.005
         logger_name: 'WandbLogger'

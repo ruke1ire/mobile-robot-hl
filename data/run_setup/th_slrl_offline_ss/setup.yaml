@@ -8,12 +8,12 @@ select_data:
 
 select_model__actor:
     model_type: 'ACTOR'
-    model_name: 'slrl2_offline'
+    model_name: 'th_slrl_offline_ss'
     model_id: 'latest'
 
 select_model__critic:
     model_type: 'CRITIC'
-    model_name: 'slrl2_offline'
+    model_name: 'th_slrl_offline_ss'
     model_id: 'latest'
 
 set_optimizer__actor:
