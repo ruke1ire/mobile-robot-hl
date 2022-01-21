@@ -9,6 +9,7 @@ class DataType(Enum):
     string = 1
     image = 2
     tensor = 3
+    dict = 4
 
 class Logger(ABC):
     '''
@@ -53,6 +54,8 @@ class PrintLogger(Logger):
             print(key+str(data))
         elif(data_type == DataType.tensor):
             print(key+str(data))
+        elif(data_type == DataType.dict):
+            print(key+str(data))
 
 class WandbLogger(Logger):
     def __init__(self, name, id, config_dict):
@@ -61,6 +64,9 @@ class WandbLogger(Logger):
         wandb.init(project="MimeticSNAIL", entity="ruke1ire", name = name, resume = "allow", id = hash_id, config = config_dict)
 
     def log(self, data_type, data, key):
-        dictionary = dict()
-        dictionary[key] = data
+        if(data_type == DataType.dict):
+            dictionary = data
+        else:
+            dictionary = dict()
+            dictionary[key] = data
         wandb.log(dictionary)

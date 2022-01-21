@@ -154,6 +154,8 @@ class TD3_SLRL(Algorithm):
                 else:
                     self.run_no[name_id] = 1
 
+            log_dict = dict()
+
             task_start_index = (frame_no == 1).nonzero()[1].item()
 
             images = images.to(self.device)
@@ -190,12 +192,14 @@ class TD3_SLRL(Algorithm):
             print("# 5.1 Compute Q-value from critics Q(s_t, a_t)")
             q1 = self.critic_model_1(input = images, input_latent = prev_latent, pre_output_latent = actions, frame_no = frame_no)
             q1 = q1[task_start_index:]
-            self.logger.log(DataType.num, q1[demo_flag[task_start_index:] == 0].mean().item(), "avg-value")
+            #self.logger.log(DataType.num, q1[demo_flag[task_start_index:] == 0].mean().item(), "avg-value")
+            log_dict['avg-value'] = q1[demo_flag[task_start_index:] == 0].mean().item()
 
             print("# 6.1 Compute MSE loss for the critics")
             critic_1_se = (q1 - target_q)**2
             critic_1_loss = critic_1_se.mean()
-            self.logger.log(DataType.num, critic_1_loss.item(), key = "loss/critic1")
+            #self.logger.log(DataType.num, critic_1_loss.item(), key = "loss/critic1")
+            log_dict['loss/critic1'] = critic_1_loss.item()
 
             print("# 7.1 Optimize critic")
             self.critic_1_optimizer.zero_grad(set_to_none = True)
@@ -209,7 +213,8 @@ class TD3_SLRL(Algorithm):
             print("# 6.2 Compute MSE loss for the critics")
             critic_2_se = (q2 - target_q)**2
             critic_2_loss = critic_2_se.mean()
-            self.logger.log(DataType.num, critic_2_loss.item(), key = "loss/critic2")
+            #self.logger.log(DataType.num, critic_2_loss.item(), key = "loss/critic2")
+            log_dict['loss/critic2'] = critic_2_loss.item()
 
             print("# 7.2 Optimize critic")
             self.critic_2_optimizer.zero_grad(set_to_none = True)
@@ -229,8 +234,10 @@ class TD3_SLRL(Algorithm):
             velocity_loss = velocity_loss.mean()
             termination_flag_loss = F.binary_cross_entropy(actor_termination_flag, desired_termination_flag)
             actor_loss = velocity_loss + termination_flag_loss
-            self.logger.log(DataType.num, velocity_loss.item(), key = "loss/actor_velocity")
-            self.logger.log(DataType.num, termination_flag_loss.item(), key = "loss/actor_termination_flag")
+            #self.logger.log(DataType.num, velocity_loss.item(), key = "loss/actor_velocity")
+            log_dict['loss/actor_velocity'] = velocity_loss.item()
+            #self.logger.log(DataType.num, termination_flag_loss.item(), key = "loss/actor_termination_flag")
+            log_dict['loss/actor_termination_flag'] = termination_flag_loss.item()
 
             if(j % self.actor_update_period == (self.actor_update_period - 1)):
                 print("# 10. Compute the negative critic values using the real critic")
@@ -240,7 +247,8 @@ class TD3_SLRL(Algorithm):
                                     pre_output_latent = actor_actions.T,
                                     frame_no = frame_no)[task_start_index:]
                 negative_value = negative_value.mean()
-                self.logger.log(DataType.num, negative_value.item(), key = "loss/actor_neg_value")
+                #self.logger.log(DataType.num, negative_value.item(), key = "loss/actor_neg_value")
+                log_dict['loss/actor_neg_value'] = negative_value.item()
                 actor_loss += negative_value*0.1
 
             print("# 11. Optimize actor")
@@ -262,6 +270,8 @@ class TD3_SLRL(Algorithm):
 
             if(j % self.checkpoint_every == self.checkpoint_every-1):
                 self.checkpoint()
+
+            self.logger.log(DataType.dict, log_dict, key = None)
 
             j += 1
         self.checkpoint()
@@ -356,6 +366,8 @@ class SL(Algorithm):
                         continue
                 else:
                     self.run_no[name_id] = 1
+            
+            log_dict = dict()
 
             task_start_index = (frame_no == 1).nonzero()[1].item()
 
@@ -390,8 +402,8 @@ class SL(Algorithm):
                 velocity_loss = velocity_loss.mean()
             termination_flag_loss = F.binary_cross_entropy(actor_termination_flag, desired_termination_flag)
             actor_loss = velocity_loss + termination_flag_loss
-            self.logger.log(DataType.num, velocity_loss.item(), key = "loss/actor_velocity")
-            self.logger.log(DataType.num, termination_flag_loss.item(), key = "loss/actor_termination_flag")
+            log_dict['loss/actor_velocity'] = velocity_loss.item()
+            log_dict['loss/actor_termination_flag'] = termination_flag_loss.item()
 
             print("# 11. Optimize actor")
             self.actor_optimizer.zero_grad(set_to_none = True)
@@ -400,6 +412,8 @@ class SL(Algorithm):
 
             if(j % self.checkpoint_every == self.checkpoint_every-1):
                 self.checkpoint()
+
+            self.logger.log(DataType.dict, log_dict, key = None)
 
             j += 1
         self.checkpoint()
