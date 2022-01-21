@@ -1,1 +1,0 @@
-{"_step": 24, "_runtime": 590, "avg-value": 0.07952246069908142, "_timestamp": 1640076358, "loss/critic1": 32.206790924072266, "loss/critic2": 30.635574340820312, "loss/actor_velocity": NaN, "loss/actor_termination_flag": 0.059388138353824615, "loss/actor_neg_value": -3.421665668487549}

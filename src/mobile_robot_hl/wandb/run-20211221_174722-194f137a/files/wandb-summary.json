@@ -1,1 +1,0 @@
-{"avg-value": 0.029576046392321587, "_timestamp": 1640076469, "_step": 431, "_runtime": 614, "loss/critic1": 13.047220230102539, "loss/critic2": 13.191996574401855, "loss/actor_velocity": 0.11133663356304169, "loss/actor_termination_flag": 0.040459539741277695, "loss/actor_neg_value": -0.12328886985778809, "_wandb": {"runtime": 642}}
