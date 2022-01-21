@@ -1,0 +1,19 @@
+run_setup name convention: {TASK}_{ALGORITHM}_{ONLINE/OFFLINE}_{MODEL}
+
+oa_sl_online_mim
+oa_slrl_online_mim
+
+oa_sl_offline_mim
+oa_slrl_offline_mim
+
+oa_sl_offline_ss
+oa_slrl_offline_ss
+
+th_sl_online_mim
+th_slrl_online_mim
+
+th_sl_offline_mim
+th_slrl_offline_mim
+
+th_sl_offline_ss
+th_slrl_offline_ss
