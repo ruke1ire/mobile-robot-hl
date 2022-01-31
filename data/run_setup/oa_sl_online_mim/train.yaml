@@ -2,7 +2,7 @@ start_training__RL:
     training_type: 'IL'
     algorithm_name: 'SL'
     save_every: 10
-    max_epochs: 1000
+    max_epochs: 10
     additional_algorithm_kwargs:
         run_name: 'oa_sl_online_mim'
         run_id: 0
