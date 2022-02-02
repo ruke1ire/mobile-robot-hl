@@ -42,7 +42,7 @@ def compute_rewards(demonstration_flag, frame_no):
                 count -= 1
             next_flag = flag
 
-        reward_agent[-1] = 100
+        reward_agent[-1] = 40
 
     else:
         raise Exception("Invalid type to compute rewards")

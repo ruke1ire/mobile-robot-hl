@@ -7,12 +7,12 @@ select_data:
 
 select_model__actor:
     model_type: 'ACTOR'
-    model_name: 'tmp'
+    model_name: 'tmp2'
     model_id: 'latest'
 
 select_model__critic:
     model_type: 'CRITIC'
-    model_name: 'tmp'
+    model_name: 'tmp2'
     model_id: 'latest'
 
 set_optimizer__actor:
@@ -21,7 +21,7 @@ set_optimizer__actor:
         optimizer_name: 'Adam'
         optimizer_kwargs:
             lr: 0.0002
-            weight_decay: 0.001
+            #weight_decay: 0.001
 
 set_optimizer__critic:
     model_type: 'CRITIC'
@@ -29,4 +29,4 @@ set_optimizer__critic:
         optimizer_name: 'Adam'
         optimizer_kwargs:
             lr: 0.0005
-            weight_decay: 0.005
+            #weight_decay: 0.005

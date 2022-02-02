@@ -223,7 +223,7 @@ class TD3_SLRL(Algorithm):
 
             print("# 8. Compute actor actions")
             actor_actions = self.actor_model(input = images, input_latent = prev_latent, frame_no = frame_no)
-            print("actor actions", actor_actions)
+            print("actor actions", actor_actions[demo_flag == 0.0])
             actor_linear_vel = actor_actions[:,0]
             actor_angular_vel = actor_actions[:,1]
             actor_termination_flag = actor_actions[:,2]
@@ -249,7 +249,7 @@ class TD3_SLRL(Algorithm):
                 negative_value = negative_value.mean()
                 #self.logger.log(DataType.num, negative_value.item(), key = "loss/actor_neg_value")
                 log_dict['loss/actor_neg_value'] = negative_value.item()
-                actor_loss += negative_value*0.1
+                actor_loss += negative_value#*0.1
 
             print("# 11. Optimize actor")
             self.actor_optimizer.zero_grad(set_to_none = True)
@@ -384,7 +384,7 @@ class SL(Algorithm):
 
             print("# 8. Compute actor actions")
             actor_actions = self.actor_model(input = images, input_latent = prev_latent, frame_no = frame_no)
-            print("actor actions", actor_actions)
+            print("actor actions", actor_actions[demo_flag == 0.0])
             actor_linear_vel = actor_actions[:,0]
             actor_angular_vel = actor_actions[:,1]
             actor_termination_flag = actor_actions[:,2]

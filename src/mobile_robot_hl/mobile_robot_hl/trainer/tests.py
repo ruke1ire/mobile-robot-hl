@@ -1,7 +1,9 @@
+import matplotlib.pyplot as plt
 from .utils import *
 
 def velocity_similarity_test(dataset):
 	similarity = 0.0
+	similarity_arr = []
 	for (
 			name, 
 			id_, 
@@ -30,8 +32,11 @@ def velocity_similarity_test(dataset):
 			agent_linear_vel[demo_flag[task_start_index:] == 0.0], 
 			agent_angular_vel[demo_flag[task_start_index:] == 0.0])
 		similarity += sim.mean()/len(dataset)
+		similarity_arr.append(sim.mean())
 	
+	plt.plot(similarity_arr)
 	print(f"Similarity = {similarity}")
+	plt.show()
 	return similarity
 
 def failure_rate_test(dataset):
@@ -115,3 +120,26 @@ def max_output_test(dataset):
 	
 	print(f"Maximum Output Average = {max_output}")
 	return max_output
+
+def average_time_test(dataset):
+	avg_time = 0.0
+	for (
+			name, 
+			id_, 
+			images, 
+			latent, 
+			frame_no, 
+			agent_linear_vel,
+			agent_angular_vel,
+			agent_termination_flag,
+			user_linear_vel,
+			user_angular_vel,
+			user_termination_flag,
+			) in dataset:
+
+		task_start_index = (frame_no == 1).nonzero()[1].item()
+
+		avg_time += frame_no[-1].item()/len(dataset)
+	
+	print(f"Average Time = {avg_time}")
+	return avg_time
