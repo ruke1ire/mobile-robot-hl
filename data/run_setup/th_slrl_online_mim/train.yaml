@@ -2,14 +2,14 @@ start_training__RL:
     training_type: 'RL'
     algorithm_name: 'TD3_SLRL'
     save_every: 10
-    max_epochs: 1000
+    max_epochs: 10
     additional_algorithm_kwargs:
         run_name: 'th_slrl_online_mim'
         run_id: 0
         checkpoint_every: 10
         device: 'cuda:0'
-        discount: 0.98
-        tau: 0.05
-        noise: 0.1
-        run_decay: -0.005
+        discount: 0.95
+        tau: 0.005
+        noise: 0.2
+        run_decay: -0.002
         logger_name: 'WandbLogger'
