@@ -1,5 +1,12 @@
-Fails:
-4.1: slip wheel
-4.3: hit
-5.2: hit
-5.3: hit
+velocity_similarity_test:
+ - oa_sl_online: -0.2155
+ - oa_slrl_online: -0.1814
+supervisor_ratio_test:
+ - oa_sl_online: 0.1033
+ - oa_slrl_online: 0.1019
+failure_rate_test:
+ - oa_sl_online: 0.63
+ - oa_slrl_online: 0.58
+average_time_test:
+ - oa_sl_online: 45.5 frames
+ - oa_slrl_online: 39.69 frames
