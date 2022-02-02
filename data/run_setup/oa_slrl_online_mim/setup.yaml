@@ -1,9 +1,7 @@
 select_data:
     data_type: 'TASK_EPISODE'
     list_of_names:
-        - 'obstacle-avoidance3'
-        - 'obstacle-avoidance4'
-        - 'obstacle-avoidance5'
+        - 'oa'
 
 select_model__actor:
     model_type: 'ACTOR'
@@ -21,7 +19,7 @@ set_optimizer__actor:
         optimizer_name: 'Adam'
         optimizer_kwargs:
             lr: 0.0002
-            weight_decay: 0.005
+            weight_decay: 0.001
 
 set_optimizer__critic:
     model_type: 'CRITIC'
@@ -29,4 +27,4 @@ set_optimizer__critic:
         optimizer_name: 'Adam'
         optimizer_kwargs:
             lr: 0.0005
-            weight_decay: 0.0001
+            #weight_decay: 0.0001
