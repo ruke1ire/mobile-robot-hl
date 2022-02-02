@@ -115,6 +115,42 @@ def supervisor_ratio_test(dataset, save_path=None):
 
 	return supervisor_ratio
 
+def average_take_over_count_test(dataset, save_path = None):
+	take_over_count = 0
+	x_arr = []
+	take_over_count_arr = []
+	for (
+			name, 
+			id_, 
+			images, 
+			latent, 
+			frame_no, 
+			agent_linear_vel,
+			agent_angular_vel,
+			agent_termination_flag,
+			user_linear_vel,
+			user_angular_vel,
+			user_termination_flag,
+			) in dataset:
+
+		demo_flag = latent[-1,:]
+		task_start_index = (frame_no == 1).nonzero()[1].item()
+		demo_flag = demo_flag[task_start_index:]
+
+		num_take_over = (demo_flag[1:]-demo_flag[:-1] == 1.0).nonzero().shape[0]
+
+		take_over_count += (num_take_over)/len(dataset)
+		x_arr.append(id_)
+		take_over_count_arr.append((num_take_over))
+	
+	print(f"Average take over count = {take_over_count}")
+	if(save_path is not None):
+		plt.plot(x_arr, take_over_count_arr)
+		plt.savefig(save_path)
+		print(f"Saved to {save_path}")
+
+	return take_over_count
+
 def max_output_test(dataset):
 	max_output = 0.0
 	for (

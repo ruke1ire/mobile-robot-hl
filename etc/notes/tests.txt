@@ -10,3 +10,6 @@ failure_rate_test:
 average_time_test:
  - oa_sl_online: 45.5 frames
  - oa_slrl_online: 39.69 frames
+average_take_over_count:
+ - oa_sl_online: 0.95
+ - oa_slrl_online: 0.78
