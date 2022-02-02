@@ -38,10 +38,10 @@ class Trainer():
         self.task_dataloader = None
         self.demo_dataloader = None
 
-    def compute_test_metric(self, test_type, list_of_names):
-        test_dataset = TestDataset(self.task_handler, list_of_names = list_of_names)
+    def compute_test_metric(self, test_type, dataset, test_kwargs={}):
+        test_dataset = TestDataset(self.task_handler, list_of_names = [dataset])
         test = getattr(sys.modules[__name__], test_type)
-        return test(test_dataset)
+        return test(test_dataset, **test_kwargs)
 
     def select_data(self, data_type, list_of_names):
         if(data_type == InformationType.DEMO.name):

@@ -62,7 +62,7 @@ class TaskDataset(Dataset):
                 self.task_ids[name] = set()
 
         for name in self.demo_names:
-            ids = set(self.task_handler.get_ids(name))
+            ids = set(sorted(self.task_handler.get_ids(name)))
             new_ids = ids - self.task_ids[name]
             if(len(new_ids) > 0):
                 self.task_ids[name] = copy.deepcopy(ids)
