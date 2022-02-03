@@ -3,11 +3,11 @@ velocity_similarity_test:
  - oa_slrl_online: -0.1814
  - th_sl_online: -0.2218
  - th_slrl_online: -0.1923
-supervisor_ratio_test:
- - oa_sl_online: 0.1033
- - oa_slrl_online: 0.1019
- - th_sl_online: 0.0806
- - th_slrl_online: 0.0827
+average_supervised_frames_test:
+ - oa_sl_online: 4.78
+ - oa_slrl_online: 4.11
+ - th_sl_online: 2.03
+ - th_slrl_online: 1.69
 failure_rate_test:
  - oa_sl_online: 0.63
  - oa_slrl_online: 0.58
