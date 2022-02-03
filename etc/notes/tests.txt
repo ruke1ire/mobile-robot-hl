@@ -1,15 +1,25 @@
 velocity_similarity_test:
  - oa_sl_online: -0.2155
  - oa_slrl_online: -0.1814
+ - th_sl_online: -0.2218
+ - th_slrl_online: -0.1923
 supervisor_ratio_test:
  - oa_sl_online: 0.1033
  - oa_slrl_online: 0.1019
+ - th_sl_online: 0.0806
+ - th_slrl_online: 0.0827
 failure_rate_test:
  - oa_sl_online: 0.63
  - oa_slrl_online: 0.58
+ - th_sl_online: 0.46
+ - th_slrl_online: 0.36
 average_time_test:
  - oa_sl_online: 45.5 frames
  - oa_slrl_online: 39.69 frames
+ - th_sl_online: 24.8 frames
+ - th_slrl_online: 19.66 frames
 average_take_over_count:
  - oa_sl_online: 0.95
  - oa_slrl_online: 0.78
+ - th_sl_online: 0.54
+ - th_slrl_online: 0.39
