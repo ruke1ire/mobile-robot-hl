@@ -161,6 +161,57 @@ def average_supervised_frames_test(dataset, save_path = None, label = None):
 
 	return supervised_frames
 
+def cumulative_supervised_frames_test(dataset, save_path = None, label = None):
+	supervised_frames = 0
+	x_arr = []
+	supervised_frames_arr = []
+	for (
+			name, 
+			id_, 
+			images, 
+			latent, 
+			frame_no, 
+			agent_linear_vel,
+			agent_angular_vel,
+			agent_termination_flag,
+			user_linear_vel,
+			user_angular_vel,
+			user_termination_flag,
+			) in dataset:
+
+		demo_flag = latent[-1,:]
+		task_start_index = (frame_no == 1).nonzero()[1].item()
+		demo_flag = demo_flag[task_start_index:]
+
+		num_take_over = (demo_flag[1:]-demo_flag[:-1] == 1.0).nonzero().shape[0]
+
+		demo_flag = latent[-1,:]
+		task_start_index = (frame_no == 1).nonzero()[1].item()
+
+		num_of_demo = (demo_flag[task_start_index:] == 1.0).nonzero().shape[0]
+
+		supervised_frames += (num_of_demo)
+		x_arr.append(id_)
+		supervised_frames_arr.append((num_of_demo))
+	
+	print(f"Cumulative supervised frames per episode = {supervised_frames}")
+	if(save_path is not None):
+		plt.title("Cumulative Supervised Frames")
+		plt.xlabel("Episode")
+		plt.ylabel("Supervised Frames")
+		supervised_frames_arr = np.array([x for _, x in sorted(zip(x_arr, supervised_frames_arr))])
+		supervised_frames_cum = np.cumsum(supervised_frames_arr)
+		x_arr = np.array(sorted(x_arr))
+		plt.plot(x_arr, supervised_frames_cum, label = label, linewidth = 2)
+		plt.fill_between(x_arr, supervised_frames_cum, alpha = 0.3)
+		plt.grid(True)
+		plt.legend()
+		plt.savefig(save_path)
+		print(f"Saved to {save_path}")
+
+	return supervised_frames
+
+
 def average_take_over_count_test(dataset):
 	take_over_count = 0
 	x_arr = []
