@@ -57,7 +57,7 @@ def velocity_similarity_test(dataset, save_path = None, label = None):
 
 	return similarity
 
-def failure_rate_test(dataset):
+def failure_rate_test(dataset, save_path = None, label = None):
 	failure_rate = 0.0
 	x_arr = []
 	failure_rate_arr = []
@@ -86,6 +86,25 @@ def failure_rate_test(dataset):
 		x_arr.append(id_)
 	
 	print(f"Failure Rate = {failure_rate}")
+
+	if(save_path is not None):
+		plt.title("Failures")
+		plt.xlabel("Episode")
+		plt.ylabel("1 = Failure, 0 = Success")
+		failure_rate_arr = np.array([x for _, x in sorted(zip(x_arr, failure_rate_arr))])
+		x_arr = np.array(sorted(x_arr))
+		N = 9
+		failure_avg = np.convolve(failure_rate_arr, np.ones(N)/N, mode='valid')
+		plt.scatter(x_arr, failure_rate_arr, s = 10, label = label, alpha = 0.5)
+		if(label != None):
+			label = label + f" Moving Average (N = {N})"
+		plt.plot(x_arr[int(N/2):-int(N/2)], failure_avg, label = label, linewidth = 2)
+		plt.grid(True)
+		plt.legend(loc = 'lower left')
+		plt.savefig(save_path)
+		print(f"Saved to {save_path}")
+
+
 	return failure_rate
 
 def average_supervised_frames_test(dataset, save_path = None, label = None):
