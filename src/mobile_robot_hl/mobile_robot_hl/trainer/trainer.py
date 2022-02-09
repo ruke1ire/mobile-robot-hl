@@ -38,8 +38,8 @@ class Trainer():
         self.task_dataloader = None
         self.demo_dataloader = None
 
-    def compute_test_metric(self, test_type, dataset, test_kwargs={}):
-        test_dataset = TestDataset(self.task_handler, list_of_names = [dataset])
+    def compute_test_metric(self, test_type, datasets, test_kwargs={}):
+        test_dataset = TestDataset(self.task_handler, list_of_names = datasets)
         test = getattr(sys.modules[__name__], test_type)
         return test(test_dataset, **test_kwargs)
 
