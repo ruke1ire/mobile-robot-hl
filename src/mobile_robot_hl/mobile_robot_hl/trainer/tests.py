@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
+from statsmodels.stats.power import TTestIndPower
 
 from .utils import *
 
@@ -347,3 +348,67 @@ def t_test(dataset, test_type):
 
             print("T-Test = ",t_tuple)
     return ts
+
+def power_analysis_test(dataset, test_type, power = 0.8, alpha = 0.05):
+    names = dict()
+    for (
+            name, 
+            id_, 
+            images, 
+            latent, 
+            frame_no, 
+            agent_linear_vel,
+            agent_angular_vel,
+            agent_termination_flag,
+            user_linear_vel,
+            user_angular_vel,
+            user_termination_flag,
+            ) in dataset:
+        if(name not in names.keys()):
+            names[name] = []
+        names[name].append((
+            name,
+            id_,
+            images, 
+            latent, 
+            frame_no, 
+            agent_linear_vel,
+            agent_angular_vel,
+            agent_termination_flag,
+            user_linear_vel,
+            user_angular_vel,
+            user_termination_flag,))
+
+    test = getattr(sys.modules[__name__], test_type)
+
+    sample_sizes = []
+    names_list = list(names.keys())
+    for i in range(len(names_list)):
+        if(i == len(names_list) - 1):
+            continue
+        mean_a, arr_a = test(names[names_list[i]])
+        for j in range(i+1, len(names_list)):
+            mean_b, arr_b = test(names[names_list[j]])
+
+            arr_a = np.array(arr_a)[1]
+            arr_b = np.array(arr_b)[1]
+            std_a = np.std(arr_a)
+            std_b = np.std(arr_b)
+            n_a = len(arr_a)
+            n_b = len(arr_b)
+
+            effect = (abs(mean_a-mean_b)/((std_a+std_b)/2)).item()
+            ratio = min(n_a, n_b)/max(n_a, n_b)
+            print("Effect",effect)
+            print("Ratio",ratio)
+            print("Power",power)
+            print("Alpha",alpha)
+
+            analysis = TTestIndPower()
+            sample_size = analysis.solve_power(effect, power=power, nobs1=None, ratio=ratio, alpha=alpha)
+
+            sample_size_tuple = (names_list[i], names_list[j], sample_size)
+            sample_sizes.append(sample_size_tuple)
+
+            print("Sample Size = ", sample_size_tuple)
+    return sample_sizes
