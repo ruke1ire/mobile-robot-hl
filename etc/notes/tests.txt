@@ -7,6 +7,10 @@ velocity_similarity_test:
  - th_slrl_online: -0.1923
  - t-test: 3.5278
  - power analysis: 63
+ - th_sl_online2: -0.2474
+ - th_slrl_online2: -0.1780
+ - t-test: 9.8573
+ - power analysis: 9.063
 average_supervised_frames_test:
  - oa_sl_online: 4.78
  - oa_slrl_online: 4.11
@@ -16,6 +20,10 @@ average_supervised_frames_test:
  - th_slrl_online: 1.69
  - t-test: 0.9021
  - power analysis: 955
+ - th_sl_online2: 2.34
+ - th_slrl_online2: 1.03
+ - t-test: 4.0986
+ - power analysis: 47
 failure_rate_test:
  - oa_sl_online: 0.63
  - oa_slrl_online: 0.58
@@ -25,6 +33,10 @@ failure_rate_test:
  - th_slrl_online: 0.36
  - t-test: 1.437
  - power analysis: 376
+ - th_sl_online2: 0.64
+ - th_slrl_online2: 0.31
+ - t-test: 4.9259
+ - power analysis: 33
 average_time_test:
  - oa_sl_online: 45.5 frames
  - oa_slrl_online: 39.69 frames
@@ -34,6 +46,10 @@ average_time_test:
  - th_slrl_online: 19.66 frames
  - t-test: 17.475
  - power analysis: 3.66
+ - th_sl_online2: 26.15 frames
+ - th_slrl_online2: 20.3 frames
+ - t-test: 17.52016
+ - power analysis: 3.50
 average_take_over_count:
  - oa_sl_online: 0.95
  - oa_slrl_online: 0.78
@@ -41,5 +57,9 @@ average_take_over_count:
  - power analysis: 474
  - th_sl_online: 0.54
  - th_slrl_online: 0.39
- - power analysis: 259
  - t-test: 1.7276
+ - power analysis: 259
+ - th_sl_online2: 0.68
+ - th_slrl_online2: 0.34
+ - t-test: 4.289
+ - power analysis: 43.2
