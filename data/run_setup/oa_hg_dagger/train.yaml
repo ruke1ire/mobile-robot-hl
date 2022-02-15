@@ -4,9 +4,10 @@ start_training__RL:
     save_every: 10
     max_epochs: 10
     additional_algorithm_kwargs:
-        run_name: 'oa_bc'
+        run_name: 'oa_hg_dagger'
         run_id: 0
         checkpoint_every: 10
         device: 'cuda:0'
-        only_agent: False
+        only_agent: True
+	run_decay: -0.002
         logger_name: 'WandbLogger'
