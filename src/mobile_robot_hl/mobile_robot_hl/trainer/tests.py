@@ -266,9 +266,10 @@ def average_time_test(dataset, save_path = None, label = None):
 
         task_start_index = (frame_no == 1).nonzero()[1].item()
 
-        avg_time += frame_no[-1].item()/len(dataset)
+        t = (len(frame_no)-frame_no[task_start_index-1])
+        avg_time += t/len(dataset)
         x_arr.append(id_)
-        avg_time_arr.append(frame_no[-1].item())
+        avg_time_arr.append(t)
     
     print(f"Average Time = {avg_time}")
     if(save_path is not None):
