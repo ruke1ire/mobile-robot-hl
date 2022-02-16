@@ -1,0 +1,1 @@
+dont put negative reward, just give 0 reward.
