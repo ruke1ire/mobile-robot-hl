@@ -8,12 +8,7 @@ select_data:
 
 select_model__actor:
     model_type: 'ACTOR'
-    model_name: 'th_slrl_offline_mim'
-    model_id: 'latest'
-
-select_model__critic:
-    model_type: 'CRITIC'
-    model_name: 'th_slrl_offline_mim'
+    model_name: 'th_hg_dagger_offline'
     model_id: 'latest'
 
 set_optimizer__actor:
@@ -23,11 +18,3 @@ set_optimizer__actor:
         optimizer_kwargs:
             lr: 0.0002
             weight_decay: 0.001
-
-set_optimizer__critic:
-    model_type: 'CRITIC'
-    optimizer_dict:
-        optimizer_name: 'Adam'
-        optimizer_kwargs:
-            lr: 0.0005
-            #weight_decay: 0.0001

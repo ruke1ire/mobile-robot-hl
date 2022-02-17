@@ -1,14 +1,12 @@
 start_training__RL:
-    training_type: 'RL'
-    algorithm_name: 'TD3_SLRL'
+    training_type: 'IL'
+    algorithm_name: 'SL'
     save_every: 10
     max_epochs: 100
     additional_algorithm_kwargs:
-        run_name: 'th_slrl_offline_mim'
+        run_name: 'oa_hg_dagger_offline'
         run_id: 0
         checkpoint_every: 10
         device: 'cuda:0'
-        discount: 0.95
-        tau: 0.005
-        noise: 0.2
+        only_agent: True
         logger_name: 'WandbLogger'
