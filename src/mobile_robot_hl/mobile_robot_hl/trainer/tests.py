@@ -4,8 +4,9 @@ import sys
 from statsmodels.stats.power import TTestIndPower
 
 from .utils import *
+from .tests_plot import *
 
-def velocity_similarity_test(dataset, save_path = None, label = None):
+def velocity_similarity_test(dataset, plot_kwargs = None):
     similarity = 0.0
     similarity_arr = []
     x_arr = []
@@ -39,28 +40,19 @@ def velocity_similarity_test(dataset, save_path = None, label = None):
         similarity += sim.mean()/len(dataset)
         x_arr.append(id_)
         similarity_arr.append(sim.mean())
-    
+
+    similarity_arr = np.array([x.item() for _, x in sorted(zip(x_arr, similarity_arr))])
+    x_arr = np.array(sorted(x_arr))
+
     print(f"Similarity = {similarity}")
-    if(save_path is not None):
-        plt.title("Velocity Similarity")
-        plt.xlabel("Episode")
-        plt.ylabel("Similarity (Negative Normalized Euclidean Distance)")
-        similarity_arr = np.array([x.item() for _, x in sorted(zip(x_arr, similarity_arr))])
-        x_arr = np.array(sorted(x_arr))
-        N = 9
-        similarity_avg = np.convolve(similarity_arr, np.ones(N)/N, mode='valid')
-        plt.scatter(x_arr, similarity_arr, s = 10, label = label, alpha = 0.5)
-        if(label != None):
-            label = label + f" Moving Average (N = {N})"
-        plt.plot(x_arr[int(N/2):-int(N/2)], similarity_avg, label = label, linewidth = 2)
-        plt.grid(True)
-        plt.legend()
-        plt.savefig(save_path)
-        print(f"Saved to {save_path}")
 
-    return similarity, (x_arr, similarity_arr)
+    tuple_output = (x_arr, similarity_arr)
+    if(plot_kwargs is not None):
+        velocity_similarity_plot(tuple_output, **plot_kwargs)
 
-def failure_rate_test(dataset, save_path = None, label = None):
+    return similarity, tuple_output
+
+def failure_rate_test(dataset, plot_kwargs = None):
     failure_rate = 0.0
     x_arr = []
     failure_rate_arr = []
@@ -87,30 +79,18 @@ def failure_rate_test(dataset, save_path = None, label = None):
             failure_rate_arr.append(1)
         
         x_arr.append(id_)
-    
+
+    failure_rate_arr = np.array([x for _, x in sorted(zip(x_arr, failure_rate_arr))])
+    x_arr = np.array(sorted(x_arr))
+    tuple_output = (x_arr, failure_rate_arr)
     print(f"Failure Rate = {failure_rate}")
 
-    if(save_path is not None):
-        plt.title("Failures")
-        plt.xlabel("Episode")
-        plt.ylabel("1 = Failure, 0 = Success")
-        failure_rate_arr = np.array([x for _, x in sorted(zip(x_arr, failure_rate_arr))])
-        x_arr = np.array(sorted(x_arr))
-        N = 9
-        failure_avg = np.convolve(failure_rate_arr, np.ones(N)/N, mode='valid')
-        plt.scatter(x_arr, failure_rate_arr, s = 10, label = label, alpha = 0.5)
-        if(label != None):
-            label = label + f" Moving Average (N = {N})"
-        plt.plot(x_arr[int(N/2):-int(N/2)], failure_avg, label = label, linewidth = 2)
-        plt.grid(True)
-        plt.legend(loc = 'lower left')
-        plt.savefig(save_path)
-        print(f"Saved to {save_path}")
+    if(plot_kwargs is not None):
+        failure_rate_plot(tuple_output, **plot_kwargs)
 
+    return failure_rate, tuple_output
 
-    return failure_rate, (x_arr, failure_rate_arr)
-
-def average_supervised_frames_test(dataset, save_path = None, label = None):
+def average_supervised_frames_test(dataset, plot_kwargs = None):
     supervised_frames = 0
     x_arr = []
     supervised_frames_arr = []
@@ -143,28 +123,17 @@ def average_supervised_frames_test(dataset, save_path = None, label = None):
         x_arr.append(id_)
         supervised_frames_arr.append((num_of_demo))
     
+    supervised_frames_arr = np.array([x for _, x in sorted(zip(x_arr, supervised_frames_arr))])
+    x_arr = np.array(sorted(x_arr))
+    tuple_output = (x_arr, supervised_frames_arr)
+
     print(f"Average supervised frames per episode = {supervised_frames}")
-    if(save_path is not None):
-        plt.title("Supervised Frames")
-        plt.xlabel("Episode")
-        plt.ylabel("Supervised Frames")
-        supervised_frames_arr = np.array([x for _, x in sorted(zip(x_arr, supervised_frames_arr))])
-        x_arr = np.array(sorted(x_arr))
-        N = 9
-        supervised_avg = np.convolve(supervised_frames_arr, np.ones(N)/N, mode='valid')
-        plt.scatter(x_arr, supervised_frames_arr, s = 10, label = label, alpha = 0.5)
-        if(label != None):
-            label = label + f" Moving Average (N = {N})"
-        plt.plot(x_arr[int(N/2):-int(N/2)], supervised_avg, label = label, linewidth = 2)
-        plt.grid(True)
-        plt.legend()
-        plt.savefig(save_path)
-        print(f"Saved to {save_path}")
+    if(plot_kwargs is not None):
+        average_supervised_frames_plot(tuple_output, **plot_kwargs)
 
+    return supervised_frames, tuple_output
 
-    return supervised_frames, (x_arr, supervised_frames_arr)
-
-def cumulative_supervised_frames_test(dataset, save_path = None, label = None):
+def cumulative_supervised_frames_test(dataset, plot_kwargs = None):
     supervised_frames = 0
     x_arr = []
     supervised_frames_arr = []
@@ -196,25 +165,18 @@ def cumulative_supervised_frames_test(dataset, save_path = None, label = None):
         supervised_frames += (num_of_demo)
         x_arr.append(id_)
         supervised_frames_arr.append((num_of_demo))
-    
+
+    supervised_frames_arr = np.array([x for _, x in sorted(zip(x_arr, supervised_frames_arr))])
+    supervised_frames_cum = np.cumsum(supervised_frames_arr)
+    x_arr = np.array(sorted(x_arr))
+    tuple_output = (x_arr, supervised_frames_cum)
+
     print(f"Cumulative supervised frames per episode = {supervised_frames}")
-    if(save_path is not None):
-        plt.title("Cumulative Supervised Frames")
-        plt.xlabel("Episode")
-        plt.ylabel("Supervised Frames")
-        supervised_frames_arr = np.array([x for _, x in sorted(zip(x_arr, supervised_frames_arr))])
-        supervised_frames_cum = np.cumsum(supervised_frames_arr)
-        x_arr = np.array(sorted(x_arr))
-        plt.plot(x_arr, supervised_frames_cum, label = label, linewidth = 2)
-        plt.fill_between(x_arr, supervised_frames_cum, alpha = 0.3)
-        plt.grid(True)
-        plt.legend()
-        plt.savefig(save_path)
-        print(f"Saved to {save_path}")
+    if(plot_kwargs is not None):
+        cumulative_supervised_frames_plot(tuple_output, **plot_kwargs)
 
     return supervised_frames, (x_arr, supervised_frames_cum)
-
-
+    
 def average_take_over_count_test(dataset):
     take_over_count = 0
     x_arr = []
@@ -246,7 +208,7 @@ def average_take_over_count_test(dataset):
     print(f"Average take over count = {take_over_count}")
     return take_over_count, (x_arr, take_over_count_arr)
 
-def average_time_test(dataset, save_path = None, label = None):
+def average_time_test(dataset, plot_kwargs = None):
     avg_time = 0.0
     x_arr = []
     avg_time_arr = []
@@ -271,25 +233,58 @@ def average_time_test(dataset, save_path = None, label = None):
         x_arr.append(id_)
         avg_time_arr.append(t)
     
+    avg_time_arr = np.array([x for _, x in sorted(zip(x_arr, avg_time_arr))])
+    x_arr = np.array(sorted(x_arr))
+
+    tuple_output = (x_arr, avg_time_arr)
     print(f"Average Time = {avg_time}")
-    if(save_path is not None):
-        plt.title("Time to Task Completion")
-        plt.xlabel("Episode")
-        plt.ylabel("Time to Task Completion (Frames)")
-        avg_time_arr = np.array([x for _, x in sorted(zip(x_arr, avg_time_arr))])
-        x_arr = np.array(sorted(x_arr))
-        N = 9
-        avg_time_avg = np.convolve(avg_time_arr, np.ones(N)/N, mode='valid')
-        plt.scatter(x_arr, avg_time_arr, s = 10, label = label, alpha = 0.5)
-        if(label != None):
-            label = label + f" Moving Average (N = {N})"
-        plt.plot(x_arr[int(N/2):-int(N/2)], avg_time_avg, label = label, linewidth = 2)
-        plt.grid(True)
-        plt.legend()
-        plt.savefig(save_path)
-        print(f"Saved to {save_path}")
+
+    if(plot_kwargs is not None):
+        average_time_plot(tuple_output, **plot_kwargs)
 
     return avg_time,(x_arr, avg_time_arr)
+
+def average_angular_change_test(dataset, plot_kwargs = None):
+    angular_change = 0.0
+    angular_changes = []
+    x_arr = []
+    for (
+            name, 
+            id_, 
+            images, 
+            latent, 
+            frame_no, 
+            agent_linear_vel,
+            agent_angular_vel,
+            agent_termination_flag,
+            user_linear_vel,
+            user_angular_vel,
+            user_termination_flag,
+            ) in dataset:
+
+        demo_flag = latent[-1,:]
+        task_start_index = (frame_no == 1).nonzero()[1].item()
+
+        agent_angular_vel = agent_angular_vel[task_start_index:]
+        next_angular_vel = agent_angular_vel[1:].numpy()
+        current_angular_vel = agent_angular_vel[:-1].numpy()
+
+        angular_change_ = np.mean(np.absolute(next_angular_vel - current_angular_vel)[demo_flag[1+task_start_index:] == 0])
+
+        angular_change += angular_change_/len(dataset)
+        x_arr.append(id_)
+        angular_changes.append(angular_change_)
+
+    angular_changes = np.array([x.item() for _, x in sorted(zip(x_arr, angular_changes))])
+    x_arr = np.array(sorted(x_arr))
+
+    print(f"Average Angular Velocity Difference = {angular_change}")
+
+    tuple_output = (x_arr, angular_changes)
+    if(plot_kwargs is not None):
+        average_angular_change_plot(tuple_output, **plot_kwargs)
+
+    return angular_change, tuple_output
 
 def t_test(dataset, test_type):
     names = dict()
@@ -413,3 +408,53 @@ def power_analysis_test(dataset, test_type, power = 0.8, alpha = 0.05):
 
             print("Sample Size = ", sample_size_tuple)
     return sample_sizes
+
+def aggregator(dataset, test_type, group_name, plot_kwargs = None):
+    names = dict()
+    for (
+            name, 
+            id_, 
+            images, 
+            latent, 
+            frame_no, 
+            agent_linear_vel,
+            agent_angular_vel,
+            agent_termination_flag,
+            user_linear_vel,
+            user_angular_vel,
+            user_termination_flag,
+            ) in dataset:
+        if(name not in names.keys()):
+            names[name] = []
+        names[name].append((
+            name,
+            id_,
+            images, 
+            latent, 
+            frame_no, 
+            agent_linear_vel,
+            agent_angular_vel,
+            agent_termination_flag,
+            user_linear_vel,
+            user_angular_vel,
+            user_termination_flag,))
+
+    test = getattr(sys.modules[__name__], test_type)
+
+    aggregated_outputs = []
+
+    for group in group_name.keys():
+        group_arr = []
+        for name_ in group_name[group]:
+            mean, tuple_arr = test(names[name_])
+            x_arr = tuple_arr[0]
+            group_arr.append(tuple_arr[1])
+        mean_arr = np.mean(np.stack(group_arr), axis = 0)
+        aggregated_outputs.append((group, mean_arr))
+
+        if(plot_kwargs is not None):
+            plotter = getattr(sys.modules[__name__], test_type[:-5]+"_plot")
+            tuple_output = (x_arr, mean_arr)
+            plotter(tuple_output, label = group, **plot_kwargs)
+
+    return aggregated_outputs
