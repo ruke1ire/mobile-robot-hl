@@ -230,7 +230,7 @@ class TD3_SLRL(Algorithm):
 
             print("# 9. Compute actor loss")
             velocity_loss = -compute_similarity(actions[0,:], actions[1,:], actor_linear_vel, actor_angular_vel)[task_start_index:]
-            velocity_loss[demo_flag[task_start_index:] == 0.0] = velocity_loss[demo_flag[task_start_index:] == 0.0]*0.05
+            velocity_loss[demo_flag[task_start_index:] == 0.0] = velocity_loss[demo_flag[task_start_index:] == 0.0]*0.03
             velocity_loss = velocity_loss.mean()
             termination_flag_loss = F.binary_cross_entropy(actor_termination_flag, desired_termination_flag)
             actor_loss = velocity_loss + termination_flag_loss
