@@ -230,7 +230,7 @@ class TD3_SLRL(Algorithm):
 
             print("# 9. Compute actor loss")
             velocity_loss = -compute_similarity(actions[0,:], actions[1,:], actor_linear_vel, actor_angular_vel)[task_start_index:]
-            velocity_loss[demo_flag[task_start_index:] == 0.0] = velocity_loss[demo_flag[task_start_index:] == 0.0]*0.1
+            velocity_loss[demo_flag[task_start_index:] == 0.0] = velocity_loss[demo_flag[task_start_index:] == 0.0]*0.05
             velocity_loss = velocity_loss.mean()
             termination_flag_loss = F.binary_cross_entropy(actor_termination_flag, desired_termination_flag)
             actor_loss = velocity_loss + termination_flag_loss
@@ -249,7 +249,7 @@ class TD3_SLRL(Algorithm):
                 negative_value = negative_value.mean()
                 #self.logger.log(DataType.num, negative_value.item(), key = "loss/actor_neg_value")
                 log_dict['loss/actor_neg_value'] = negative_value.item()
-                actor_loss += negative_value#*0.1
+                actor_loss += negative_value*0.2
 
             print("# 11. Optimize actor")
             self.actor_optimizer.zero_grad(set_to_none = True)
