@@ -5,7 +5,7 @@ start_training__RL:
     max_epochs: 100
     additional_algorithm_kwargs:
         run_name: 'oa_slrl_offline_mim'
-        run_id: 0
+        run_id: 1
         checkpoint_every: 10
         device: 'cuda:0'
         discount: 0.95
