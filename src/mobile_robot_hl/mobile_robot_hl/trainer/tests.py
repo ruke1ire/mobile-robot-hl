@@ -244,7 +244,7 @@ def average_time_test(dataset, plot_kwargs = None):
 
     return avg_time,(x_arr, avg_time_arr)
 
-def average_angular_change_test(dataset, plot_kwargs = None):
+def angular_acc_test(dataset, plot_kwargs = None):
     angular_change = 0.0
     angular_changes = []
     x_arr = []
