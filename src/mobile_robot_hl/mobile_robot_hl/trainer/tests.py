@@ -32,14 +32,20 @@ def velocity_similarity_test(dataset, plot_kwargs = None):
         agent_linear_vel = agent_linear_vel[task_start_index:]
         agent_angular_vel = agent_angular_vel[task_start_index:]
 
-        sim = compute_similarity_normalized(
-            user_linear_vel[demo_flag[task_start_index:] == 0.0], 
-            user_angular_vel[demo_flag[task_start_index:] == 0.0], 
-            agent_linear_vel[demo_flag[task_start_index:] == 0.0], 
-            agent_angular_vel[demo_flag[task_start_index:] == 0.0])
-        similarity += sim.mean()/len(dataset)
+        user_linear_vel = user_linear_vel[demo_flag[task_start_index:] == 0.0]
+        user_angular_vel = user_angular_vel[demo_flag[task_start_index:] == 0.0]
+        agent_linear_vel = agent_linear_vel[demo_flag[task_start_index:] == 0.0]
+        agent_angular_vel =  agent_angular_vel[demo_flag[task_start_index:] == 0.0]
+
+        max_tensor = torch.tensor([2*MAX_LINEAR_VELOCITY, 2*MAX_ANGULAR_VELOCITY])
+        user_vel = torch.cat((user_linear_vel.unsqueeze(1), user_angular_vel.unsqueeze(1)), dim = 1)/max_tensor
+        agent_vel = torch.cat((agent_linear_vel.unsqueeze(1), agent_angular_vel.unsqueeze(1)), dim = 1)/max_tensor
+        sim = torch.mean(torch.sum((user_vel - agent_vel)**2, dim = 1))
+        rmse_sim = -sim**0.5
+        
+        similarity += rmse_sim/len(dataset)
         x_arr.append(id_)
-        similarity_arr.append(sim.mean())
+        similarity_arr.append(rmse_sim)
 
     similarity_arr = np.array([x.item() for _, x in sorted(zip(x_arr, similarity_arr))])
     x_arr = np.array(sorted(x_arr))
